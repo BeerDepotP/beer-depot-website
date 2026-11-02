@@ -22,11 +22,12 @@ const SECTION_RULES = [
   ["whiskey", /whisk|bourbon|scotc|\brye\b/i],
   ["tequila", /tequi|mezcal/i],
   ["brandy",  /brandy|cognac/i],
-  ["liqueur", /liqueur|liqour|cordial|schna/i],
+  ["liqueur", /liqueur|liqour|liquo|cordial|schna|vermo/i],
   ["wine",    /wine|champagne|prosecco|\bsake\b/i],
   ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domestic|import|malt/i],
+  ["local",   /bacon|beef|jerky|summer|sausage|\bsticks?\b/i],
   ["food",    /food|deli|kitchen|smoked|smokehouse|meat|made here|prepared|hot case/i],
-  ["outdoor", /charcoal|pellet|firewood|lighter fluid|propane|grill|\bice\b(?!\s*cream)/i],
+  ["outdoor", /charcoal|pellet|firewood|lighter fluid|propane|grill|outside|outdoor|\bice\b(?!\s*cream)/i],
 ];
 // Groups that never appear on the site, even if a pattern above matches:
 // tobacco/vapes (kept off on purpose), plus root beer and ginger beer (sodas).

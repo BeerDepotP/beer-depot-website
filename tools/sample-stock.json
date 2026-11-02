@@ -372,6 +372,26 @@
 "inStock": true
 },
 {
+"name": "Jack Link's Original Beef Stick",
+"section": "local",
+"inStock": true
+},
+{
+"name": "Nueske's Applewood Smoked Bacon",
+"section": "local",
+"inStock": true
+},
+{
+"name": "Usinger's Summer Sausage",
+"section": "local",
+"inStock": false
+},
+{
+"name": "Klement's Beef Summer Sausage",
+"section": "local",
+"inStock": true
+},
+{
 "name": "Kingsford Charcoal 16lb",
 "section": "outdoor",
 "inStock": true

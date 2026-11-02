@@ -135,7 +135,6 @@
   .btn.yes{background:var(--orange);color:#fff}
   .btn.no{background:transparent;color:#fff}
   .preview-flag{background:var(--orange);color:#fff;text-align:center;font-weight:600;font-size:14px;padding:7px 12px}
-  .food-only .drinks{display:none}
   .food-only-note{display:none}
   .food-only .food-only-note{display:block}
 </style>
@@ -185,7 +184,7 @@ __PREVIEW_FLAG__
       <div class="shelf-head"><h2>Made Here</h2><span class="count" id="food-count"></span></div>
       <p class="lede">Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.</p>
       <div id="menu"></div>
-      <p class="notice food-only-note">You're seeing food only. Beer and spirits are listed for customers 21 and older. <button class="btn no" id="regate" style="color:var(--glass);font-size:15px;padding:6px 12px;margin-left:6px">I'm 21+</button></p>
+      <p class="notice food-only-note">You're seeing food and other items only. Beer and spirits are listed for customers 21 and older. <button class="btn no" id="regate" style="color:var(--glass);font-size:15px;padding:6px 12px;margin-left:6px">I'm 21+</button></p>
     </div>
   </section>
   <section class="shelf outdoor" id="grilling-outdoor">
@@ -219,7 +218,9 @@ const STOCK_URL = __STOCK_URL__;          // where live stock comes from
 const REFRESH_SECONDS = 60;
 
 // Drink sections, in the order they appear on the page.
+// open:true = shown to everyone (not behind the 21+ check).
 const SECTIONS = [
+  { id:"local",   name:"Local Favorites", open:true },
   { id:"vodka",   name:"Vodka" },
   { id:"gin",     name:"Gin" },
   { id:"rum",     name:"Rum" },
@@ -368,8 +369,9 @@ function render(){
 
   // drinks
   let html="", total=0;
-  if(!foodOnly && stock){
+  if(stock){
     for(const s of SECTIONS){
+      if(foodOnly && !s.open) continue;
       let items = stock.filter(it=>it.section===s.id && matches(it.name,qRaw) && (!onlyIn || it.inStock));
       if(!items.length) continue;
       items.sort((a,b)=> (b.inStock-a.inStock) || a.name.localeCompare(b.name));
@@ -387,7 +389,7 @@ function render(){
   $("#drinks").innerHTML = html;
 
   // chips
-  const present = foodOnly ? [] : SECTIONS.filter(s=>document.getElementById(s.id));
+  const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));
   $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
 }
 
