@@ -357,19 +357,39 @@
 "inStock": true
 },
 {
-"name": "Third Space IPA 6pk",
+"name": "Lakefront Amber 6pk",
 "section": "beer",
 "inStock": false
 },
 {
-"name": "Third Space Lager 12pk",
+"name": "Lakefront Stout 4pk",
 "section": "beer",
 "inStock": false
+},
+{
+"name": "Third Space IPA 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Third Space Lager 12pk",
+"section": "beer",
+"inStock": true
 },
 {
 "name": "Third Space Seasonal 6pk",
 "section": "beer",
 "inStock": true
+},
+{
+"name": "Third Space Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Third Space Stout 4pk",
+"section": "beer",
+"inStock": false
 },
 {
 "name": "Good City IPA 6pk",
@@ -384,12 +404,22 @@
 {
 "name": "Good City Seasonal 6pk",
 "section": "beer",
-"inStock": true
+"inStock": false
+},
+{
+"name": "Good City Amber 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Good City Stout 4pk",
+"section": "beer",
+"inStock": false
 },
 {
 "name": "MobCraft IPA 6pk",
 "section": "beer",
-"inStock": false
+"inStock": true
 },
 {
 "name": "MobCraft Lager 12pk",
@@ -402,24 +432,44 @@
 "inStock": true
 },
 {
-"name": "Leinenkugel's IPA 6pk",
+"name": "MobCraft Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "MobCraft Stout 4pk",
 "section": "beer",
 "inStock": false
+},
+{
+"name": "Leinenkugel's IPA 6pk",
+"section": "beer",
+"inStock": true
 },
 {
 "name": "Leinenkugel's Lager 12pk",
 "section": "beer",
-"inStock": false
+"inStock": true
 },
 {
 "name": "Leinenkugel's Seasonal 6pk",
 "section": "beer",
-"inStock": false
+"inStock": true
+},
+{
+"name": "Leinenkugel's Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Leinenkugel's Stout 4pk",
+"section": "beer",
+"inStock": true
 },
 {
 "name": "Central Waters IPA 6pk",
 "section": "beer",
-"inStock": true
+"inStock": false
 },
 {
 "name": "Central Waters Lager 12pk",
@@ -430,6 +480,16 @@
 "name": "Central Waters Seasonal 6pk",
 "section": "beer",
 "inStock": true
+},
+{
+"name": "Central Waters Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Central Waters Stout 4pk",
+"section": "beer",
+"inStock": false
 },
 {
 "name": "Karben4 IPA 6pk",
@@ -447,6 +507,16 @@
 "inStock": true
 },
 {
+"name": "Karben4 Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Karben4 Stout 4pk",
+"section": "beer",
+"inStock": true
+},
+{
 "name": "Hacienda IPA 6pk",
 "section": "beer",
 "inStock": true
@@ -458,6 +528,16 @@
 },
 {
 "name": "Hacienda Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Hacienda Amber 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Hacienda Stout 4pk",
 "section": "beer",
 "inStock": true
 },

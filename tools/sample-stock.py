@@ -17,7 +17,7 @@ S={
 }
 import random
 random.seed(4)
-S["beer"] += [(f"{b} {k}",int(random.random()>.25)) for b in ["Lakefront","Third Space","Good City","MobCraft","Leinenkugel's","Central Waters","Karben4","Hacienda"] for k in ["IPA 6pk","Lager 12pk","Seasonal 6pk"]]
+S["beer"] += [(f"{b} {k}",int(random.random()>.25)) for b in ["Lakefront","Third Space","Good City","MobCraft","Leinenkugel's","Central Waters","Karben4","Hacienda"] for k in ["IPA 6pk","Lager 12pk","Seasonal 6pk","Amber 6pk","Stout 4pk"]]
 items=[{"name":n,"section":s,"inStock":bool(i)} for s,l in S.items() for n,i in l]
 json.dump({"updated":None,"items":items},open("sample-stock.json","w"),indent=0)
 print(len(items))
