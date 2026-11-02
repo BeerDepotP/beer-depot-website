@@ -117,6 +117,22 @@
   .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
   .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
 
+  .request{background:var(--kraft);padding:40px 0 44px;margin-top:44px}
+  .request h2{font-family:var(--display);font-weight:900;font-size:clamp(30px,5.5vw,46px);line-height:1;margin:0;overflow-wrap:break-word}
+  .request .lede{margin:10px 0 18px;color:#4A3B31}
+  .request form{max-width:640px;display:flex;flex-direction:column;gap:14px}
+  .fld{display:flex;flex-direction:column;gap:6px;font-weight:600}
+  .fld em{font-style:normal;font-weight:500;color:var(--muted);font-size:14px;margin-left:6px}
+  .fld input,.fld textarea{font:500 17px var(--body);padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);width:100%}
+  .fld input:focus,.fld textarea:focus{border-color:var(--orange);outline:none}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:600px){.row2{grid-template-columns:1fr}}
+  .request .btn{align-self:flex-start;padding:13px 22px}
+  .request .btn[disabled]{opacity:.6;cursor:default}
+  .req-msg{margin:0;font-weight:600}
+  .req-msg.ok{color:var(--in)} .req-msg.err{color:#A3361A}
+  .hp{position:absolute;left:-9999px}
+  footer{margin-top:0}
   footer{background:var(--glass);color:#E8D9CC;margin-top:44px;padding:30px 0 40px;font-size:15px}
   footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:flex-start}
   footer img{width:120px}
@@ -195,6 +211,25 @@ __PREVIEW_FLAG__
   </section>
   <div class="drinks wrap" id="drinks"></div>
 </main>
+
+<section class="request" id="request">
+  <div class="wrap">
+    <h2>Don't See It? Ask Us to Bring It In.</h2>
+    <p class="lede">Tell us what you'd like us to carry. We read every request.</p>
+    <form name="request" method="POST" data-netlify="true" netlify-honeypot="company" id="request-form">
+      <input type="hidden" name="form-name" value="request">
+      <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
+      <label class="fld"><span>What Should We Carry? <em>Required</em></span>
+        <textarea name="item" id="req-item" rows="3" required maxlength="500" placeholder="Brand, product and size, e.g. New Glarus Fat Squirrel 12-pack"></textarea></label>
+      <div class="row2">
+        <label class="fld"><span>Your Name <em>Optional</em></span><input name="name" maxlength="80" autocomplete="name"></label>
+        <label class="fld"><span>Phone or Email <em>Optional</em></span><input name="contact" maxlength="120" autocomplete="email" placeholder="So we can tell you when it's in"></label>
+      </div>
+      <button class="btn yes" type="submit" id="req-send">Send Request</button>
+      <p class="req-msg" id="req-msg" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
 
 <footer>
   <div class="wrap">
@@ -384,7 +419,7 @@ function render(){
   }
   if(qRaw && !total && !foodShown && !gearShown){
     html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
-      <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it.</p></div>`;
+      <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
   }
   $("#drinks").innerHTML = html;
 
@@ -401,6 +436,26 @@ function ago(d){
 
 let t; $("#q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(render,120); });
 $("#only-in").addEventListener("change",render);
+/* ---------- request box ---------- */
+document.addEventListener("click", e=>{
+  if(e.target && e.target.id==="ask-link"){ $("#req-item").value = $("#q").value.trim(); setTimeout(()=>$("#req-item").focus(),300); }
+});
+$("#request-form").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const f=e.target, msg=$("#req-msg"), btn=$("#req-send");
+  if(!f.item.value.trim()){ msg.className="req-msg err"; msg.textContent="Tell us what you'd like us to carry."; f.item.focus(); return; }
+  if(!STOCK_URL){ msg.className="req-msg ok"; msg.textContent="This is the preview. On the live site, your request goes straight to The Beer Depot."; return; }
+  btn.disabled=true; btn.textContent="Sending…"; msg.textContent="";
+  try{
+    const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:new URLSearchParams(new FormData(f)).toString()});
+    if(!r.ok) throw new Error(r.status);
+    f.reset(); msg.className="req-msg ok"; msg.textContent="Request sent. Thanks! We'll see what we can do.";
+  }catch(err){
+    msg.className="req-msg err"; msg.textContent="Your request didn't go through. Try again, or call us at 262-696-4602.";
+  }
+  btn.disabled=false; btn.textContent="Send Request";
+});
+
 load(); setInterval(load, REFRESH_SECONDS*1000);
 </script>
 </body>

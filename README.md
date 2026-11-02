@@ -56,3 +56,9 @@ In Netlify, go to **Domain management → Add a domain**, enter something like `
 ## Sections and the KORONA groups they match
 Vodka · Gin · Rum · Whiskey & bourbon (whiskey, bourbon, scotch, rye) · Liqueur (liqueur, cordials, schnapps) · Brandy (brandy, cognac) · Ready to drink cocktails · Tequila (tequila, mezcal) · Wine (wine, champagne, prosecco, sake) · Beer · Seltzers · Made Here (food, deli, smoked, meat) · Grilling & Outdoor (charcoal, pellets, firewood, lighter fluid, propane, grill, ice).
 Tobacco and vapes are kept off the site.
+
+## Request box
+Customers can request products at the bottom of the site. Requests go to Netlify Forms (free).
+- Turn it on once: in Netlify open **Forms → Enable form detection**, then redeploy.
+- See requests: **Forms → request**.
+- Get an email for each request: **Project configuration → Notifications → Emails and webhooks → Form submission notifications → Add notification → Email notification**, choose the `request` form.
