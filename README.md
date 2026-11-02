@@ -58,7 +58,7 @@ Vodka · Gin · Rum · Whiskey & bourbon (whiskey, bourbon, scotch, rye) · Liqu
 Tobacco and vapes are kept off the site.
 
 ## Request box
-Customers can request products at the bottom of the site. Requests go to Netlify Forms (free).
+Customers can request products at the bottom of the site (item, name and phone number are required). Requests go to Netlify Forms (free).
 - Turn it on once: in Netlify open **Forms → Enable form detection**, then redeploy.
 - See requests: **Forms → request**.
 - Get an email for each request: **Project configuration → Notifications → Emails and webhooks → Form submission notifications → Add notification → Email notification**, choose the `request` form.

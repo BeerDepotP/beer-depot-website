@@ -218,15 +218,15 @@ __PREVIEW_FLAG__
 <section class="request" id="request">
   <div class="wrap">
     <h2>Don't See It? Ask Us to Bring It In.</h2>
-    <p class="lede">Tell us what you'd like us to carry. We read every request.</p>
+    <p class="lede">Tell us what you'd like us to carry. We read every request and will call you if we get it in.</p>
     <form name="request" method="POST" data-netlify="true" netlify-honeypot="company" id="request-form">
       <input type="hidden" name="form-name" value="request">
       <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
       <label class="fld"><span>What Should We Carry? <em>Required</em></span>
         <textarea name="item" id="req-item" rows="3" required maxlength="500" placeholder="Brand, product and size, e.g. New Glarus Fat Squirrel 12-pack"></textarea></label>
       <div class="row2">
-        <label class="fld"><span>Your Name <em>Optional</em></span><input name="name" maxlength="80" autocomplete="name"></label>
-        <label class="fld"><span>Phone or Email <em>Optional</em></span><input name="contact" maxlength="120" autocomplete="email" placeholder="So we can tell you when it's in"></label>
+        <label class="fld"><span>Your Name <em>Required</em></span><input name="name" id="req-name" required maxlength="80" autocomplete="name"></label>
+        <label class="fld"><span>Phone Number <em>Required</em></span><input name="phone" id="req-phone" type="tel" inputmode="tel" required maxlength="20" autocomplete="tel" placeholder="So we can call you when it's in"></label>
       </div>
       <button class="btn yes" type="submit" id="req-send">Send Request</button>
       <p class="req-msg" id="req-msg" role="status" aria-live="polite"></p>
@@ -456,7 +456,12 @@ document.addEventListener("click", e=>{
 $("#request-form").addEventListener("submit", async e=>{
   e.preventDefault();
   const f=e.target, msg=$("#req-msg"), btn=$("#req-send");
-  if(!f.item.value.trim()){ msg.className="req-msg err"; msg.textContent="Tell us what you'd like us to carry."; f.item.focus(); return; }
+  const digits = f.phone.value.replace(/\D/g,"").replace(/^1(?=\d{10}$)/,"");
+  const problem = !f.item.value.trim() ? ["Tell us what you'd like us to carry.", f.item]
+                : !f.name.value.trim() ? ["Enter your name.", f.name]
+                : digits.length!==10 ? ["Enter a 10-digit phone number, like 262-555-0123.", f.phone] : null;
+  if(problem){ msg.className="req-msg err"; msg.textContent=problem[0]; problem[1].focus(); return; }
+  f.phone.value = digits.replace(/(\d{3})(\d{3})(\d{4})/,"$1-$2-$3");
   if(!STOCK_URL){ msg.className="req-msg ok"; msg.textContent="This is the preview. On the live site, your request goes straight to The Beer Depot."; return; }
   btn.disabled=true; btn.textContent="Sending…"; msg.textContent="";
   try{
