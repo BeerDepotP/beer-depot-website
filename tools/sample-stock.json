@@ -572,24 +572,39 @@
 "inStock": true
 },
 {
-"name": "Jack Link's Original Beef Stick",
+"name": "Northern Trails Beef Stick Original",
 "section": "local",
 "inStock": true
 },
 {
-"name": "Nueske's Applewood Smoked Bacon",
+"name": "Northern Trails Summer Sausage",
 "section": "local",
 "inStock": true
 },
 {
-"name": "Usinger's Summer Sausage",
+"name": "Northern Trails Bacon 1lb",
 "section": "local",
 "inStock": false
 },
 {
-"name": "Klement's Beef Summer Sausage",
+"name": "Pernats Beef Stick",
 "section": "local",
 "inStock": true
+},
+{
+"name": "Kreamers Cheese Curds",
+"section": "local",
+"inStock": true
+},
+{
+"name": "Sausage Haus Bacon Cheddar Brats",
+"section": "local",
+"inStock": true
+},
+{
+"name": "Sausage Haus Hungarian Brats",
+"section": "local",
+"inStock": false
 },
 {
 "name": "Kingsford Charcoal 16lb",

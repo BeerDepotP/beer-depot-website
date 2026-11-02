@@ -25,7 +25,7 @@ const SECTION_RULES = [
   ["liqueur", /liqueur|liqour|liquo|cordial|schna|vermo/i],
   ["wine",    /wine|champagne|prosecco|\bsake\b/i],
   ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domestic|import|malt/i],
-  ["local",   /bacon|beef|jerky|summer|sausage|\bsticks?\b/i],
+  ["local",   /bacon|brat|jerky|beef st|sausage|cheese|kreamer|pernat|northern|patt|burger/i],
   ["food",    /food|deli|kitchen|smoked|smokehouse|meat|made here|prepared|hot case/i],
   ["outdoor", /charcoal|pellet|firewood|lighter fluid|propane|grill|outside|outdoor|\bice\b(?!\s*cream)/i],
 ];
@@ -35,6 +35,11 @@ const BLOCK_RULES = /tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine
 // If a KORONA group name isn't caught by the patterns, add it here exactly as it
 // appears in KORONA Studio, e.g. { "Spirits - Clear": "vodka" }.
 const SECTION_BY_GROUP = {};
+// Individual products that sit in the wrong KORONA group: product-name pattern -> section.
+// These win over the group rules.
+const SECTION_BY_PRODUCT = [
+  [/bardstown/i, "whiskey"],
+];
 
 // ---------- KORONA API ----------
 const HOST = process.env.KORONA_HOST || "185.koronacloud.com";
@@ -118,7 +123,8 @@ export async function buildStock() {
   };
   for (const p of products) {
     if (p.active === false || p.deactivated) continue;
-    const section = sectionFor(p.commodityGroup?.id, groups);
+    const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
+    const section = override ? override[1] : sectionFor(p.commodityGroup?.id, groups);
     if (!section) {
       const gname = groups[p.commodityGroup?.id]?.name || "(no group)";
       report.unmatchedGroups[gname] = (report.unmatchedGroups[gname] || 0) + 1;

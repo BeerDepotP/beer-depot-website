@@ -81,6 +81,9 @@
   /* ---------- made here (food) ---------- */
   .made{background:var(--kraft);padding:38px 0 44px}
   .made .shelf-head{border-color:var(--glass)}
+  .made.local{background:#fff}
+  .made.local .dish{border:1.5px solid var(--line)}
+  .maker-note{margin:-4px 0 12px;color:#4A3B31;font-size:15px}
   .made .lede{margin:10px 0 22px;max-width:60ch;color:#4A3B31}
   .menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
   @media (max-width:560px){.menu{grid-template-columns:1fr 1fr;gap:12px}.dish h3{font-size:17px}.dish .body{padding:10px 11px 12px}}
@@ -97,6 +100,7 @@
   .dish.dim{opacity:.55}
   h3.grp{font-family:var(--display);font-weight:900;font-size:30px;margin:26px 0 12px;color:var(--glass)}
   h3.grp:first-child{margin-top:4px}
+  h3.grp .where{font-family:var(--body);font-weight:500;font-size:17px;color:var(--muted)}
   .prices,.extras{font-size:15px}
   .pr{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
   .pr:last-child{border-bottom:0}
@@ -208,6 +212,13 @@ __PREVIEW_FLAG__
       <p class="notice food-only-note">You're seeing food and other items only. Beer and spirits are listed for customers 21 and older. <button class="btn no" id="regate" style="color:var(--glass);font-size:15px;padding:6px 12px;margin-left:6px">I'm 21+</button></p>
     </div>
   </section>
+  <section class="made shelf local" id="local-favorites">
+    <div class="wrap">
+      <div class="shelf-head"><h2>Local Favorites</h2><span class="count" id="local-count"></span></div>
+      <p class="lede">Meat and cheese from local makers.</p>
+      <div id="local-menu"></div>
+    </div>
+  </section>
   <section class="shelf outdoor" id="grilling-outdoor">
     <div class="wrap">
       <div class="shelf-head"><h2>Grilling &amp; Outdoor</h2><span class="count" id="outdoor-count"></span></div>
@@ -261,7 +272,6 @@ const SECTION_LIMIT = 20;              // products shown per section before "See
 // Drink sections, in the order they appear on the page.
 // open:true = shown to everyone (not behind the 21+ check).
 const SECTIONS = [
-  { id:"local",   name:"Local Favorites", open:true },
   { id:"vodka",   name:"Vodka" },
   { id:"gin",     name:"Gin" },
   { id:"rum",     name:"Rum" },
@@ -302,6 +312,20 @@ const FOOD = [
   { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
 ];
+// Local Favorites: cards like Made Here, grouped by who makes them. Shown to everyone.
+// photo: a file in img/food. match: words that must all be in the KORONA product name.
+const LOCAL = [
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Beef Sticks", match:"northern beef stick", photo:"", prices:[] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Summer Sausage", match:"northern summer sausage", photo:"", prices:[] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Bacon", match:"northern bacon", photo:"", prices:[] },
+  { maker:"Pernat's", where:"Ixonia, WI", name:"Pernat's Beef Sticks", match:"pernat", photo:"", prices:[] },
+  { maker:"Kreamer's", where:"", name:"Kreamer's Cheese", match:"kreamer", photo:"", prices:[] },
+  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Bacon Cheddar Brats", match:"bacon cheddar brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
+  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Hungarian Brats", match:"hungarian brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
+  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Burger Patties", match:"patt", photo:"", prices:[], tag:"Thu–Sun, Summer" },
+];
+const MAKER_NOTES = { "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
+
 // Grilling & Outdoor: shown to everyone (not behind the 21+ check).
 const OUTDOOR = [
   { name:"Charcoal", match:"charcoal", prices:[] },
@@ -357,8 +381,8 @@ function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q
 
 function foodStatus(f, section="food"){
   if(!stock) return null;
-  const m = norm(f.match||f.name);
-  const hits = stock.filter(it=>it.section===section && (" "+norm(it.name)+" ").includes(" "+m));
+  const words = norm(f.match||f.name).split(" ");
+  const hits = stock.filter(it=>{ if(it.section!==section) return false; const n=" "+norm(it.name); return words.every(w=>n.includes(" "+w)); });
   if(!hits.length) return null;
   return hits.some(h=>h.inStock);
 }
@@ -374,9 +398,8 @@ function render(){
   // food
   let foodShown=0, menuHtml="";
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
-  for(const grp of ["Meats","Sides"]){
-    const cards = FOOD.filter(f=>f.group===grp).map(f=>{
-      const st = foodStatus(f);
+  const card = (f, section) => {
+      const st = foodStatus(f, section);
       if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
@@ -388,12 +411,31 @@ function render(){
         ${f.prices&&f.prices.length?`<div class="prices">${priceRows(f.prices)}</div>`:""}
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
         <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
-    }).join("");
+  };
+  for(const grp of ["Meats","Sides"]){
+    const cards = FOOD.filter(f=>f.group===grp).map(f=>card(f,"food")).join("");
     if(cards) menuHtml += `<h3 class="grp">${grp}</h3><div class="menu">${cards}</div>`;
   }
   $("#menu").innerHTML = menuHtml;
   $("#made-here").hidden = (qRaw && !foodShown);
   $("#food-count").textContent = foodShown + (foodShown===1?" Item":" Items");
+
+  // local favorites
+  const foodBefore = foodShown; let localHtml="";
+  for(const maker of [...new Set(LOCAL.map(l=>l.maker))]){
+    const list = LOCAL.filter(l=>l.maker===maker);
+    const cards = list.map(l=>card({...l, desc: l.desc}, "local")).join("");
+    if(cards){
+      const where = list[0].where ? `, ${esc(list[0].where)}` : "";
+      localHtml += `<h3 class="grp">${esc(maker)}<span class="where">${where}</span></h3>`
+        + (MAKER_NOTES[maker] ? `<p class="maker-note">${esc(MAKER_NOTES[maker])}</p>` : "")
+        + `<div class="menu">${cards}</div>`;
+    }
+  }
+  const localShown = foodShown - foodBefore; foodShown = foodBefore;
+  $("#local-menu").innerHTML = localHtml;
+  $("#local-favorites").hidden = !localShown;
+  $("#local-count").textContent = localShown + (localShown===1?" Item":" Items");
 
   // grilling & outdoor
   let gearShown=0;
@@ -434,7 +476,7 @@ function render(){
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}</section>`;
     }
   }
-  if(qRaw && !total && !foodShown && !gearShown){
+  if(qRaw && !total && !foodShown && !gearShown && !localShown){
     html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
       <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
   }
@@ -442,7 +484,7 @@ function render(){
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
 }
 
 function ago(d){
