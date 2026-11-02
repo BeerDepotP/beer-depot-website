@@ -15,6 +15,9 @@ S={
 "outdoor":[("Kingsford Charcoal 16lb",1),("Cookin Pellets Perfect Mix 40lb",1),("Cookin Pellets Cherry 40lb",0),("Firewood Bundle",1),("Kingsford Lighter Fluid 32oz",1),("Ice 7lb",1),("Ice 20lb",1),("Propane Exchange",1),("Propane Tank New",0)],
 "food":[("Ribs (half rack)",1),("Chicken Breast",1),("Pulled Pork lb",1),("Pulled Chicken lb",0),("Chicken Wings 1 dozen",1),("Stuffed Meatloaf",1),("Smoked Lasagna",1),("Smoked Mac and Cheese",1),("Smoked Bacon Jalapeno Mac",0),("Smoked Ham lb",1),("Gyro Meat lb",1),("Ribeye lb",1),("Shrimp Salad Small",1),("Shrimp Salad Large",0),("Italian Pasta Salad Lg",1),("Potato Salad Small",1),("Smoked Beans Large",0),("Smoked Beans Small",0),("Double Baked Potato",1)],
 }
+import random
+random.seed(4)
+S["beer"] += [(f"{b} {k}",int(random.random()>.25)) for b in ["Lakefront","Third Space","Good City","MobCraft","Leinenkugel's","Central Waters","Karben4","Hacienda"] for k in ["IPA 6pk","Lager 12pk","Seasonal 6pk"]]
 items=[{"name":n,"section":s,"inStock":bool(i)} for s,l in S.items() for n,i in l]
 json.dump({"updated":None,"items":items},open("sample-stock.json","w"),indent=0)
 print(len(items))

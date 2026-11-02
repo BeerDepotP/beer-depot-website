@@ -113,6 +113,9 @@
   .g-desc{display:block;color:var(--muted);font-size:15px}
   .g-main .prices{margin-top:4px;max-width:260px}
   ul.gear .status{margin-top:2px}
+  button.more{display:block;margin:14px auto 0;font:700 16px var(--body);color:var(--glass);background:#fff;border:2px solid var(--orange);
+    border-radius:999px;padding:10px 20px;cursor:pointer}
+  button.more:hover{background:var(--orange);color:#fff}
   .empty{padding:40px 0 10px}
   .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
   .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
@@ -251,6 +254,7 @@
 /* ================= SETTINGS (safe to edit) ================= */
 const STOCK_URL = "/api/stock";          // where live stock comes from
 const REFRESH_SECONDS = 60;
+const SECTION_LIMIT = 20;              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
 // open:true = shown to everyone (not behind the 21+ check).
@@ -313,6 +317,7 @@ const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let stock = null, updatedAt = null, foodOnly = false, loadError = false;
+const expanded = new Set();
 
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
 
@@ -412,9 +417,14 @@ function render(){
       items.sort((a,b)=> (b.inStock-a.inStock) || a.name.localeCompare(b.name));
       total+=items.length;
       const nIn = items.filter(i=>i.inStock).length;
+      const full = items.length;
+      const capped = !qRaw && !expanded.has(s.id) && full > SECTION_LIMIT;
+      const shown = capped ? items.slice(0, SECTION_LIMIT) : items;
+      const moreBtn = (!qRaw && full > SECTION_LIMIT)
+        ? `<button class="more" data-sec="${s.id}" aria-expanded="${!capped}">${capped ? `See All ${full} ${esc(s.name)}` : "Show Less"}</button>` : "";
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
-        <ul class="items">${items.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul></section>`;
+        <ul class="items">${shown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
+        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}</section>`;
     }
   }
   if(qRaw && !total && !foodShown && !gearShown){
@@ -438,6 +448,9 @@ let t; $("#q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(rend
 $("#only-in").addEventListener("change",render);
 /* ---------- request box ---------- */
 document.addEventListener("click", e=>{
+  const mb = e.target.closest && e.target.closest("button.more");
+  if(mb){ const id=mb.dataset.sec; const wasOpen=expanded.has(id); wasOpen?expanded.delete(id):expanded.add(id); render();
+          if(wasOpen) document.getElementById(id).scrollIntoView({block:"start"}); return; }
   if(e.target && e.target.id==="ask-link"){ $("#req-item").value = $("#q").value.trim(); setTimeout(()=>$("#req-item").focus(),300); }
 });
 $("#request-form").addEventListener("submit", async e=>{

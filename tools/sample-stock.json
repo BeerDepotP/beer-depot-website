@@ -342,6 +342,126 @@
 "inStock": true
 },
 {
+"name": "Lakefront IPA 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Lakefront Lager 12pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Lakefront Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Third Space IPA 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Third Space Lager 12pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Third Space Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Good City IPA 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Good City Lager 12pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Good City Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "MobCraft IPA 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "MobCraft Lager 12pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "MobCraft Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Leinenkugel's IPA 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Leinenkugel's Lager 12pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Leinenkugel's Seasonal 6pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Central Waters IPA 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Central Waters Lager 12pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Central Waters Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Karben4 IPA 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Karben4 Lager 12pk",
+"section": "beer",
+"inStock": false
+},
+{
+"name": "Karben4 Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Hacienda IPA 6pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Hacienda Lager 12pk",
+"section": "beer",
+"inStock": true
+},
+{
+"name": "Hacienda Seasonal 6pk",
+"section": "beer",
+"inStock": true
+},
+{
 "name": "High Noon Vodka Variety 8pk",
 "section": "seltzer",
 "inStock": true
