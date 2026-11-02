@@ -133,8 +133,9 @@ export async function buildStock() {
 }
 
 export default async (req) => {
-  if (!ACCOUNT || !process.env.KORONA_USER || !process.env.KORONA_PASSWORD) {
-    return Response.json({ error: "KORONA login is not set up yet." }, { status: 503 });
+  const missing = ["KORONA_ACCOUNT_ID", "KORONA_USER", "KORONA_PASSWORD"].filter(k => !process.env[k]);
+  if (missing.length) {
+    return Response.json({ error: "KORONA login is not set up yet.", missing }, { status: 503, headers: { "Cache-Control": "no-store" } });
   }
   const url = new URL(req.url);
   const wantReport = url.searchParams.get("report") && url.searchParams.get("report") === process.env.REPORT_KEY;
