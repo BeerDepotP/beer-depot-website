@@ -1,0 +1,58 @@
+# The Beer Depot website
+
+This folder is the whole website. It has two parts:
+
+- **public/**: the pages customers see (`index.html`, the logo, and food photos in `img/food/`).
+- **netlify/functions/stock.mjs**: a small private program that reads your stock from KORONA Studio once a minute and gives the website a simple list: product name, section, and whether it's in stock. Your KORONA login stays in it and never reaches customers' browsers.
+
+## Putting it online (about 15 minutes)
+
+### 1. Make a read-only API login in KORONA Studio
+1. Go to **Settings → Data Exchange → APIv3**.
+2. Under **API Accesses**, click **Add**.
+3. Name it `website` and set a username and a strong password.
+4. Turn on **read** permission only for **products, commodity groups, organizational units and stocks**. Leave everything else off.
+5. Save. Write down the username and password somewhere safe. Don't email or text them.
+
+### 2. Create a free Netlify account and upload the site
+Netlify's drag-and-drop upload skips the stock program, so use their command-line tool instead. You only have to do this once.
+1. Sign up at netlify.com.
+2. Install Node.js (the "LTS" version) from nodejs.org.
+3. Unzip this folder, open it, then right-click an empty spot and choose **Open in Terminal**.
+4. Run `npx netlify-cli login` and approve the login in your browser.
+5. Run `npx netlify-cli deploy --prod`. When it asks, choose **Create & configure a new project**, then press Enter to accept the defaults.
+
+### 3. Add your KORONA details as private settings
+In Netlify, open your site and go to **Site configuration → Environment variables**. Add these:
+
+| Name | Value |
+|---|---|
+| `KORONA_ACCOUNT_ID` | the Account-ID shown on the APIv3 screen |
+| `KORONA_HOST` | `185.koronacloud.com` |
+| `KORONA_USER` | the API username from step 1 |
+| `KORONA_PASSWORD` | the API password from step 1 |
+| `REPORT_KEY` | any made-up word, used for the check in step 4 |
+
+Then run `npx netlify-cli deploy --prod` again so the site picks up the settings.
+
+### 4. Check it
+Open `https://YOUR-SITE.netlify.app/api/stock?report=YOUR-REPORT-KEY`. You'll get a short report:
+
+- **shown**: how many products are on the website
+- **skippedNeverStocked**: catalog items that have never had stock (hidden, like you asked)
+- **unmatchedGroups**: KORONA groups that didn't fit any section, such as tobacco, vapes and snacks
+
+If a group that *should* be on the site shows up under unmatchedGroups, add it to `SECTION_BY_GROUP` near the top of `netlify/functions/stock.mjs`. For example, `{ "Spirits - Clear": "vodka" }`.
+
+### 5. Use your own domain (optional)
+In Netlify, go to **Domain management → Add a domain**, enter something like `thebeerdepotpewaukee.com` and follow the steps.
+
+## Everyday changes
+
+- **Food photos**: put the photo in `public/img/food/` (for example `ribs.jpg`), then in `public/index.html` find the `FOOD` list and set `photo:"ribs.jpg"` on that item. Prices for food are in the same list (`prices` and `extras`). Then run `npx netlify-cli deploy --prod` again.
+- **Food stock**: each food item checks KORONA for a product whose name contains its `match` word (for example, `ribs`). Food products in KORONA need to be in a commodity group with a name like "Food", "Deli" or "Smoked", or one you add to `SECTION_BY_GROUP`.
+- **What counts as "has had stock"**: the product has a stock record in KORONA, and it has either been received (it has a purchase price) or its count isn't zero. Everything else stays hidden.
+
+## Sections and the KORONA groups they match
+Vodka · Gin · Rum · Whiskey & bourbon (whiskey, bourbon, scotch, rye) · Liqueur (liqueur, cordials, schnapps) · Brandy (brandy, cognac) · Ready to drink cocktails · Tequila (tequila, mezcal) · Wine (wine, champagne, prosecco, sake) · Beer · Seltzers · Made Here (food, deli, smoked, meat) · Grilling & Outdoor (charcoal, pellets, firewood, lighter fluid, propane, grill, ice).
+Tobacco and vapes are kept off the site.

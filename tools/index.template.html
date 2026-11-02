@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Beer Depot · Pewaukee, WI</title>
+<meta name="description" content="See what's in stock at The Beer Depot in Pewaukee, WI: beer, seltzers, spirits, ready-to-drink cocktails and food smoked and made here.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --orange:#F26B1D;        /* brand orange (logo) */
+    --orange-deep:#C9520F;   /* text-safe orange on light */
+    --glass:#2B1A10;         /* amber bottle-glass brown */
+    --glass-2:#3A2416;
+    --paper:#FFFFFF;
+    --kraft:#F3ECE3;         /* case-box cardboard tint for bands */
+    --ink:#22160F;
+    --muted:#6F6259;
+    --line:#E3D9CE;
+    --in:#1F7A3A;
+    --out:#8B7F77;
+    --display:"Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --body:"Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+  body{margin:0;font-family:var(--body);color:var(--ink);background:var(--paper);font-size:17px;line-height:1.45;-webkit-text-size-adjust:100%}
+  a{color:inherit}
+  :focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:4px}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+
+  /* ---------- header / hero ---------- */
+  .hero{background:var(--glass);color:#fff;padding:18px 0 34px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .topbar img{width:150px;height:auto;display:block}
+  .call{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;font-size:16px;
+        border:2px solid var(--orange);color:#fff;padding:9px 14px;border-radius:999px;white-space:nowrap}
+  .call:hover{background:var(--orange)}
+  .call svg{width:16px;height:16px;fill:currentColor}
+  .hero h1{font-family:var(--display);font-weight:900;font-size:clamp(46px,9vw,92px);line-height:.9;
+           letter-spacing:-.5px;margin:30px 0 18px;max-width:11ch}
+  .search{position:relative;max-width:640px}
+  .search input{width:100%;font:600 19px var(--body);padding:17px 18px 17px 52px;border-radius:12px;border:3px solid var(--orange);
+                background:#fff;color:var(--ink);appearance:none}
+  .search input::placeholder{color:#9A8E86;font-weight:500}
+  .search svg{position:absolute;left:17px;top:50%;transform:translateY(-50%);width:22px;height:22px;fill:var(--orange-deep)}
+  .hero-meta{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:14px;font-size:15px;color:#E8D9CC}
+  .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  .toggle input{width:20px;height:20px;accent-color:var(--orange)}
+  .live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#5BD27D;margin-right:6px;vertical-align:1px}
+  .live-dot.off{background:#C9A99A}
+
+  /* ---------- section nav ---------- */
+  .chips{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+  .chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
+  .chips .wrap::-webkit-scrollbar{display:none}
+  .chip{flex:none;font:600 15px var(--body);padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);
+        background:#fff;color:var(--ink);text-decoration:none;white-space:nowrap}
+  .chip:hover{border-color:var(--orange)}
+  .chip.food{background:var(--orange);border-color:var(--orange);color:#fff}
+
+  /* ---------- sections ---------- */
+  section.shelf{padding:34px 0 8px;scroll-margin-top:60px}
+  .shelf-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:6px solid var(--orange);padding-bottom:6px;margin-bottom:6px}
+  .shelf-head h2{font-family:var(--display);font-weight:900;font-size:clamp(34px,6vw,52px);line-height:1;margin:0}
+  .count{color:var(--muted);font-size:15px;white-space:nowrap}
+  ul.items{list-style:none;margin:0;padding:0;columns:2;column-gap:40px}
+  @media (max-width:700px){ul.items{columns:1}}
+  ul.items li{break-inside:avoid;display:flex;justify-content:space-between;align-items:center;gap:14px;
+              padding:11px 0;border-bottom:1px solid var(--line)}
+  .name{font-weight:500}
+  .name mark{background:#FFE2CF;color:inherit;border-radius:3px;padding:0 1px}
+  .status{flex:none;font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
+  .status.in{color:var(--in);background:#E4F3E8}
+  .status.out{color:var(--out);background:#F1ECE8}
+  li.is-out .name{color:var(--muted)}
+
+  /* ---------- made here (food) ---------- */
+  .made{background:var(--kraft);padding:38px 0 44px}
+  .made .shelf-head{border-color:var(--glass)}
+  .made .lede{margin:10px 0 22px;max-width:60ch;color:#4A3B31}
+  .menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+  @media (max-width:560px){.menu{grid-template-columns:1fr 1fr;gap:12px}.dish h3{font-size:17px}.dish .body{padding:10px 11px 12px}}
+  .dish{background:#fff;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+  .dish .ph{aspect-ratio:4/3;background:var(--glass-2);position:relative;display:flex;align-items:center;justify-content:center}
+  .dish .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .dish .ph svg{width:34%;height:auto;fill:var(--orange);opacity:.85}
+  .dish .ph.has-img svg{display:none}
+  .dish .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .dish h3{margin:0;font-size:19px;line-height:1.2}
+  .dish p{margin:0;color:var(--muted);font-size:15px}
+  .dish .foot{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .tag{font-size:13px;font-weight:700;color:var(--glass);background:#FFE2CF;padding:3px 9px;border-radius:999px}
+  .dish.dim{opacity:.55}
+  h3.grp{font-family:var(--display);font-weight:900;font-size:30px;margin:26px 0 12px;color:var(--glass)}
+  h3.grp:first-child{margin-top:4px}
+  .prices,.extras{font-size:15px}
+  .pr{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
+  .pr:last-child{border-bottom:0}
+  .pr span{color:var(--muted)}
+  .pr b{font-weight:700;color:var(--ink)}
+  .extras summary{cursor:pointer;font-weight:600;color:var(--orange-deep);padding:2px 0}
+  .extras[open] summary{margin-bottom:4px}
+
+  ul.gear{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:40px}
+  @media (max-width:700px){ul.gear{grid-template-columns:1fr}}
+  ul.gear li{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .g-main{flex:1;min-width:0}
+  .g-main .name{font-weight:600;display:block}
+  .g-desc{display:block;color:var(--muted);font-size:15px}
+  .g-main .prices{margin-top:4px;max-width:260px}
+  ul.gear .status{margin-top:2px}
+  .empty{padding:40px 0 10px}
+  .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
+  .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
+
+  footer{background:var(--glass);color:#E8D9CC;margin-top:44px;padding:30px 0 40px;font-size:15px}
+  footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px;align-items:flex-start}
+  footer img{width:120px}
+  footer strong{color:#fff}
+  footer p{margin:4px 0;max-width:46ch}
+
+  /* ---------- age gate ---------- */
+  .gate{position:fixed;inset:0;z-index:50;background:var(--glass);display:flex;align-items:center;justify-content:center;padding:24px}
+  .gate[hidden]{display:none}
+  .gate-card{max-width:420px;text-align:center;color:#fff}
+  .gate-card img{width:200px;margin:0 auto 22px;display:block}
+  .gate-card h2{font-family:var(--display);font-weight:900;font-size:48px;line-height:1;margin:0 0 10px}
+  .gate-card p{color:#E8D9CC;margin:0 0 24px}
+  .gate-btns{display:flex;flex-direction:column;gap:10px}
+  .btn{font:700 18px var(--body);padding:15px 18px;border-radius:12px;border:2px solid var(--orange);cursor:pointer}
+  .btn.yes{background:var(--orange);color:#fff}
+  .btn.no{background:transparent;color:#fff}
+  .preview-flag{background:var(--orange);color:#fff;text-align:center;font-weight:600;font-size:14px;padding:7px 12px}
+  .food-only .drinks{display:none}
+  .food-only-note{display:none}
+  .food-only .food-only-note{display:block}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
+  <div class="gate-card">
+    <img src="__LOGO__" alt="The Beer Depot, Pewaukee WI">
+    <h2 id="gate-title">Are you 21 or older?</h2>
+    <p>This site lists beer and spirits. You must be 21 to see them.</p>
+    <div class="gate-btns">
+      <button class="btn yes" id="gate-yes">Yes, I'm 21 or older</button>
+      <button class="btn no" id="gate-no">No, just show me the food</button>
+    </div>
+  </div>
+</div>
+
+__PREVIEW_FLAG__
+
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <img src="__LOGO__" alt="The Beer Depot, Pewaukee WI">
+      <a class="call" href="tel:+12626964602" aria-label="Call The Beer Depot at 262-696-4602">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
+        262-696-4602
+      </a>
+    </div>
+    <h1>See what's on our shelves</h1>
+    <div class="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+      <input id="q" type="search" placeholder="Search Tito's, Spotted Cow, ribs…" autocomplete="off" aria-label="Search our stock">
+    </div>
+    <div class="hero-meta">
+      <label class="toggle"><input type="checkbox" id="only-in"> In Stock Only</label>
+      <span id="updated"><span class="live-dot off"></span>Loading stock…</span>
+    </div>
+  </div>
+</header>
+
+<nav class="chips" aria-label="Sections"><div class="wrap" id="chips"></div></nav>
+
+<main id="main">
+  <section class="made shelf" id="made-here">
+    <div class="wrap">
+      <div class="shelf-head"><h2>Made Here</h2><span class="count" id="food-count"></span></div>
+      <p class="lede">Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.</p>
+      <div id="menu"></div>
+      <p class="notice food-only-note">You're seeing food only. Beer and spirits are listed for customers 21 and older. <button class="btn no" id="regate" style="color:var(--glass);font-size:15px;padding:6px 12px;margin-left:6px">I'm 21+</button></p>
+    </div>
+  </section>
+  <section class="shelf outdoor" id="grilling-outdoor">
+    <div class="wrap">
+      <div class="shelf-head"><h2>Grilling &amp; Outdoor</h2><span class="count" id="outdoor-count"></span></div>
+      <ul class="gear" id="gear"></ul>
+    </div>
+  </section>
+  <div class="drinks wrap" id="drinks"></div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <img src="__LOGO__" alt="The Beer Depot">
+    </div>
+    <div>
+      <p><strong>The Beer Depot</strong> · Pewaukee, WI</p>
+      <p>Call <a href="tel:+12626964602"><strong>262-696-4602</strong></a></p>
+    </div>
+    <div>
+      <p>Stock updates from our register every minute. Supplies move fast on weekends, so call ahead if you're coming for something specific.</p>
+      <p>You must be 21 to buy alcohol. We check ID in store.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ================= SETTINGS (safe to edit) ================= */
+const STOCK_URL = __STOCK_URL__;          // where live stock comes from
+const REFRESH_SECONDS = 60;
+
+// Drink sections, in the order they appear on the page.
+const SECTIONS = [
+  { id:"vodka",   name:"Vodka" },
+  { id:"gin",     name:"Gin" },
+  { id:"rum",     name:"Rum" },
+  { id:"whiskey", name:"Whiskey & Bourbon" },
+  { id:"liqueur", name:"Liqueur" },
+  { id:"brandy",  name:"Brandy" },
+  { id:"cocktails", name:"Ready to Drink Cocktails" },
+  { id:"tequila", name:"Tequila" },
+  { id:"wine",    name:"Wine" },
+  { id:"beer",    name:"Beer" },
+  { id:"seltzer", name:"Seltzers" },
+];
+
+// Food made here, shown in two groups: "Meats" and "Sides".
+// photo: a file in the img/food folder (leave "" until you have one).
+// match: word(s) used to find this item's stock in KORONA.
+// prices: each line is [label, price], e.g. ["Each","6.49"] or ["Per lb","9.99"].
+// extras: add-ons listed under the item (same format as prices).
+const FOOD = [
+  { group:"Meats", name:"Ribeye", match:"ribeye", photo:"", prices:[["Per lb","18.99"]] },
+  { group:"Meats", name:"Smoked Ribs", match:"ribs", photo:"", prices:[["Per lb","9.99"]] },
+  { group:"Meats", name:"Smoked Chicken Breast", desc:"Regular or Spicy", match:"chicken breast", photo:"", prices:[["Each","6.49"]] },
+  { group:"Meats", name:"Smoked Pulled Pork", match:"pulled pork", photo:"", prices:[["Per lb","9.99"]] },
+  { group:"Meats", name:"Smoked Pulled Chicken", match:"pulled chicken", photo:"", prices:[["Per lb","7.99"]] },
+  { group:"Meats", name:"Buffalo Chicken Wings", match:"wings", photo:"", prices:[["6 Wings","7.00"]] },
+  { group:"Meats", name:"Gyro Meat", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
+    extras:[["Pita","0.75"],["Onion & Tomato","1.75"],["Feta Cheese, Small","3.29"],["Tzatziki, Single Serving","0.75"],["Tzatziki, Small","2.99"],["Tzatziki, Large","4.99"]] },
+  { group:"Meats", name:"Smoked Lasagna", match:"lasagna", photo:"", prices:[["Each","8.49"]] },
+  { group:"Meats", name:"Smoked Stuffed Meatloaf", desc:"Stuffed with Cheesy Potatoes", match:"meatloaf", photo:"", prices:[["Each","9.99"]] },
+  { group:"Meats", name:"Smoked Ham", desc:"Hot Ham on Sundays. Daily Deal: 1 lb of Ham with 6 Grebe's Buns.", tag:"Hot on Sundays", match:"ham", photo:"",
+    prices:[["Per lb","7.99"],["Deal: 1 lb + 6 Buns","9.49"]] },
+  { group:"Sides", name:"Double-Baked Potato", match:"double baked", photo:"", prices:[["Each","2.49"]] },
+  { group:"Sides", name:"Smoked Mac & Cheese", match:"smoked mac", photo:"", prices:[["Each","6.49"]] },
+  { group:"Sides", name:"Smoked Bacon & Jalapeño Mac & Cheese", match:"jalapeno mac", photo:"", prices:[["Each","8.49"]] },
+  { group:"Sides", name:"Shrimp Salad", match:"shrimp salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
+  { group:"Sides", name:"Chicken Salad", match:"chicken salad", photo:"", prices:[["Small","4.99"],["Large","8.99"]] },
+  { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
+  { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
+  { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
+];
+// Grilling & Outdoor: shown to everyone (not behind the 21+ check).
+const OUTDOOR = [
+  { name:"Charcoal", match:"charcoal", prices:[] },
+  { name:"Cookin' Pellets, 40 lb Bag", desc:"Perfect Mix, Cherry, Apple, Hickory or Longhorn Blend", match:"pellet", prices:[["Per Bag","22.99"]] },
+  { name:"Firewood Bundle", match:"firewood", prices:[["Each","6.49"]] },
+  { name:"Lighter Fluid", match:"lighter fluid", prices:[] },
+  { name:"Ice", match:"ice", prices:[["7 lb Bag","2.86"],["20 lb Bag","5.71"]] },
+  { name:"Propane", match:"propane", prices:[["Tank Exchange","24.99"],["New Tank","79.99"]] },
+];
+/* =========================================================== */
+
+__SAMPLE_DATA__
+
+const $ = s => document.querySelector(s);
+const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let stock = null, updatedAt = null, foodOnly = false, loadError = false;
+
+function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
+
+/* ---------- age gate ---------- */
+function openGate(){ $("#gate").hidden=false; $("#gate-yes").focus(); }
+function closeGate(isAdult){
+  $("#gate").hidden=true; foodOnly=!isAdult;
+  document.body.classList.toggle("food-only",foodOnly);
+  store("bd-age", isAdult ? "21" : "no");
+  render();
+}
+$("#gate-yes").onclick=()=>closeGate(true);
+$("#gate-no").onclick=()=>closeGate(false);
+$("#regate").onclick=openGate;
+if(store("bd-age")==="21"){ foodOnly=false; } else if(store("bd-age")==="no"){ foodOnly=true; document.body.classList.add("food-only"); } else { openGate(); }
+
+/* ---------- data ---------- */
+async function load(){
+  try{
+    let data;
+    if(STOCK_URL){ const r = await fetch(STOCK_URL,{cache:"no-store"}); if(!r.ok) throw new Error(r.status); data = await r.json(); }
+    else { data = SAMPLE; }
+    stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
+  }catch(e){ loadError = true; }
+  render();
+}
+
+function highlight(name, q){
+  if(!q) return esc(name);
+  const i = name.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return esc(name);
+  return esc(name.slice(0,i))+"<mark>"+esc(name.slice(i,i+q.length))+"</mark>"+esc(name.slice(i+q.length));
+}
+function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q).split(" ").every(w=>n.includes(w)); }
+
+function foodStatus(f, section="food"){
+  if(!stock) return null;
+  const m = norm(f.match||f.name);
+  const hits = stock.filter(it=>it.section===section && (" "+norm(it.name)+" ").includes(" "+m));
+  if(!hits.length) return null;
+  return hits.some(h=>h.inStock);
+}
+
+function render(){
+  const qRaw = $("#q").value.trim(), onlyIn = $("#only-in").checked;
+
+  // updated line
+  const up = $("#updated");
+  if(loadError) up.innerHTML = '<span class="live-dot off"></span>Live stock is unavailable right now. Call 262-696-4602.';
+  else if(updatedAt) up.innerHTML = '<span class="live-dot"></span>Stock updated '+ago(updatedAt);
+
+  // food
+  let foodShown=0, menuHtml="";
+  const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
+  for(const grp of ["Meats","Sides"]){
+    const cards = FOOD.filter(f=>f.group===grp).map(f=>{
+      const st = foodStatus(f);
+      if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
+      if(onlyIn && st===false) return "";
+      foodShown++;
+      const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Call to Check</span>';
+      const img = f.photo ? `<img src="img/food/${esc(f.photo)}" alt="${esc(f.name)}" loading="lazy">` : "";
+      return `<article class="dish ${st===false?"dim":""}">
+        <div class="ph ${f.photo?"has-img":""}">${img}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg></div>
+        <div class="body"><h3>${highlight(f.name,qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
+        ${f.prices&&f.prices.length?`<div class="prices">${priceRows(f.prices)}</div>`:""}
+        ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
+        <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
+    }).join("");
+    if(cards) menuHtml += `<h3 class="grp">${grp}</h3><div class="menu">${cards}</div>`;
+  }
+  $("#menu").innerHTML = menuHtml;
+  $("#made-here").hidden = (qRaw && !foodShown);
+  $("#food-count").textContent = foodShown + (foodShown===1?" Item":" Items");
+
+  // grilling & outdoor
+  let gearShown=0;
+  $("#gear").innerHTML = OUTDOOR.map(g=>{
+    const st = foodStatus(g,"outdoor");
+    if(!matches(g.name+" "+(g.desc||""), qRaw)) return "";
+    if(onlyIn && st===false) return "";
+    gearShown++;
+    const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Call to Check</span>';
+    return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
+      ${g.prices.length?`<div class="prices">${priceRows(g.prices)}</div>`:""}</div>${status}</li>`;
+  }).join("");
+  $("#grilling-outdoor").hidden = !gearShown;
+  $("#outdoor-count").textContent = gearShown + (gearShown===1?" Item":" Items");
+
+  // drinks
+  let html="", total=0;
+  if(!foodOnly && stock){
+    for(const s of SECTIONS){
+      let items = stock.filter(it=>it.section===s.id && matches(it.name,qRaw) && (!onlyIn || it.inStock));
+      if(!items.length) continue;
+      items.sort((a,b)=> (b.inStock-a.inStock) || a.name.localeCompare(b.name));
+      total+=items.length;
+      const nIn = items.filter(i=>i.inStock).length;
+      html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
+        <ul class="items">${items.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
+        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul></section>`;
+    }
+  }
+  if(qRaw && !total && !foodShown && !gearShown){
+    html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
+      <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it.</p></div>`;
+  }
+  $("#drinks").innerHTML = html;
+
+  // chips
+  const present = foodOnly ? [] : SECTIONS.filter(s=>document.getElementById(s.id));
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
+}
+
+function ago(d){
+  const s = Math.max(0, Math.round((Date.now()-d.getTime())/1000));
+  if(s<60) return "just now"; const m=Math.round(s/60); if(m<60) return m+" min ago";
+  return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+}
+
+let t; $("#q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(render,120); });
+$("#only-in").addEventListener("change",render);
+load(); setInterval(load, REFRESH_SECONDS*1000);
+</script>
+</body>
+</html>
