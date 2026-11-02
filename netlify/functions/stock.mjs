@@ -19,10 +19,10 @@ const SECTION_RULES = [
   ["vodka",   /vodka/i],
   ["gin",     /\bgin\b/i],
   ["rum",     /\brum\b/i],
-  ["whiskey", /whisk|bourbon|scotch|\brye\b/i],
-  ["tequila", /tequila|mezcal/i],
+  ["whiskey", /whisk|bourbon|scotc|\brye\b/i],
+  ["tequila", /tequi|mezcal/i],
   ["brandy",  /brandy|cognac/i],
-  ["liqueur", /liqueur|liqour|cordial|schnap/i],
+  ["liqueur", /liqueur|liqour|cordial|schna/i],
   ["wine",    /wine|champagne|prosecco|\bsake\b/i],
   ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domestic|import|malt/i],
   ["food",    /food|deli|kitchen|smoked|smokehouse|meat|made here|prepared|hot case/i],
@@ -110,22 +110,31 @@ export async function buildStock() {
   // 3. Products
   const products = await getAll("/products");
   const items = [];
-  const report = { products: products.length, withStockRecord: stockByProduct.size, shown: 0, skippedNeverStocked: 0, skippedNoSection: 0, unmatchedGroups: {} };
+  const report = { products: products.length, withStockRecord: stockByProduct.size, shown: 0, skippedNeverStocked: 0, skippedNoSection: 0, unmatchedGroups: {}, sections: {}, groups: {} };
+  const tally = (gname, section, key) => {
+    const g = (report.groups[gname] ||= { section: section || "(hidden)", products: 0, shown: 0 });
+    g[key]++;
+  };
   for (const p of products) {
     if (p.active === false || p.deactivated) continue;
     const section = sectionFor(p.commodityGroup?.id, groups);
     if (!section) {
       const gname = groups[p.commodityGroup?.id]?.name || "(no group)";
       report.unmatchedGroups[gname] = (report.unmatchedGroups[gname] || 0) + 1;
+      tally(gname, null, "products");
       report.skippedNoSection++;
       continue;
     }
+    const gname = groups[p.commodityGroup?.id]?.name || "(no group)";
+    tally(gname, section, "products");
     const onHand = stockByProduct.get(p.id);
     // "Has ever had stock": it has a stock record AND it was received at some point
     // (has a purchase price) or has moved (on-hand isn't exactly zero).
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
     if (!everStocked) { report.skippedNeverStocked++; continue; }
     items.push({ name: (p.name || "").trim(), section, inStock: onHand > 0 });
+    tally(gname, section, "shown");
+    report.sections[section] = (report.sections[section] || 0) + 1;
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
   report.shown = items.length;
@@ -141,7 +150,7 @@ export default async (req) => {
   const wantReport = url.searchParams.get("report") && url.searchParams.get("report") === process.env.REPORT_KEY;
   try {
     const { items, report } = await buildStock();
-    const body = wantReport ? { updated: new Date().toISOString(), report, sample: items.slice(0, 25) }
+    const body = wantReport ? { updated: new Date().toISOString(), report }
                             : { updated: new Date().toISOString(), items };
     return Response.json(body, {
       headers: wantReport ? { "Cache-Control": "no-store" } : {
