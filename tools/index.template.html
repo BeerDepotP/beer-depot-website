@@ -421,7 +421,7 @@ function render(){
       const capped = !qRaw && !expanded.has(s.id) && full > SECTION_LIMIT;
       const shown = capped ? items.slice(0, SECTION_LIMIT) : items;
       const moreBtn = (!qRaw && full > SECTION_LIMIT)
-        ? `<button class="more" data-sec="${s.id}" aria-expanded="${!capped}">${capped ? `See All ${full} ${esc(s.name)}` : "Show Less"}</button>` : "";
+        ? `<button class="more" data-sec="${s.id}" aria-expanded="${!capped}">${capped ? `Show More ${esc(s.name)}` : "Show Less"}</button>` : "";
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
         <ul class="items">${shown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}</section>`;
