@@ -14,6 +14,7 @@
 // patterns, most specific group first. First match wins. Groups that match nothing
 // (tobacco, vapes, snacks, etc.) are left off the website.
 const SECTION_RULES = [
+  ["nonalc",  /non[\s\-_]*al|\bn\s*\/\s*a\b|\bna\s+(beer|wine|spirit)|zero[\s-]*proof|alcohol[\s-]*free|no[\s-]*alc/i],   // checked first
   ["seltzer", /seltz/i],
   ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
   ["vodka",   /vodk/i],
@@ -43,7 +44,7 @@ const TAG_SECTIONS = {
   "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer",
   "whiskey": "whiskey", "whisky": "whiskey", "bourbon": "whiskey", "whiskey and bourbon": "whiskey",
   "wine": "wine", "tequila": "tequila", "vodka": "vodka", "brandy": "brandy", "gin": "gin", "rum": "rum",
-  "liqueur": "liqueur", "local favorites": "local", "local favorite": "local", "local": "local",
+  "liqueur": "liqueur", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
   "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
 };
 const HIDE_TAGS = new Set(["hide from website", "hide", "not on website", "no website"]);
