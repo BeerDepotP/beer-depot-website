@@ -668,47 +668,68 @@
 {
 "name": "Coca-Cola 12pk cans",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "soda"
 },
 {
 "name": "Canada Dry Ginger Ale 2L",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "tonic"
 },
 {
 "name": "Fever-Tree Ginger Beer 4pk",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "soda"
 },
 {
 "name": "Zing Zang Bloody Mary Mix 32oz",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "bloody"
 },
 {
 "name": "Mr & Mrs T Margarita Mix 1L",
 "section": "mixers",
-"inStock": false
+"inStock": false,
+"sub": "margarita"
 },
 {
 "name": "Jarritos Grapefruit Paloma",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "paloma"
 },
 {
 "name": "Ocean Spray Cranberry Juice 64oz",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "juice"
 },
 {
 "name": "LaCroix Lime 12pk",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "tonic"
 },
 {
 "name": "Schweppes Tonic Water 1L",
 "section": "mixers",
-"inStock": true
+"inStock": true,
+"sub": "tonic"
+},
+{
+"name": "Squirt Paloma Mix 1L",
+"section": "mixers",
+"inStock": true,
+"sub": "paloma"
+},
+{
+"name": "Sprite 2L",
+"section": "mixers",
+"inStock": true,
+"sub": "soda"
 },
 {
 "name": "High Noon Vodka Variety 8pk",

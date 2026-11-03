@@ -409,7 +409,6 @@ const SECTIONS = [
   { id:"cocktails", name:"Ready to Drink Cocktails" },
   { id:"beer",    name:"Beer" },
   { id:"nonalc",  name:"Non-Alcoholic" },
-  { id:"mixers",  name:"Mixers", open:true },
   { id:"seltzer", name:"Seltzers" },
   { id:"whiskey", name:"Whiskey & Bourbon" },
   { id:"wine",    name:"Wine" },
@@ -419,7 +418,14 @@ const SECTIONS = [
   { id:"gin",     name:"Gin" },
   { id:"rum",     name:"Rum" },
   { id:"liqueur", name:"Liqueur" },
+  { id:"mixers",  name:"Soda & Mixers", open:true },
 ];
+// Sections split into smaller parts (by KORONA commodity group or tag), in this order.
+const SUBSECTIONS = {
+  nonalc: [["beer","Beer"],["wine","Wine"],["spirits","Spirits"],[undefined,"More Non-Alcoholic"]],
+  mixers: [["soda","Soda"],["bloody","Bloody Mary Mix"],["tonic","Tonic, Club Soda, Ginger Ale & Seltzer"],["juice","Juice"],
+           ["margarita","Margarita Mix"],["paloma","Paloma Mix"],[undefined,"More Mixers"]],
+};
 
 /* The Beer Depot: food and Local Favorites menu.
    Shared by the website and the Food Stock switches page. */
@@ -681,19 +687,18 @@ function render(){
         <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}<a class="dir alloc-dir" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></aside>` : "";
-      if(s.id==="nonalc"){
-        // split into Beer / Wine / Spirits (KORONA tags N/A Beer, N/A Wine, N/A Spirits)
-        const subs = [["beer","Beer"],["wine","Wine"],["spirits","Spirits"],[undefined,"More Non-Alcoholic"]];
+      if(SUBSECTIONS[s.id]){
+        const subs = SUBSECTIONS[s.id];
         let body = "";
         for(const [key,label] of subs){
           const group = items.filter(it=>it.sub===key);
           if(!group.length) continue;
-          const sid = "nonalc-"+(key||"other");
+          const sid = s.id+"-"+(key||"other");
           const lim = qRaw ? group.length : (showing.get(sid) || SECTION_LIMIT);
           let btn = "";
           if(!qRaw && group.length > SECTION_LIMIT){
             btn = `<div class="more-row">`
-              + (lim < group.length ? `<button class="more" data-sec="${sid}" data-act="more">Show More Non-Alcoholic ${esc(key?label:"")}</button>` : "")
+              + (lim < group.length ? `<button class="more" data-sec="${sid}" data-act="more">Show More ${esc(key ? (s.id==="nonalc" ? "Non-Alcoholic "+label : label) : s.name)}</button>` : "")
               + (lim > SECTION_LIMIT ? `<button class="more less" data-sec="${sid}" data-act="less">Show Less</button>` : "")
               + `</div>`;
           }

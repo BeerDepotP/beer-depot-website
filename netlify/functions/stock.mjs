@@ -205,6 +205,11 @@ export async function buildStock() {
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
     if (!everStocked) { report.skippedNeverStocked++; continue; }
     let sub;
+    if (section === "mixers") {
+      const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
+      sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /paloma/.test(g) ? "paloma"
+          : /tonic|club|ginger\s*ale|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : undefined;
+    }
     if (section === "nonalc") {
       sub = naSub;
       if (!sub) {   // no N/A tag: guess from the group name
