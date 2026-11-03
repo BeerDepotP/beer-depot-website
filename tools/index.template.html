@@ -120,11 +120,12 @@
   .g-main .prices{margin-top:4px;max-width:260px}
   ul.gear .status{margin-top:2px}
   .more-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
-  .with-side{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
+  .with-side{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:stretch}
   .with-side .main-list ul.items{columns:1}
-  @media (max-width:860px){.with-side{grid-template-columns:1fr;gap:18px}.with-side .alloc{order:-1;position:static}}
+  @media (max-width:860px){.with-side{grid-template-columns:1fr;gap:18px}.with-side .alloc{order:-1}}
   .chip.alloc-chip{background:var(--glass);border-color:var(--glass);color:var(--orange)}
-  .alloc{scroll-margin-top:70px;background:var(--glass);color:#E8D9CC;border-radius:14px;padding:16px 18px 8px;margin-top:6px;position:sticky;top:70px}
+  .alloc{scroll-margin-top:70px;background:var(--glass);color:#E8D9CC;border-radius:14px;padding:16px 18px 8px;margin-top:6px;display:flex;flex-direction:column}
+  .alloc .more-row{margin-top:auto!important;padding-top:12px}
   .alloc h3{font-family:var(--display);font-weight:900;font-size:30px;line-height:1;color:var(--orange);margin:0 0 6px}
   .alloc p{margin:0 0 8px;font-size:15px}
   .alloc p a{color:#fff;font-weight:700}
