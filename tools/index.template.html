@@ -406,6 +406,17 @@ function highlight(name, q){
 }
 function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q).split(" ").every(w=>n.includes(w)); }
 
+function cardMatches(card, it){
+  const words = norm(card.match||card.name).split(" "), n = " "+norm(it.name);
+  return words.every(w=>n.includes(" "+w));
+}
+// KORONA products in a section that no card/row covers (e.g. tagged in KORONA)
+function extraItems(section, cards, qRaw, onlyIn){
+  return (stock||[]).filter(it=>it.section===section && !cards.some(c=>cardMatches(c,it)) && matches(it.name,qRaw) && (!onlyIn || it.inStock))
+    .sort((a,b)=>(b.inStock-a.inStock) || a.name.localeCompare(b.name));
+}
+const rowHtml = (it,qRaw) => `<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span><span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`;
+
 // Made Here and Local Favorites: the on/off switch wins; otherwise the starting value.
 function itemStatus(f, section){
   if(section==="food" || section==="local"){
@@ -470,7 +481,9 @@ function render(){
         + `<div class="menu">${cards}</div>`;
     }
   }
-  const localShown = foodShown - foodBefore; foodShown = foodBefore;
+  const localExtra = extraItems("local", LOCAL, qRaw, onlyIn);
+  if(localExtra.length) localHtml += `<h3 class="grp">More Local Favorites</h3><ul class="items">${localExtra.map(it=>rowHtml(it,qRaw)).join("")}</ul>`;
+  const localShown = foodShown - foodBefore + localExtra.length; foodShown = foodBefore;
   $("#local-menu").innerHTML = localHtml;
   $("#local-favorites").hidden = !localShown;
   $("#local-count").textContent = localShown + (localShown===1?" Item":" Items");
@@ -486,6 +499,8 @@ function render(){
     return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
       ${g.prices.length?`<div class="prices">${priceRows(g.prices)}</div>`:""}</div>${status}</li>`;
   }).join("");
+  const gearExtra = extraItems("outdoor", OUTDOOR, qRaw, onlyIn);
+  if(gearExtra.length){ $("#gear").insertAdjacentHTML("beforeend", gearExtra.map(it=>`<li class="${it.inStock?"":"is-out"}"><div class="g-main"><span class="name">${highlight(it.name,qRaw)}</span></div><span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")); gearShown += gearExtra.length; }
   $("#grilling-outdoor").hidden = !gearShown;
   $("#outdoor-count").textContent = gearShown + (gearShown===1?" Item":" Items");
 

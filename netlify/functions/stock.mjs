@@ -35,6 +35,20 @@ const BLOCK_RULES = /tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine
 // If a KORONA group name isn't caught by the patterns, add it here exactly as it
 // appears in KORONA Studio, e.g. { "Spirits - Clear": "vodka" }.
 const SECTION_BY_GROUP = {};
+// KORONA tags win over everything below. Tag a product in KORONA Studio with one of
+// these names (capitals and spaces don't matter) to put it in that section, or with
+// "Hide From Website" to keep it off the site.
+const TAG_SECTIONS = {
+  "ready to drink cocktails": "cocktails", "ready to drink": "cocktails", "cocktails": "cocktails", "rtd": "cocktails",
+  "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer",
+  "whiskey": "whiskey", "whisky": "whiskey", "bourbon": "whiskey", "whiskey and bourbon": "whiskey",
+  "wine": "wine", "tequila": "tequila", "vodka": "vodka", "brandy": "brandy", "gin": "gin", "rum": "rum",
+  "liqueur": "liqueur", "local favorites": "local", "local favorite": "local", "local": "local",
+  "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
+};
+const HIDE_TAGS = new Set(["hide from website", "hide", "not on website", "no website"]);
+const tagKey = s => String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+
 // Individual products that sit in the wrong KORONA group: product-name pattern -> section.
 // These win over the group rules.
 const SECTION_BY_PRODUCT = [
@@ -143,7 +157,9 @@ export async function buildStock() {
     }
   }
 
-  // 3. Products
+  // 3. Tags (names), then products
+  let tagNames = {};
+  try { for (const t of await getAll("/tags")) tagNames[t.id] = t.name; } catch (e) { console.error("tags", e.status || e); }
   const products = await getAll("/products");
   const items = [];
   const report = { products: products.length, withStockRecord: stockByProduct.size, shown: 0, skippedNeverStocked: 0, skippedNoSection: 0, unmatchedGroups: {}, sections: {}, groups: {} };
@@ -153,8 +169,12 @@ export async function buildStock() {
   };
   for (const p of products) {
     if (p.active === false || p.deactivated) continue;
+    const tags = (p.tags || []).map(t => tagKey(t.name || tagNames[t.id]));
+    if (tags.some(t => HIDE_TAGS.has(t))) { report.hiddenByTag = (report.hiddenByTag || 0) + 1; continue; }
+    const tagSection = tags.map(t => TAG_SECTIONS[t]).find(Boolean);
     const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
-    const section = override ? override[1] : sectionFor(p.commodityGroup?.id, groups);
+    const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups));
+    if (tagSection) report.placedByTag = (report.placedByTag || 0) + 1;
     if (!section) {
       const gname = groups[p.commodityGroup?.id]?.name || "(no group)";
       report.unmatchedGroups[gname] = (report.unmatchedGroups[gname] || 0) + 1;

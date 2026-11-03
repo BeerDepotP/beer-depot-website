@@ -75,3 +75,9 @@ One PIN-protected page with four tabs: **Food Stock** (on/off switches, the main
 (searches with no results), **Top Searches** and **Requests**. A red number on a tab shows new searches or
 requests since that tab was last opened; opening the tab clears it (saved on the server, so it's the same on
 every device). New rows are marked "New". `/searches` redirects here.
+
+## KORONA tags
+Tag a product in KORONA Studio to control where it shows on the website. Tags win over commodity groups.
+- Section tags: Ready to Drink Cocktails (or Cocktails / RTD), Beer, Seltzers, Whiskey (or Bourbon), Wine, Tequila, Vodka, Brandy, Gin, Rum, Liqueur, Local Favorites, Grilling & Outdoor.
+- `Hide From Website` keeps a product off the site.
+Tagged products in Local Favorites or Grilling & Outdoor that don't have a card show in a list under the cards.

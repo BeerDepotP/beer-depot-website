@@ -611,6 +611,16 @@
 "inStock": false
 },
 {
+"name": "Lake Country Honey 12oz",
+"section": "local",
+"inStock": true
+},
+{
+"name": "Wisconsin Cheese Curds Squeaky",
+"section": "local",
+"inStock": true
+},
+{
 "name": "Kingsford Charcoal 16lb",
 "section": "outdoor",
 "inStock": true
@@ -654,6 +664,11 @@
 "name": "Propane Tank New",
 "section": "outdoor",
 "inStock": false
+},
+{
+"name": "Weber Grill Brush",
+"section": "outdoor",
+"inStock": true
 },
 {
 "name": "Ribs (half rack)",
