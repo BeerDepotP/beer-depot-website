@@ -81,4 +81,4 @@ Tag a product in KORONA Studio to control where it shows on the website. Tags wi
 - Section tags: Ready to Drink Cocktails (or Cocktails / RTD), Beer, Non-Alcoholic (split with N/A Beer, N/A Wine, N/A Spirits), Hard Seltzers, Whiskey (or Bourbon), Wine, Tequila, Vodka, Brandy, Gin, Rum, Liqueur, Mixers (or Soda), Local Favorites, Grilling & Outdoor.
 - `Hide From Website` keeps a product off the site.
 - `Allocated Bourbon` puts a product in the Allocated Bourbon box beside Whiskey & Bourbon.
-Tagged products in Grilling & Outdoor that don't have a row show at the end of that list. Local Favorites only shows its cards (tools/menu.js).
+Grilling & Outdoor and Local Favorites only show their own fixed rows/cards (no extra KORONA products).
