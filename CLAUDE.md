@@ -19,3 +19,6 @@
 - Cloudflare Web Analytics: owner makes a free Cloudflare account, adds the site, and sends the beacon token; add the script tag to tools/index.template.html.
 - Confirm the store address with the owner (they gave "N27 W26 N26980 Prospect Ave"; Waukesha County addresses are usually like N27W26980).
 - Turn on Netlify Forms (Forms → Enable form detection) and the email notification for the `request` form.
+
+## Future ideas the owner wants
+- Online ordering + payment for FOOD ONLY (Made Here and catering), pickup in store. Orders would land in a new Store Tools "Orders" tab with a badge. Payment provider not chosen yet (Stripe or Square; ask whether their current card processor offers online payments).
