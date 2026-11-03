@@ -65,6 +65,10 @@
   .chips{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
   .chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
   .chips .wrap::-webkit-scrollbar{display:none}
+  @media (min-width:861px){
+    .chips .wrap{flex-wrap:wrap;overflow:visible;gap:6px;max-width:1240px}
+    .chips .chip{font-size:14px;padding:6px 12px}
+  }
   .chip{flex:none;font:600 15px var(--body);padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);
         background:#fff;color:var(--ink);text-decoration:none;white-space:nowrap}
   .chip:hover{border-color:var(--orange)}
@@ -760,6 +764,7 @@ function render(){
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
+  setTimeout(setBarOffset, 0);
   $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
     + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }
@@ -847,6 +852,9 @@ $("#request-form").addEventListener("submit", async e=>{
   btn.disabled=false; btn.textContent="Send Request";
 });
 
+// keep section headings clear of the sticky menu bar, whatever its height
+function setBarOffset(){ try{ document.documentElement.style.scrollPaddingTop = (document.querySelector(".chips").offsetHeight + 10) + "px"; }catch(e){} }
+window.addEventListener("resize", setBarOffset);
 render();   // food, hours and everything else show right away; drinks fill in when stock arrives
 load(); setInterval(load, REFRESH_SECONDS*1000);
 </script>
