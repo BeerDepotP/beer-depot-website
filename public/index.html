@@ -50,6 +50,8 @@
   .hero-meta{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;margin-top:14px;font-size:15px;color:#E8D9CC}
   .toggle{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
   .toggle input{width:20px;height:20px;accent-color:var(--orange)}
+  .req-link{font-weight:700;font-size:15px;color:#fff;text-decoration:none;border:2px solid var(--orange);border-radius:999px;padding:6px 14px;white-space:nowrap}
+  .req-link:hover{background:var(--orange)}
   .live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#5BD27D;margin-right:6px;vertical-align:1px}
   .live-dot.off{background:#C9A99A}
 
@@ -197,6 +199,7 @@
     <div class="hero-meta">
       <label class="toggle"><input type="checkbox" id="only-in"> In Stock Only</label>
       <span id="updated"><span class="live-dot off"></span>Loading stock…</span>
+      <a class="req-link" href="#request" id="req-top">Request an Item</a>
     </div>
   </div>
 </header>
@@ -541,6 +544,7 @@ document.addEventListener("click", e=>{
           if(mb.dataset.act==="more"){ showing.set(id,(showing.get(id)||SECTION_LIMIT)+SECTION_LIMIT); render(); }
           else { showing.delete(id); render(); document.getElementById(id).scrollIntoView({block:"start"}); }
           return; }
+  if(e.target && e.target.id==="req-top"){ setTimeout(()=>$("#req-item").focus({preventScroll:true}),400); }
   if(e.target && e.target.id==="ask-link"){ $("#req-item").value = $("#q").value.trim(); setTimeout(()=>$("#req-item").focus(),300); }
 });
 $("#request-form").addEventListener("submit", async e=>{
