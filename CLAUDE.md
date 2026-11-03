@@ -19,7 +19,7 @@
 
 - FOOD_PIN is set in Netlify. Owner confirmed the address as written: "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072".
 - Cloudflare Web Analytics token is in tools/build.py (live site only, not on Store Tools or the preview).
-- Store info (ADDRESS, HOURS) is at the top of tools/index.template.html. New Arrivals: stock.mjs records each product's first in-stock date in Blobs (`first-stocked`); first run seeds everything as old.
+- Store info (ADDRESS, HOURS) is at the top of tools/index.template.html; the Google info (JSON-LD LiquorStore, hours, address) and sharing tags are in its <head> too, so update both if hours change. robots.txt hides /food-stock and /api; sitemap.xml lists the home page. New Arrivals: stock.mjs records each product's first in-stock date in Blobs (`first-stocked`); first run seeds everything as old.
 
 ## Waiting to go live (remind the owner when they say publish)
 - Netlify Forms detection is ON (owner enabled it 2026-11-03). Still to do: email notification for the `request` form.
