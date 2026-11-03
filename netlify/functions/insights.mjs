@@ -2,7 +2,9 @@
 // ----------------------------------------------------------------------
 // POST /api/insights { type:"search", q, found }              (from the website, no PIN)
 // POST /api/insights { type:"request", item, name, phone }    (from the request box, no PIN)
-// POST /api/insights { type:"report", pin, week? }            (Searches page, PIN required)
+// POST /api/insights { type:"report", pin, week? }            (store page, PIN required)
+// POST /api/insights { type:"seen", pin, tab }                (marks a tab as read: nofind | top | requests)
+// POST /api/insights { type:"badges", pin }                   (just the unread counts)
 //
 // Searches are counted per week (Central time). Requests keep the latest 300.
 // Everything is stored in Netlify Blobs; nothing here needs a deploy.
@@ -13,6 +15,8 @@ import { checkPin, json } from "../lib/pin.mjs";
 const STORE = "beer-depot";
 const MAX_TERMS_PER_WEEK = 3000;
 const MAX_REQUESTS = 300;
+const MAX_EVENTS = 3000;           // recent searches kept for the unread badges
+const TABS = ["nofind", "top", "requests"];
 
 // ISO week in America/Chicago, e.g. "2026-W45"
 export function weekKey(date = new Date()) {
@@ -34,6 +38,17 @@ function prevWeekKey(key) {
 
 const clean = (s, max) => String(s || "").replace(/\s+/g, " ").trim().slice(0, max);
 
+// unread counts: searches / no-result searches / requests since each tab was last opened
+async function badges(store, seen) {
+  const events = (await store.get("search-events", { type: "json" })) || [];
+  const requests = (await store.get("requests", { type: "json" })) || [];
+  return {
+    top: events.filter(e => e.at > (seen.top || 0)).length,
+    nofind: events.filter(e => e.none && e.at > (seen.nofind || 0)).length,
+    requests: requests.filter(r => Date.parse(r.at) > (seen.requests || 0)).length,
+  };
+}
+
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
   let body;
@@ -48,8 +63,12 @@ export default async (req) => {
     const t = data.terms[q];
     if (!t && Object.keys(data.terms).length >= MAX_TERMS_PER_WEEK) return json({ ok: true });
     const found = Math.max(0, Number(body.found) || 0);
-    data.terms[q] = { n: (t?.n || 0) + 1, none: (t?.none || 0) + (found === 0 ? 1 : 0) };
+    const now = Date.now();
+    data.terms[q] = { n: (t?.n || 0) + 1, none: (t?.none || 0) + (found === 0 ? 1 : 0), last: now, lastNone: found === 0 ? now : (t?.lastNone || 0) };
     await store.setJSON(key, data);
+    const events = (await store.get("search-events", { type: "json" })) || [];
+    events.unshift({ at: now, none: found === 0 });
+    await store.setJSON("search-events", events.slice(0, MAX_EVENTS));
     return json({ ok: true });
   }
 
@@ -62,16 +81,34 @@ export default async (req) => {
     return json({ ok: true });
   }
 
-  if (body.type === "report") {
+  if (body.type === "report" || body.type === "seen" || body.type === "badges") {
     const bad = await checkPin(store, body.pin);
     if (bad) return json({ error: bad.error }, bad.status);
+  }
+
+  if (body.type === "seen") {
+    if (!TABS.includes(body.tab)) return json({ error: "Bad request." }, 400);
+    const seen = (await store.get("seen", { type: "json" })) || {};
+    seen[body.tab] = Date.now();
+    await store.setJSON("seen", seen);
+    return json({ ok: true, badges: await badges(store, seen), seen });
+  }
+
+  if (body.type === "badges") {
+    const seen = (await store.get("seen", { type: "json" })) || {};
+    return json({ badges: await badges(store, seen), seen });
+  }
+
+  if (body.type === "report") {
     const week = /^\d{4}-W\d{2}$/.test(body.week || "") ? body.week : weekKey();
     const data = (await store.get("searches-" + week, { type: "json" })) || { terms: {} };
-    const rows = Object.entries(data.terms).map(([q, t]) => ({ q, n: t.n, none: t.none }));
+    const rows = Object.entries(data.terms).map(([q, t]) => ({ q, n: t.n, none: t.none, last: t.last || 0, lastNone: t.lastNone || 0 }));
     const top = [...rows].sort((a, b) => b.n - a.n).slice(0, 50);
     const noResults = rows.filter(r => r.none > 0).sort((a, b) => b.none - a.none).slice(0, 50);
     const requests = (await store.get("requests", { type: "json" })) || [];
+    const seen = (await store.get("seen", { type: "json" })) || {};
     return json({
+      seen, badges: await badges(store, seen),
       week, thisWeek: weekKey(), prevWeek: prevWeekKey(week),
       totalSearches: rows.reduce((s, r) => s + r.n, 0),
       top, noResults, requests: requests.slice(0, 100),

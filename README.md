@@ -70,7 +70,8 @@ Each Made Here and Local Favorites item has an on/off switch. Changes show on th
 - After 8 wrong PINs, the page locks for 15 minutes.
 - The menu itself (names, prices, photos) is in `tools/menu.js`.
 
-## Searches page
-Go to `/searches` (same PIN as Food Stock). It shows this week's and last week's top searches,
-searches that found nothing ("Couldn't Find It"), and product requests from the request box.
-Searches are counted once per visitor per search, by week (Central time).
+## Store Tools (/food-stock)
+One PIN-protected page with four tabs: **Food Stock** (on/off switches, the main tab), **Couldn't Find It**
+(searches with no results), **Top Searches** and **Requests**. A red number on a tab shows new searches or
+requests since that tab was last opened; opening the tab clears it (saved on the server, so it's the same on
+every device). New rows are marked "New". `/searches` redirects here.

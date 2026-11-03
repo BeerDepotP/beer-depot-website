@@ -4,22 +4,29 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Food Stock · The Beer Depot</title>
+<title>Store Tools · The Beer Depot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Barlow:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--orange:#F26B1D;--glass:#2B1A10;--kraft:#F3ECE3;--ink:#22160F;--muted:#6F6259;--line:#E3D9CE;--in:#1F7A3A;
+  :root{--orange:#F26B1D;--glass:#2B1A10;--kraft:#F3ECE3;--ink:#22160F;--muted:#6F6259;--line:#E3D9CE;--in:#1F7A3A;--red:#D62D20;
         --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;--body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif}
   *{box-sizing:border-box}
   body{margin:0;font-family:var(--body);color:var(--ink);background:var(--kraft);font-size:17px}
-  header{background:var(--glass);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
-  header img{width:96px}
-  header h1{font-family:var(--display);font-weight:900;font-size:30px;margin:0;line-height:1}
-  header nav{margin-left:auto}
-  header nav a{color:#fff;font-weight:700;text-decoration:none;border:2px solid var(--orange);border-radius:999px;padding:6px 12px;font-size:15px}
-  main{max-width:620px;margin:0 auto;padding:16px 16px 60px}
   :focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+  [hidden]{display:none!important}
+  .top{position:sticky;top:0;z-index:3;background:var(--glass)}
+  header{color:#fff;padding:12px 16px 8px;display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}
+  header img{width:92px}
+  header h1{font-family:var(--display);font-weight:900;font-size:28px;margin:0;line-height:1}
+  header .lockbtn{margin-left:auto;background:transparent;color:#E8D9CC;border:0;font:600 15px var(--body);text-decoration:underline;cursor:pointer}
+  nav.tabs{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:8px;padding:8px 14px 12px;max-width:760px;margin:0 auto}
+  @media (max-width:560px){nav.tabs{grid-template-columns:1fr 1fr}}
+  .tab{position:relative;font:700 15px var(--body);color:#fff;background:transparent;border:2px solid #5A4537;border-radius:999px;padding:8px 14px;cursor:pointer}
+  .tab[aria-selected="true"]{background:var(--orange);border-color:var(--orange)}
+  .badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;
+         font:700 13px/22px var(--body);text-align:center;box-shadow:0 0 0 2px var(--glass)}
+  main{max-width:760px;margin:0 auto;padding:16px 16px 60px}
   .card{background:#fff;border-radius:14px;padding:18px}
   .pin h2{font-family:var(--display);font-size:34px;margin:0 0 6px}
   .pin p{margin:0 0 14px;color:var(--muted)}
@@ -28,11 +35,13 @@
   .btn{font:700 18px var(--body);padding:14px 18px;border-radius:12px;border:2px solid var(--orange);background:var(--orange);color:#fff;cursor:pointer;width:100%;margin-top:12px}
   .btn[disabled]{opacity:.6}
   .msg{min-height:1.4em;margin:10px 0 0;font-weight:600;color:#A3361A}
-  h2.sec{font-family:var(--display);font-weight:900;font-size:32px;margin:24px 0 4px}
+  h2.sec{font-family:var(--display);font-weight:900;font-size:32px;margin:8px 0 4px}
+  h2.sec.more{margin-top:26px}
   h3.grp{margin:16px 0 6px;font-size:16px;color:var(--muted);font-weight:700}
-  ul{list-style:none;margin:0;padding:0;background:#fff;border-radius:14px;overflow:hidden}
-  li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
-  li:last-child{border-bottom:0}
+  .help{color:var(--muted);font-size:15px;margin:2px 0 10px}
+  ul.sw-list{list-style:none;margin:0;padding:0;background:#fff;border-radius:14px;overflow:hidden}
+  ul.sw-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  ul.sw-list li:last-child{border-bottom:0}
   .nm{font-weight:600}
   .st{display:block;font-size:14px;font-weight:700;color:var(--muted)}
   .st.on{color:var(--in)}
@@ -42,106 +51,203 @@
   .sw[aria-checked="true"]::after{left:32px}
   .sw[disabled]{opacity:.5}
   @media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
-  .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--glass);color:#fff;padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+  .weeks{display:flex;gap:8px;margin:2px 0 10px}
+  .wk{font:700 15px var(--body);padding:7px 13px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
+  .wk[aria-pressed="true"]{border-color:var(--glass);background:var(--glass);color:#fff}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden}
+  td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td.n{text-align:right;font-weight:700;white-space:nowrap;width:1%}
+  tr.new td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+  .newtag{display:inline-block;margin-left:8px;font-size:12px;font-weight:700;color:#fff;background:var(--red);border-radius:999px;padding:1px 7px;vertical-align:2px}
+  .empty{background:#fff;border-radius:14px;padding:14px;color:var(--muted)}
+  .it{font-weight:600}
+  .who{color:var(--muted);font-size:15px}
+  .who a{color:var(--ink);font-weight:700}
+  .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--glass);color:#fff;padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
   .toast.show{opacity:1}
   .toast.err{background:#A3361A}
-  .help{color:var(--muted);font-size:15px;margin:6px 0 0}
-  .out{background:transparent;border:0;color:var(--muted);font:600 15px var(--body);text-decoration:underline;cursor:pointer;margin-top:20px}
-  [hidden]{display:none!important}
 </style>
 </head>
 <body>
-<header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Food Stock</h1><nav><a href="/searches/">Searches</a></nav></header>
+<div class="top">
+  <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><button class="lockbtn" id="lock" hidden>Lock</button></header>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
+    <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
+    <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
+    <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
+    <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
+  </nav>
+</div>
+
 <main>
   <form class="card pin" id="pin-form">
     <h2>Enter Your PIN</h2>
-    <p>Switch food and Local Favorites between In Stock and Out of Stock. Changes show on the website within a minute.</p>
+    <p>Set food stock, and see what customers search for and request on the website.</p>
     <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="PIN">
     <button class="btn" id="pin-go" type="submit">Unlock</button>
     <p class="msg" id="pin-msg" role="alert"></p>
   </form>
 
-  <div id="lists" hidden>
+  <section id="p-food" hidden>
     <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it.</p>
     <h2 class="sec">Made Here</h2>
     <div id="food"></div>
-    <h2 class="sec">Local Favorites</h2>
+    <h2 class="sec more">Local Favorites</h2>
     <div id="local"></div>
-    <button class="out" id="lock">Lock this page</button>
-  </div>
+  </section>
+
+  <section id="p-nofind" hidden>
+    <h2 class="sec">Couldn't Find It</h2>
+    <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
+    <div class="weeks"></div>
+    <div id="nofind"></div>
+  </section>
+
+  <section id="p-top" hidden>
+    <h2 class="sec">Top Searches</h2>
+    <p class="help">What customers look for most. Each person's search counts once.</p>
+    <div class="weeks"></div>
+    <div id="top"></div>
+  </section>
+
+  <section id="p-requests" hidden>
+    <h2 class="sec">Requests</h2>
+    <p class="help">From the request box on the website, newest first. Tap a number to call.</p>
+    <div id="requests"></div>
+  </section>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/menu.js"></script>
 <script>
-const $ = s => document.querySelector(s);
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
-let pin = "", switches = {}, stock = [];
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
+const TABS = ["food","nofind","top","requests"];
+let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
 function toast(text, err){ const t=$("#toast"); t.textContent=text; t.className="toast show"+(err?" err":""); clearTimeout(toast.t); toast.t=setTimeout(()=>t.className="toast",2200); }
-
-async function post(body){
-  const r = await fetch("/api/food-stock",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin,...body})});
+async function api(url, body){
+  const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pin,...body})});
   let j={}; try{ j=await r.json(); }catch(e){}
-  if(!r.ok) throw new Error(j.error || "Couldn't save. Check your connection and try again.");
+  if(!r.ok){ const e = new Error(j.error || "Couldn't reach the website. Check your connection."); e.status=r.status; throw e; }
   return j;
 }
 
+/* ---------- badges ---------- */
+function setBadges(b){
+  for(const k of ["nofind","top","requests"]){
+    const el = document.querySelector(`[data-badge="${k}"]`), n = (b && b[k]) || 0;
+    el.hidden = !n; el.textContent = n > 99 ? "99+" : n;
+    el.setAttribute("aria-label", n ? `${n} new` : "");
+  }
+}
+async function refreshBadges(){ try{ const j = await api("/api/insights",{type:"badges"}); setBadges(j.badges); }catch(e){} }
+
+/* ---------- food stock ---------- */
 function koronaSays(item){
   const words = norm(item.match||item.name).split(" ");
-  const hits = stock.filter(it=>it.section==="local" && words.every(w=>(" "+norm(it.name)).includes(" "+w)));
-  return hits.some(h=>h.inStock);
+  return stock.filter(it=>it.section==="local" && words.every(w=>(" "+norm(it.name)).includes(" "+w))).some(h=>h.inStock);
 }
 function current(item, section){
   if(item.name in switches) return !!switches[item.name];
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
-
-function row(item, section){
+function swRow(item, section){
   const on = current(item, section);
   return `<li><span><span class="nm">${esc(item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
-    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-sec="${section}"></button></li>`;
+    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}"></button></li>`;
 }
-function render(){
-  $("#food").innerHTML = ["Meats","Sides"].map(g=>`<h3 class="grp">${g}</h3><ul>${FOOD.filter(f=>f.group===g).map(f=>row(f,"food")).join("")}</ul>`).join("");
-  $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp">${esc(m)}</h3><ul>${LOCAL.filter(l=>l.maker===m).map(l=>row(l,"local")).join("")}</ul>`).join("");
+function renderFood(){
+  $("#food").innerHTML = ["Meats","Sides"].map(g=>`<h3 class="grp">${g}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`).join("");
+  $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
+}
+
+/* ---------- searches & requests ---------- */
+function weeksHtml(){
+  if(!rep) return "";
+  const isThis = rep.week === rep.thisWeek;
+  return `<button class="wk" data-week="${rep.thisWeek}" aria-pressed="${isThis}">This Week</button>
+          <button class="wk" data-week="${isThis ? rep.prevWeek : rep.week}" aria-pressed="${!isThis}">Last Week</button>`;
+}
+const newTag = '<span class="newtag">New</span>';
+function renderReport(){
+  if(!rep) return;
+  $$(".weeks").forEach(w=>w.innerHTML = weeksHtml());
+  const tbl = (rows, count, stamp, seenKey) => rows.length
+    ? `<table>${rows.map(r=>{ const isNew = r[stamp] > (seenBefore[seenKey]||0);
+        return `<tr class="${isNew?"new":""}"><td>${esc(r.q)}${isNew?newTag:""}</td><td class="n">${r[count]}×</td></tr>`; }).join("")}</table>`
+    : `<p class="empty">Nothing yet.</p>`;
+  $("#nofind").innerHTML = tbl(rep.noResults, "none", "lastNone", "nofind");
+  $("#top").innerHTML = tbl(rep.top, "n", "last", "top");
+  $("#requests").innerHTML = rep.requests.length ? `<table>${rep.requests.map(r=>{
+      const d = new Date(r.at).toLocaleString([], {weekday:"short", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+      const tel = r.phone ? `<a href="tel:${esc(r.phone.replace(/[^0-9+]/g,""))}">${esc(r.phone)}</a>` : "";
+      const isNew = Date.parse(r.at) > (seenBefore.requests||0);
+      return `<tr class="${isNew?"new":""}"><td><div class="it">${esc(r.item)}${isNew?newTag:""}</div><div class="who">${esc(r.name)} · ${tel} · ${esc(d)}</div></td></tr>`;
+    }).join("")}</table>` : `<p class="empty">No requests yet.</p>`;
+}
+async function loadReport(w){
+  rep = await api("/api/insights",{type:"report", week:w||""});
+  week = rep.week; setBadges(rep.badges);
+  if(!Object.keys(seenBefore).length) seenBefore = rep.seen || {};
+}
+
+/* ---------- tabs ---------- */
+async function openTab(name){
+  if(!TABS.includes(name)) name = "food";
+  tab = name;
+  $$(".tab").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
+  TABS.forEach(t=>$("#p-"+t).hidden = t!==name);
+  try{ history.replaceState(null,"","#"+name); }catch(e){}
+  window.scrollTo(0,0);
+  if(name==="food") return;
+  try{
+    await loadReport(name==="requests" ? "" : week);
+    seenBefore = rep.seen || {};          // highlight what's new on this visit
+    renderReport();
+    const j = await api("/api/insights",{type:"seen", tab:name});   // then mark it read
+    setBadges(j.badges);
+  }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); }
 }
 
 document.addEventListener("click", async e=>{
-  const sw = e.target.closest && e.target.closest(".sw");
-  if(!sw) return;
-  const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
-  sw.disabled = true;
-  try{
-    const j = await post({ name, inStock: next });
-    switches = j.items || switches;
-    render(); toast(`${name}: ${next?"In Stock":"Out of Stock"}`);
-  }catch(err){
-    sw.disabled = false; toast(err.message, true);
-    if(/PIN/.test(err.message)) lockPage(err.message);
+  const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
+  const wk = e.target.closest(".wk");
+  if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
+  const sw = e.target.closest(".sw");
+  if(sw){
+    const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
+    sw.disabled = true;
+    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; renderFood(); toast(`${name}: ${next?"In Stock":"Out of Stock"}`); }
+    catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
 
+/* ---------- PIN ---------- */
 async function unlock(p){
   pin = p;
-  await post({ check:true });
+  await api("/api/food-stock",{ check:true });
   ss.set("bd-pin", pin);
   const [sw, st] = await Promise.all([
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
   ]);
   switches = sw.items || {}; stock = st.items || [];
-  render();
-  $("#pin-form").hidden = true; $("#lists").hidden = false;
+  renderFood();
+  $("#pin-form").hidden = true; $("#tabs").hidden = false; $("#lock").hidden = false;
+  refreshBadges();
+  openTab((location.hash||"").slice(1) || "food");
+  clearInterval(unlock.t); unlock.t = setInterval(refreshBadges, 60000);
 }
 function lockPage(message){
-  pin=""; ss.set("bd-pin",""); $("#lists").hidden = true; $("#pin-form").hidden = false;
+  pin=""; ss.set("bd-pin",""); clearInterval(unlock.t);
+  TABS.forEach(t=>$("#p-"+t).hidden = true); $("#tabs").hidden = true; $("#lock").hidden = true; $("#pin-form").hidden = false;
   $("#pin").value=""; $("#pin-msg").textContent = message || ""; $("#pin").focus();
 }
-
 $("#pin-form").addEventListener("submit", async e=>{
   e.preventDefault();
   const p = $("#pin").value.trim(); if(!p){ $("#pin-msg").textContent="Enter your PIN."; return; }
