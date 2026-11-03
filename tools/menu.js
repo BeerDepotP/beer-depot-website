@@ -15,6 +15,13 @@ const DEFAULT_STOCK = {
 // match: word(s) used to find this item's stock in KORONA.
 // prices: each line is [label, price], e.g. ["Each","6.49"] or ["Per lb","9.99"].
 // extras: add-ons listed under the item (same format as prices).
+// Made Here groups, in the order they show. A note shows under the group's heading.
+const FOOD_GROUPS = ["Meats","Sides","Take & Bake Pizza"];
+const FOOD_GROUP_NOTES = {};
+// Pizza toppings. Each one has its own switch in Store Tools (under "Edit Toppings");
+// only toppings that are switched on are listed on the website.
+const PIZZA_TOPPINGS = ["Pepperoni","Sausage","Ham","Bacon","Onion","Green Pepper","Mushroom","Black Olive","Banana Peppers","Jalapeño","Tomato"];
+const toppingKey = t => "Topping: " + t;
 const FOOD = [
   { group:"Meats", name:"Ribeye", match:"ribeye", photo:"", prices:[["Per lb","18.99"]] },
   { group:"Meats", name:"Smoked Ribs", match:"ribs", photo:"", prices:[["Per lb","9.99"]] },
@@ -36,6 +43,9 @@ const FOOD = [
   { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
   { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
+  { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]] },
+  { group:"Take & Bake Pizza", name:"12\" Take & Bake Pizza", match:"12 pizza", photo:"", prices:[["Each","13.00"]] },
+  { group:"Take & Bake Pizza", name:"10\" Gluten-Free Take & Bake Pizza", match:"gluten free pizza", photo:"", prices:[["Each","15.00"]] },
 ];
 // Local Favorites: cards like Made Here, grouped by who makes them. Shown to everyone.
 // photo: a file in img/food. match: words that must all be in the KORONA product name.

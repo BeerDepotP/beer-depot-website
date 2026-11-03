@@ -584,9 +584,15 @@ function render(){
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
         <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
-  for(const grp of ["Meats","Sides"]){
+  for(const grp of FOOD_GROUPS){
     const cards = FOOD.filter(f=>f.group===grp).map(f=>card(f,"food")).join("");
-    if(cards) menuHtml += `<h3 class="grp">${grp}</h3><div class="menu">${cards}</div>`;
+    let note = FOOD_GROUP_NOTES[grp] || "";
+    if(grp==="Take & Bake Pizza"){
+      const on = PIZZA_TOPPINGS.filter(tp => switches[toppingKey(tp)] !== false);
+      const list = on.length > 1 ? on.slice(0,-1).join(", ") + " and " + on[on.length-1] : (on[0] || "");
+      note = on.length ? `Pile on as many toppings as you like for the same price: ${list}.` : "Ask us about today's toppings.";
+    }
+    if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
   $("#menu").innerHTML = menuHtml;
   $("#made-here").hidden = (qRaw && !foodShown);

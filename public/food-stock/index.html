@@ -77,6 +77,10 @@
   .sp-btns .btn{margin-top:4px}
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
+  details.toppings{margin-top:10px}
+  details.toppings summary{cursor:pointer;display:inline-block;font:700 15px var(--body);color:var(--glass);background:#fff;border:2px solid var(--orange);border-radius:999px;padding:7px 14px;list-style:none}
+  details.toppings summary::-webkit-details-marker{display:none}
+  details.toppings[open] summary{background:var(--orange);color:#fff;margin-bottom:8px}
   .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--glass);color:#fff;padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
   .toast.show{opacity:1}
   .toast.err{background:#A3361A}
@@ -151,6 +155,7 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
 const TABS = ["food","specials","nofind","top","requests"];
+let toppingsOpen = false;
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
 function toast(text, err){ const t=$("#toast"); t.textContent=text; t.className="toast show"+(err?" err":""); clearTimeout(toast.t); toast.t=setTimeout(()=>t.className="toast",2200); }
@@ -184,10 +189,13 @@ function current(item, section){
 function swRow(item, section){
   const on = current(item, section);
   return `<li><span><span class="nm">${esc(item.label||item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
-    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}"></button></li>`;
+    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(item.label||item.name)}"></button></li>`;
 }
 function renderFood(){
-  $("#food").innerHTML = ["Meats","Sides"].map(g=>`<h3 class="grp">${g}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`).join("");
+  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp">${esc(g)}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`
+    + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
+        <ul class="sw-list">${PIZZA_TOPPINGS.map(tp=>swRow({name:toppingKey(tp), label:tp},"food")).join("")}</ul></details>` : "")).join("");
+  const det = document.querySelector("details.toppings"); if(det) det.addEventListener("toggle", ()=>{ toppingsOpen = det.open; });
   $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
 }
 
@@ -272,7 +280,7 @@ document.addEventListener("click", async e=>{
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
-    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; renderFood(); toast(`${name}: ${next?"In Stock":"Out of Stock"}`); }
+    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
     catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
