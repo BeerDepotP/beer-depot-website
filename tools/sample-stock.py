@@ -11,7 +11,7 @@ S={
 "cocktails":[("Cutwater Tequila Margarita 4pk",1),("Cutwater Spicy Bloody Mary 4pk",0),("On The Rocks Old Fashioned 375ml",1),("Jack Daniel's & Coca-Cola 4pk",1),("Crown Royal Washington Apple 4pk",1)],
 "tequila":[("Patrón Silver 750ml",1),("Casamigos Blanco 750ml",1),("Jose Cuervo Especial Gold 1.75L",1),("1800 Reposado 750ml",0),("Espolòn Blanco 750ml",1),("Don Julio Blanco 750ml",1)],
 "beer":[("New Glarus Spotted Cow 12pk",1),("New Glarus Moon Man 6pk",1),("Miller Lite 30pk cans",1),("Miller High Life 24pk",1),("Busch Light 30pk cans",1),("Leinenkugel's Summer Shandy 12pk",0),("Lakefront Riverwest Stein 6pk",1),("Coors Light 18pk cans",1),("Modelo Especial 12pk",1),("Spotted Cow 6pk bottles",0),("Pabst Blue Ribbon 24pk",1),("Twisted Tea Original 12pk",1)],
-"nonalc":[("Athletic Run Wild IPA 6pk",1),("Heineken 0.0 6pk",1),("Fre Cabernet Sauvignon 750ml",1),("Ritual Zero Proof Whiskey Alternative 750ml",0)],
+"nonalc":[("Athletic Run Wild IPA 6pk",1),("Heineken 0.0 6pk",1),("Fre Cabernet Sauvignon 750ml",1),("Ritual Zero Proof Whiskey Alternative 750ml",0),("Lyre's Italian Spritz 700ml",1),("Fre Brut Sparkling Wine 750ml",1),("Athletic Upside Dawn Golden 6pk",1)],
 "seltzer":[("High Noon Vodka Variety 8pk",1),("High Noon Tequila Lime 4pk",0),("White Claw Variety #1 12pk",1),("Truly Wild Berry 12pk",1),("Bud Light Seltzer Variety 12pk",0),("Leinenkugel's Seltzer 12pk",1)],
 "local":[("Northern Trails Beef Stick Original",1),("Northern Trails Summer Sausage",1),("Northern Trails Bacon 1lb",0),("Pernats Beef Stick",1),("Kreamers Cheese Curds",1),("Sausage Haus Bacon Cheddar Brats",1),("Sausage Haus Hungarian Brats",0),("Lake Country Honey 12oz",1),("Wisconsin Cheese Curds Squeaky",1)],
 "outdoor":[("Kingsford Charcoal 16lb",1),("Cookin Pellets Perfect Mix 40lb",1),("Cookin Pellets Cherry 40lb",0),("Firewood Bundle",1),("Kingsford Lighter Fluid 32oz",1),("Ice 7lb",1),("Ice 20lb",1),("Propane Exchange",1),("Propane Tank New",0),("Weber Grill Brush",1)],
@@ -23,6 +23,8 @@ S["beer"] += [(f"{b} {k}",int(random.random()>.25)) for b in ["Lakefront","Third
 items=[{"name":n,"section":s,"inStock":bool(i)} for s,l in S.items() for n,i in l]
 for it in items:
     if it["name"] in ("Blanton's Single Barrel 750ml","Weller Special Reserve 750ml","E.H. Taylor Small Batch 750ml","Stagg Jr 750ml") or it["name"] in [f"{n} 750ml" for n in ALLOC_EXTRA]: it["allocated"]=True
+    if it["section"]=="nonalc":
+        n=it["name"]; it["sub"] = "wine" if ("Fre" in n or "Wine" in n) else "spirits" if ("Ritual" in n or "Lyre" in n) else "beer"
     if it["name"] in ("Hacienda IPA 6pk","Good City Lager 12pk","Kendall-Jackson Chardonnay 750ml","Casamigos Blanco 750ml"): it["isNew"]=True
 json.dump({"updated":None,"items":items},open("sample-stock.json","w"),indent=0)
 print(len(items))

@@ -47,6 +47,9 @@ const TAG_SECTIONS = {
   "liqueur": "liqueur", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
   "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
 };
+// Non-Alcoholic is split into Beer / Wine / Spirits by these tags.
+const NA_SUB_TAGS = { "n a beer": "beer", "na beer": "beer", "n a wine": "wine", "na wine": "wine",
+  "n a spirits": "spirits", "na spirits": "spirits", "n a spirit": "spirits", "na spirit": "spirits" };
 const HIDE_TAGS = new Set(["hide from website", "hide", "not on website", "no website"]);
 // "Allocated Bourbon" puts a product in its own box beside Whiskey & Bourbon.
 const ALLOCATED_TAGS = new Set(["allocated bourbon", "allocated", "allocated whiskey"]);
@@ -122,6 +125,12 @@ async function getAll(path, params = {}) {
   return results;
 }
 
+function groupChain(groupId, groups) {
+  const chain = [];
+  for (let id = groupId, guard = 0; id && groups[id] && guard < 10; guard++) { chain.push(groups[id].name || ""); id = groups[id].parent; }
+  return chain;
+}
+
 function sectionFor(groupId, groups) {
   const chain = [];
   for (let id = groupId, guard = 0; id && groups[id] && guard < 10; guard++) {
@@ -175,7 +184,8 @@ export async function buildStock() {
     const tags = (p.tags || []).map(t => tagKey(t.name || tagNames[t.id]));
     if (tags.some(t => HIDE_TAGS.has(t))) { report.hiddenByTag = (report.hiddenByTag || 0) + 1; continue; }
     const allocated = tags.some(t => ALLOCATED_TAGS.has(t));
-    const tagSection = allocated ? "whiskey" : tags.map(t => TAG_SECTIONS[t]).find(Boolean);
+    const naSub = tags.map(t => NA_SUB_TAGS[t]).find(Boolean);
+    const tagSection = allocated ? "whiskey" : naSub ? "nonalc" : tags.map(t => TAG_SECTIONS[t]).find(Boolean);
     const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
     const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups));
     if (tagSection) report.placedByTag = (report.placedByTag || 0) + 1;
@@ -193,7 +203,15 @@ export async function buildStock() {
     // (has a purchase price) or has moved (on-hand isn't exactly zero).
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
     if (!everStocked) { report.skippedNeverStocked++; continue; }
-    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0, ...(allocated ? { allocated: true } : {}) });
+    let sub;
+    if (section === "nonalc") {
+      sub = naSub;
+      if (!sub) {   // no N/A tag: guess from the group name
+        const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase();
+        sub = /wine|champ|prose/.test(g) ? "wine" : /spirit|liquo|whisk|vodk|gin|tequi|rum|zero proof/.test(g) ? "spirits" : /beer|brew|ipa|lager/.test(g) ? "beer" : undefined;
+      }
+    }
+    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0, ...(allocated ? { allocated: true } : {}), ...(sub ? { sub } : {}) });
     tally(gname, section, "shown");
     report.sections[section] = (report.sections[section] || 0) + 1;
   }

@@ -135,6 +135,8 @@
   .g-main .prices{margin-top:4px;max-width:260px}
   ul.gear .status{margin-top:2px}
   .more-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .na-sub{scroll-margin-top:70px}
+  .na-sub h3.grp{margin-top:18px}
   .with-side{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:stretch}
   .with-side .main-list ul.items{columns:1}
   @media (max-width:860px){.with-side{grid-template-columns:1fr;gap:18px}.with-side .alloc{order:-1}}
@@ -615,6 +617,28 @@ function render(){
         <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}<a class="dir alloc-dir" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></aside>` : "";
+      if(s.id==="nonalc"){
+        // split into Beer / Wine / Spirits (KORONA tags N/A Beer, N/A Wine, N/A Spirits)
+        const subs = [["beer","Beer"],["wine","Wine"],["spirits","Spirits"],[undefined,"More Non-Alcoholic"]];
+        let body = "";
+        for(const [key,label] of subs){
+          const group = items.filter(it=>it.sub===key);
+          if(!group.length) continue;
+          const sid = "nonalc-"+(key||"other");
+          const lim = qRaw ? group.length : (showing.get(sid) || SECTION_LIMIT);
+          let btn = "";
+          if(!qRaw && group.length > SECTION_LIMIT){
+            btn = `<div class="more-row">`
+              + (lim < group.length ? `<button class="more" data-sec="${sid}" data-act="more">Show More Non-Alcoholic ${esc(key?label:"")}</button>` : "")
+              + (lim > SECTION_LIMIT ? `<button class="more less" data-sec="${sid}" data-act="less">Show Less</button>` : "")
+              + `</div>`;
+          }
+          body += `<div class="na-sub" id="${sid}"><h3 class="grp">${esc(label)}</h3><ul class="items">${group.slice(0,lim).map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
+            <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${btn}</div>`;
+        }
+        html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>${body}</section>`;
+        continue;
+      }
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
         ${side ? `<div class="with-side"><div class="main-list">${items.length?list:""}</div>${side}</div>` : list}</section>`;
     }

@@ -626,22 +626,44 @@
 {
 "name": "Athletic Run Wild IPA 6pk",
 "section": "nonalc",
-"inStock": true
+"inStock": true,
+"sub": "beer"
 },
 {
 "name": "Heineken 0.0 6pk",
 "section": "nonalc",
-"inStock": true
+"inStock": true,
+"sub": "beer"
 },
 {
 "name": "Fre Cabernet Sauvignon 750ml",
 "section": "nonalc",
-"inStock": true
+"inStock": true,
+"sub": "wine"
 },
 {
 "name": "Ritual Zero Proof Whiskey Alternative 750ml",
 "section": "nonalc",
-"inStock": false
+"inStock": false,
+"sub": "spirits"
+},
+{
+"name": "Lyre's Italian Spritz 700ml",
+"section": "nonalc",
+"inStock": true,
+"sub": "spirits"
+},
+{
+"name": "Fre Brut Sparkling Wine 750ml",
+"section": "nonalc",
+"inStock": true,
+"sub": "wine"
+},
+{
+"name": "Athletic Upside Dawn Golden 6pk",
+"section": "nonalc",
+"inStock": true,
+"sub": "beer"
 },
 {
 "name": "High Noon Vodka Variety 8pk",
