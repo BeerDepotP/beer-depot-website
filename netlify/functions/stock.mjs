@@ -16,7 +16,7 @@
 const SECTION_RULES = [
   ["nonalc",  /non[\s\-_]*al|\bn\s*\/\s*a\b|\bna\s+(beer|wine|spirit)|zero[\s-]*proof|alcohol[\s-]*free|no[\s-]*alc/i],   // checked first
   ["thc",     /\bthc\b|hemp|delta[\s-]*[89]|cbd/i],
-  ["mixers",  /vermo|energy|\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|other mix|old[\s-]*fashion|sour mix|cocktail mix|sparkling water|seltzer water/i],
+  ["mixers",  /vermo|vurmu|vermu|energy|\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|other mix|old[\s-]*fashion|sour mix|cocktail mix|sparkling water|seltzer water/i],
   ["seltzer", /seltz/i],
   ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
   ["vodka",   /vodk/i],
@@ -207,7 +207,7 @@ export async function buildStock() {
     let sub;
     if (section === "mixers") {
       const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
-      sub = /vermo/.test(g) ? "vermouth" : /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /old[\s-]*fashion/.test(g) ? "oldfashioned" : /energy/.test(g) ? "energy"
+      sub = /vermo|vurmu|vermu/.test(g) ? "vermouth" : /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /old[\s-]*fashion/.test(g) ? "oldfashioned" : /energy/.test(g) ? "energy"
           : /tonic|club|ginger\s*ale|ginger\s*beer|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : "other";   // everything else, incl. the "Other Mixers" group
     }
     if (section === "nonalc") {
