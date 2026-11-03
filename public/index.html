@@ -758,7 +758,7 @@ function render(){
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (!qRaw?'<a class="chip" href="#catering">Party &amp; Catering</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
     + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }
 
