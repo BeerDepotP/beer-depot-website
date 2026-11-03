@@ -62,3 +62,10 @@ Customers can request products at the bottom of the site (item, name and phone n
 - Turn it on once: in Netlify open **Forms → Enable form detection**, then redeploy.
 - See requests: **Forms → request**.
 - Get an email for each request: **Project configuration → Notifications → Emails and webhooks → Form submission notifications → Add notification → Email notification**, choose the `request` form.
+
+## Food Stock switches
+Go to `/food-stock` on the website (for example https://cute-salamander-50d302.netlify.app/food-stock) and enter the PIN.
+Each Made Here and Local Favorites item has an on/off switch. Changes show on the website within a minute and do not need a deploy.
+- Set the PIN once in Netlify: Environment variables → `FOOD_PIN` (mark it secret if your plan allows).
+- After 8 wrong PINs, the page locks for 15 minutes.
+- The menu itself (names, prices, photos) is in `tools/menu.js`.

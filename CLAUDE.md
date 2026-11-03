@@ -7,4 +7,5 @@
 - Preview drafts without a deploy: run `python3 tools/build.py` and show `preview.html` (sample stock).
 - Edit `tools/index.template.html`, then run `python3 tools/build.py` to regenerate `public/index.html`. Do not hand-edit `public/index.html`.
 - Live stock comes from KORONA via `netlify/functions/stock.mjs`. Section rules live at the top of that file. Check sorting with `/api/stock?report=<REPORT_KEY>`.
+- Made Here and Local Favorites stock is set by the owner on /food-stock (Netlify Blobs, PIN in FOOD_PIN); no deploy needed for those changes. Menu data: tools/menu.js.
 - Owner preferences: Title Case on names, labels and buttons ("Mac & Cheese", "Each", "In Stock"). Never show "Call to Check".

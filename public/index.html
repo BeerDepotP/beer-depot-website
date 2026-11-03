@@ -266,6 +266,7 @@
 <script>
 /* ================= SETTINGS (safe to edit) ================= */
 const STOCK_URL = "/api/stock";          // where live stock comes from
+const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
 const REFRESH_SECONDS = 60;
 const SECTION_LIMIT = 20;              // products shown per section before "See All"
 
@@ -285,9 +286,12 @@ const SECTIONS = [
   { id:"seltzer", name:"Seltzers" },
 ];
 
-// Made Here stock: every food item shows "In Stock" except the ones listed here,
-// which are set by hand (true = In Stock, false = Out of Stock).
-const FOOD_STOCK = {
+/* The Beer Depot: food and Local Favorites menu.
+   Shared by the website and the Food Stock switches page. */
+// Starting stock for the on/off switches, used only until a switch is first saved on
+// the Food Stock page (/food-stock). Made Here items not listed start as In Stock;
+// Local Favorites not listed start as whatever KORONA says.
+const DEFAULT_STOCK = {
   "Shrimp Salad": true,
   "Chicken Salad": false,
   "Smoked Stuffed Meatloaf": false,
@@ -335,6 +339,7 @@ const LOCAL = [
 ];
 const MAKER_NOTES = { "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
 
+
 // Grilling & Outdoor: shown to everyone (not behind the 21+ check).
 const OUTDOOR = [
   { name:"Charcoal", match:"charcoal", prices:[] },
@@ -351,7 +356,7 @@ const SAMPLE = null;
 const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let stock = null, updatedAt = null, foodOnly = false, loadError = false;
+let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {};
 const showing = new Map();   // section id -> how many products are showing
 
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
@@ -377,6 +382,9 @@ async function load(){
     else { data = SAMPLE; }
     stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
   }catch(e){ loadError = true; }
+  if(SWITCH_URL){
+    try{ const r = await fetch(SWITCH_URL,{cache:"no-store"}); if(r.ok){ const j = await r.json(); switches = j.items || {}; } }catch(e){}
+  }
   render();
 }
 
@@ -387,6 +395,17 @@ function highlight(name, q){
   return esc(name.slice(0,i))+"<mark>"+esc(name.slice(i,i+q.length))+"</mark>"+esc(name.slice(i+q.length));
 }
 function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q).split(" ").every(w=>n.includes(w)); }
+
+// Made Here and Local Favorites: the on/off switch wins; otherwise the starting value.
+function itemStatus(f, section){
+  if(section==="food" || section==="local"){
+    if(f.name in switches) return !!switches[f.name];
+    if(f.name in DEFAULT_STOCK) return DEFAULT_STOCK[f.name];
+    if(section==="food") return true;
+    return foodStatus(f, "local") === true;
+  }
+  return foodStatus(f, section);
+}
 
 function foodStatus(f, section="food"){
   if(!stock) return null;
@@ -408,7 +427,7 @@ function render(){
   let foodShown=0, menuHtml="";
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
   const card = (f, section) => {
-      const st = section==="food" ? (f.name in FOOD_STOCK ? FOOD_STOCK[f.name] : true) : foodStatus(f, section);
+      const st = itemStatus(f, section);
       if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;

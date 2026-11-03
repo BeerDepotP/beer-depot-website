@@ -266,6 +266,7 @@ __PREVIEW_FLAG__
 <script>
 /* ================= SETTINGS (safe to edit) ================= */
 const STOCK_URL = __STOCK_URL__;          // where live stock comes from
+const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
 const REFRESH_SECONDS = 60;
 const SECTION_LIMIT = 20;              // products shown per section before "See All"
 
@@ -285,55 +286,7 @@ const SECTIONS = [
   { id:"seltzer", name:"Seltzers" },
 ];
 
-// Made Here stock: every food item shows "In Stock" except the ones listed here,
-// which are set by hand (true = In Stock, false = Out of Stock).
-const FOOD_STOCK = {
-  "Shrimp Salad": true,
-  "Chicken Salad": false,
-  "Smoked Stuffed Meatloaf": false,
-  "Buffalo Chicken Wings": false,
-};
-
-// Food made here, shown in two groups: "Meats" and "Sides".
-// photo: a file in the img/food folder (leave "" until you have one).
-// match: word(s) used to find this item's stock in KORONA.
-// prices: each line is [label, price], e.g. ["Each","6.49"] or ["Per lb","9.99"].
-// extras: add-ons listed under the item (same format as prices).
-const FOOD = [
-  { group:"Meats", name:"Ribeye", match:"ribeye", photo:"", prices:[["Per lb","18.99"]] },
-  { group:"Meats", name:"Smoked Ribs", match:"ribs", photo:"", prices:[["Per lb","9.99"]] },
-  { group:"Meats", name:"Smoked Chicken Breast", desc:"Regular or Spicy", match:"chicken breast", photo:"", prices:[["Each","6.49"]] },
-  { group:"Meats", name:"Smoked Pulled Pork", match:"pulled pork", photo:"", prices:[["Per lb","9.99"]] },
-  { group:"Meats", name:"Smoked Pulled Chicken", match:"pulled chicken", photo:"", prices:[["Per lb","7.99"]] },
-  { group:"Meats", name:"Buffalo Chicken Wings", match:"wings", photo:"", prices:[["6 Wings","7.00"]] },
-  { group:"Meats", name:"Gyro Meat", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
-    extras:[["Pita","0.75"],["Onion & Tomato","1.75"],["Feta Cheese, Small","3.29"],["Tzatziki, Single Serving","0.75"],["Tzatziki, Small","2.99"],["Tzatziki, Large","4.99"]] },
-  { group:"Meats", name:"Smoked Lasagna", match:"lasagna", photo:"", prices:[["Each","8.49"]] },
-  { group:"Meats", name:"Smoked Stuffed Meatloaf", desc:"Stuffed with Cheesy Potatoes", match:"meatloaf", photo:"", prices:[["Each","9.99"]] },
-  { group:"Meats", name:"Smoked Ham", desc:"Hot Ham on Sundays. Daily Deal: 1 lb of Ham with 6 Grebe's Buns.", tag:"Hot on Sundays", match:"ham", photo:"",
-    prices:[["Per lb","7.99"],["Deal: 1 lb + 6 Buns","9.49"]] },
-  { group:"Sides", name:"Double-Baked Potato", match:"double baked", photo:"", prices:[["Each","2.49"]] },
-  { group:"Sides", name:"Smoked Mac & Cheese", match:"smoked mac", photo:"", prices:[["Each","6.49"]] },
-  { group:"Sides", name:"Smoked Bacon & Jalapeño Mac & Cheese", match:"jalapeno mac", photo:"", prices:[["Each","8.49"]] },
-  { group:"Sides", name:"Shrimp Salad", match:"shrimp salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
-  { group:"Sides", name:"Chicken Salad", match:"chicken salad", photo:"", prices:[["Small","4.99"],["Large","8.99"]] },
-  { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
-  { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
-  { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
-];
-// Local Favorites: cards like Made Here, grouped by who makes them. Shown to everyone.
-// photo: a file in img/food. match: words that must all be in the KORONA product name.
-const LOCAL = [
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Beef Sticks", match:"northern beef stick", photo:"", prices:[] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Summer Sausage", match:"northern summer sausage", photo:"", prices:[] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Bacon", match:"northern bacon", photo:"", prices:[] },
-  { maker:"Pernat's", where:"Ixonia, WI", name:"Pernat's Beef Sticks", match:"pernat", photo:"", prices:[] },
-  { maker:"Kreamer's", where:"", name:"Kreamer's Cheese", match:"kreamer", photo:"", prices:[] },
-  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Bacon Cheddar Brats", match:"bacon cheddar brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
-  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Hungarian Brats", match:"hungarian brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
-  { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Burger Patties", match:"patt", photo:"", prices:[], tag:"Thu–Sun, Summer" },
-];
-const MAKER_NOTES = { "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
+__MENU__
 
 // Grilling & Outdoor: shown to everyone (not behind the 21+ check).
 const OUTDOOR = [
@@ -351,7 +304,7 @@ __SAMPLE_DATA__
 const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let stock = null, updatedAt = null, foodOnly = false, loadError = false;
+let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {};
 const showing = new Map();   // section id -> how many products are showing
 
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
@@ -377,6 +330,9 @@ async function load(){
     else { data = SAMPLE; }
     stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
   }catch(e){ loadError = true; }
+  if(SWITCH_URL){
+    try{ const r = await fetch(SWITCH_URL,{cache:"no-store"}); if(r.ok){ const j = await r.json(); switches = j.items || {}; } }catch(e){}
+  }
   render();
 }
 
@@ -387,6 +343,17 @@ function highlight(name, q){
   return esc(name.slice(0,i))+"<mark>"+esc(name.slice(i,i+q.length))+"</mark>"+esc(name.slice(i+q.length));
 }
 function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q).split(" ").every(w=>n.includes(w)); }
+
+// Made Here and Local Favorites: the on/off switch wins; otherwise the starting value.
+function itemStatus(f, section){
+  if(section==="food" || section==="local"){
+    if(f.name in switches) return !!switches[f.name];
+    if(f.name in DEFAULT_STOCK) return DEFAULT_STOCK[f.name];
+    if(section==="food") return true;
+    return foodStatus(f, "local") === true;
+  }
+  return foodStatus(f, section);
+}
 
 function foodStatus(f, section="food"){
   if(!stock) return null;
@@ -408,7 +375,7 @@ function render(){
   let foodShown=0, menuHtml="";
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
   const card = (f, section) => {
-      const st = section==="food" ? (f.name in FOOD_STOCK ? FOOD_STOCK[f.name] : true) : foodStatus(f, section);
+      const st = itemStatus(f, section);
       if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;

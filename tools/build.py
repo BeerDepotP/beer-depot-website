@@ -9,6 +9,9 @@ root = here.parent
 tpl = (here / "index.template.html").read_text()
 logo_b64 = base64.b64encode((root / "public/img/logo-orange.png").read_bytes()).decode()
 sample = json.loads((here / "sample-stock.json").read_text())
+menu = (here / "menu.js").read_text()
+tpl = tpl.replace("__MENU__", menu)
+(root / "public/menu.js").write_text(menu)   # used by the Food Stock switches page
 
 preview = (tpl
     .replace("__LOGO__", "data:image/png;base64," + logo_b64)

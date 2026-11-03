@@ -1,0 +1,8 @@
+{
+  "name": "beer-depot-website",
+  "private": true,
+  "description": "The Beer Depot, Pewaukee WI. Netlify installs these for the functions.",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}
