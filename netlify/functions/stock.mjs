@@ -27,7 +27,7 @@ const SECTION_RULES = [
   ["brandy",  /brand|cogna/i],
   ["liqueur", /liqueur|liqour|liquo|cordi|schna/i],
   ["wine",    /wine|champ|prose|\bsake\b/i],
-  ["local",   /bacon|brat|jerky|beef st|sausa|chees|kreamer|pernat|northern|patt|burger/i],
+  ["local",   /bacon|brat|jerky|beef st|sausa|chees|kreamer|kraemer|pernat|northern|patt|burger/i],
   ["food",    /food|deli|kitchen|smoked|smokehouse|meat|made here|prepared|hot case/i],
   ["outdoor", /charcoal|pellet|firewood|lighter fluid|propane|grill|outside|outdoor|\bice\b(?!\s*cream)/i],
   ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domes|impor|malt/i],

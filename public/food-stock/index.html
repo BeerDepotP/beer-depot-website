@@ -158,7 +158,7 @@ function current(item, section){
 }
 function swRow(item, section){
   const on = current(item, section);
-  return `<li><span><span class="nm">${esc(item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+  return `<li><span><span class="nm">${esc(item.label||item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}"></button></li>`;
 }
 function renderFood(){

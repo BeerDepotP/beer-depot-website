@@ -544,10 +544,10 @@ function render(){
       if(onlyIn && st===false) return "";
       foodShown++;
       const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
-      const img = f.photo ? `<img src="img/food/${esc(f.photo)}" alt="${esc(f.name)}" loading="lazy">` : "";
+      const img = f.photo ? `<img src="img/food/${esc(f.photo)}" alt="${esc(f.label||f.name)}" loading="lazy">` : "";
       return `<article class="dish ${st===false?"dim":""}">
         <div class="ph ${f.photo?"has-img":""}">${img}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg></div>
-        <div class="body"><h3>${highlight(f.name,qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
+        <div class="body"><h3>${highlight(f.label||f.name,qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
         ${f.prices&&f.prices.length?`<div class="prices">${priceRows(f.prices)}</div>`:""}
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
         <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
