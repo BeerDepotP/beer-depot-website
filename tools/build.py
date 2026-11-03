@@ -12,6 +12,10 @@ sample = json.loads((here / "sample-stock.json").read_text())
 menu = (here / "menu.js").read_text()
 tpl = tpl.replace("__MENU__", menu)
 (root / "public/menu.js").write_text(menu)   # used by the Food Stock switches page
+# Items that switch back to In Stock every Thursday at 9 AM (all Grebe's products)
+import re as _re
+grebes = _re.findall(r'maker:"Grebe\'s"[^}]*?name:"([^"]+)"', menu)
+(root / "netlify/lib/restock.json").write_text(json.dumps({"thursday9am": grebes}, indent=1))
 
 def b64(name): return "data:image/png;base64," + base64.b64encode((root / "public/img" / name).read_bytes()).decode()
 preview = (tpl
