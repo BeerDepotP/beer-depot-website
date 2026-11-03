@@ -666,6 +666,21 @@
 "sub": "beer"
 },
 {
+"name": "Lakefront High Jinx THC Lemonade 4pk",
+"section": "thc",
+"inStock": true
+},
+{
+"name": "Cann Blood Orange Cardamom 6pk",
+"section": "thc",
+"inStock": true
+},
+{
+"name": "Wynk Black Cherry Lime 4pk",
+"section": "thc",
+"inStock": false
+},
+{
 "name": "Coca-Cola 12pk cans",
 "section": "mixers",
 "inStock": true,

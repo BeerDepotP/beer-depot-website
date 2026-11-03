@@ -410,6 +410,7 @@ const SECTIONS = [
   { id:"beer",    name:"Beer" },
   { id:"nonalc",  name:"Non-Alcoholic" },
   { id:"seltzer", name:"Seltzers" },
+  { id:"thc",     name:"THC", until:"2026-12-11" },   // hidden automatically from this date (federal hemp THC limit)
   { id:"whiskey", name:"Whiskey & Bourbon" },
   { id:"wine",    name:"Wine" },
   { id:"tequila", name:"Tequila" },
@@ -590,7 +591,7 @@ function render(){
   $("#outdoor-count").textContent = gearShown + (gearShown===1?" Item":" Items");
 
   // new arrivals (drinks only, so it respects the 21+ check)
-  const drinkIds = new Set(SECTIONS.filter(s=>!foodOnly || s.open).map(s=>s.id));
+  const drinkIds = new Set(SECTIONS.filter(s=>(!foodOnly || s.open) && !(s.until && new Date() >= new Date(s.until+"T00:00:00-06:00"))).map(s=>s.id));
   const secName = Object.fromEntries(SECTIONS.map(s=>[s.id,s.name]));
   const fresh = (stock||[]).filter(it=>it.isNew && it.inStock && drinkIds.has(it.section) && matches(it.name,qRaw)).sort((a,b)=>a.name.localeCompare(b.name));
   $("#new-arrivals").hidden = !fresh.length;
@@ -602,6 +603,7 @@ function render(){
   if(stock){
     for(const s of SECTIONS){
       if(foodOnly && !s.open) continue;
+      if(s.until && new Date() >= new Date(s.until+"T00:00:00-06:00")) continue;
       let items = stock.filter(it=>it.section===s.id && matches(it.name,qRaw) && (!onlyIn || it.inStock));
       // Allocated Bourbon (KORONA tag) gets its own box beside Whiskey & Bourbon
       const alloc = s.id==="whiskey" ? items.filter(it=>it.allocated).sort((a,b)=>(b.inStock-a.inStock) || a.name.localeCompare(b.name)) : [];
@@ -673,7 +675,7 @@ function render(){
   $("#drinks").innerHTML = html;
 
   // chips
-  const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));
+  const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
   $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (!qRaw?'<a class="chip" href="#catering">Party &amp; Catering</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
     + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }

@@ -15,6 +15,7 @@
 // (tobacco, vapes, snacks, etc.) are left off the website.
 const SECTION_RULES = [
   ["nonalc",  /non[\s\-_]*al|\bn\s*\/\s*a\b|\bna\s+(beer|wine|spirit)|zero[\s-]*proof|alcohol[\s-]*free|no[\s-]*alc/i],   // checked first
+  ["thc",     /\bthc\b|hemp|delta[\s-]*[89]|cbd/i],
   ["mixers",  /\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|sour mix|cocktail mix|sparkling water|seltzer water/i],
   ["seltzer", /seltz/i],
   ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
@@ -33,7 +34,7 @@ const SECTION_RULES = [
 ];
 // Groups that never appear on the site, even if a pattern above matches:
 // tobacco and vapes, kept off on purpose.
-const BLOCK_RULES = /tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine|pouch|hemp|cbd|thc|kratom/i;
+const BLOCK_RULES = /tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine|pouch|kratom/i;
 // If a KORONA group name isn't caught by the patterns, add it here exactly as it
 // appears in KORONA Studio, e.g. { "Spirits - Clear": "vodka" }.
 const SECTION_BY_GROUP = {};
@@ -45,7 +46,7 @@ const TAG_SECTIONS = {
   "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer",
   "whiskey": "whiskey", "whisky": "whiskey", "bourbon": "whiskey", "whiskey and bourbon": "whiskey",
   "wine": "wine", "tequila": "tequila", "vodka": "vodka", "brandy": "brandy", "gin": "gin", "rum": "rum",
-  "liqueur": "liqueur", "mixers": "mixers", "mixer": "mixers", "soda": "mixers", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
+  "liqueur": "liqueur", "thc": "thc", "thc drinks": "thc", "mixers": "mixers", "mixer": "mixers", "soda": "mixers", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
   "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
 };
 // Non-Alcoholic is split into Beer / Wine / Spirits by these tags.
