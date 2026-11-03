@@ -12,6 +12,7 @@
 - Soda (Soda & Mixers → Soda) always shows In Stock, even without KORONA stock history (stock.mjs `alwaysIn`).
 - THC section (KORONA group THC) after Seltzers, 21+ only, auto-hides from 2026-12-11 (federal hemp THC limit) via `until` in SECTIONS.
 - KORONA tags override sections (TAG_SECTIONS / HIDE_TAGS in stock.mjs). Tag "Allocated Bourbon" -> Whiskey & Bourbon, shown in its own box on the right (top on phones).
+- Local Favorites makers: Northern Trails & Kraemer (Watertown), Pernat's (Ixonia), Sausage Haus (Oconomowoc), Grebe's (West Allis). Each flavor is its own card/switch; `name` is the unique switch key, `label` is what shows.
 - Owner preferences: Title Case on names, labels and buttons ("Mac & Cheese", "Each", "In Stock"). Never show "Call to Check".
 
 - FOOD_PIN is set in Netlify. Owner confirmed the address as written: "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072".
