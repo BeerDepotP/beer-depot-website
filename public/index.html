@@ -128,23 +128,26 @@
   .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
   .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
 
-  .open-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px;color:#fff;text-decoration:none;border-radius:999px;padding:7px 14px;white-space:nowrap}
-  .open-pill::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
-  .open-pill.is-open{background:#1F5F34}
-  .open-pill.is-closed{background:#7A2418}
-  .visit{background:#fff;padding:40px 0 10px;margin-top:44px}
-  .visit h2{font-family:var(--display);font-weight:900;font-size:clamp(32px,5.5vw,46px);line-height:1;margin:0 0 12px}
-  .visit-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px}
-  @media (max-width:700px){.visit-grid{grid-template-columns:1fr;gap:26px}}
-  ul.hours{list-style:none;margin:0;padding:0;max-width:380px}
-  ul.hours li{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line);color:#4A3B31}
-  ul.hours li.today{font-weight:700;font-size:19px;color:var(--ink)}
-  ul.hours li.today span:first-child::after{content:" (Today)";font-weight:600;font-size:15px;color:var(--orange-deep)}
-  .open-now{font-weight:700;margin:0 0 10px}
-  .open-now.is-open{color:var(--in)} .open-now.is-closed{color:#A3361A}
-  .addr{font-size:19px;font-weight:600;margin:0 0 14px;max-width:30ch}
-  .btn.dir{display:inline-block;text-decoration:none;padding:13px 22px}
-  .addr-call{color:var(--muted)}
+  .hero-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;align-items:start;margin-top:18px}
+  .hero-grid h1{margin-top:6px}
+  @media (max-width:860px){.hero-grid{grid-template-columns:1fr;gap:0}.visit-card{order:-1;margin-bottom:22px}}
+  .visit-card{background:var(--glass-2);border:1px solid #4E3626;border-radius:14px;padding:14px 16px;color:#E8D9CC;font-size:15px}
+  .open-now{margin:0 0 8px;font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+  .open-now::before{content:"";width:10px;height:10px;border-radius:50%;background:currentColor;flex:none}
+  .open-now.is-open{color:#6FDC8F} .open-now.is-closed{color:#FF8A73}
+  #hours-det summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:2px 0 6px}
+  #hours-det summary::-webkit-details-marker{display:none}
+  #hours-det summary .see{color:var(--orange);font-weight:700;font-size:14px;white-space:nowrap}
+  #hours-det[open] summary .see{display:none}
+  #hours-det[open] summary{display:none}
+  #today-hours{color:#fff;font-weight:600}
+  ul.hours{list-style:none;margin:0 0 8px;padding:0}
+  ul.hours li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #4E3626}
+  ul.hours li:last-child{border-bottom:0}
+  ul.hours li.today{font-weight:700;font-size:17px;color:#fff}
+  .addr{margin:10px 0 10px;color:#fff;font-weight:600;line-height:1.35}
+  .dir{display:inline-block;background:var(--orange);color:#fff;text-decoration:none;font-weight:700;font-size:15px;border-radius:999px;padding:8px 16px}
+  .dir:hover{background:var(--orange-deep)}
   .new-arrivals{background:#FFF7F0}
   .new-arrivals .shelf-head{border-color:var(--orange)}
   .new-arrivals .lede{margin:8px 0 6px;color:#4A3B31}
@@ -213,6 +216,8 @@
         262-696-4602
       </a>
     </div>
+    <div class="hero-grid">
+    <div class="hero-main">
     <h1>See what's on our shelves</h1>
     <div class="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
@@ -222,7 +227,17 @@
       <label class="toggle"><input type="checkbox" id="only-in"> In Stock Only</label>
       <span id="updated"><span class="live-dot off"></span>Loading stock…</span>
       <a class="req-link" href="#request" id="req-top">Request an Item</a>
-      <a class="open-pill" href="#hours" id="open-pill"></a>
+    </div>
+    </div>
+    <aside class="visit-card" id="hours" aria-label="Hours and location">
+      <p class="open-now" id="open-now"></p>
+      <details id="hours-det">
+        <summary><span id="today-hours"></span><span class="see">See All Hours</span></summary>
+        <ul class="hours" id="hours-list"></ul>
+      </details>
+      <p class="addr" id="addr"></p>
+      <a class="dir" id="dir" href="#" target="_blank" rel="noopener">Get Directions</a>
+    </aside>
     </div>
   </div>
 </header>
@@ -260,22 +275,6 @@
   </section>
   <div class="drinks wrap" id="drinks"></div>
 </main>
-
-<section class="visit" id="hours">
-  <div class="wrap visit-grid">
-    <div>
-      <h2>Hours</h2>
-      <p class="open-now" id="open-now"></p>
-      <ul class="hours" id="hours-list"></ul>
-    </div>
-    <div>
-      <h2>Find Us</h2>
-      <p class="addr" id="addr"></p>
-      <p><a class="btn yes dir" id="dir" href="#" target="_blank" rel="noopener">Get Directions</a></p>
-      <p class="addr-call">Questions? Call <a href="tel:+12626964602"><strong>262-696-4602</strong></a></p>
-    </div>
-  </div>
-</section>
 
 <section class="request" id="request">
   <div class="wrap">
@@ -605,13 +604,15 @@ function openStatus(){
 }
 function renderHours(){
   const st = openStatus(), {day} = chicagoNow();
-  const pill = $("#open-pill"); pill.textContent = st.text; pill.className = "open-pill " + (st.open?"is-open":"is-closed");
   const on = $("#open-now"); on.textContent = st.text; on.className = "open-now " + (st.open?"is-open":"is-closed");
+  const [ , to, tc] = HOURS[day];
+  $("#today-hours").textContent = "Today: " + (to ? `${fmtTime(to)} – ${fmtTime(tc)}` : "Closed");
   const order = [1,2,3,4,5,6,0];      // Monday first
   $("#hours-list").innerHTML = order.map(d=>{ const [n,o,c]=HOURS[d];
     return `<li class="${d===day?"today":""}"><span>${n}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("");
   $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
 }
+try{ if(window.matchMedia("(min-width: 861px)").matches) $("#hours-det").open = true; }catch(e){}
 renderHours(); setInterval(renderHours, 60000);
 
 function ago(d){
