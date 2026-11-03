@@ -72,7 +72,18 @@
   .live-dot.off{background:#C9A99A}
 
   /* ---------- section nav ---------- */
-  .chips{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line)}
+  .chips{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);transition:top .2s}
+  body.mini-on .chips{top:var(--mini-h,58px)}
+  /* small search bar that slides in once the big search scrolls away */
+  .mini-bar{position:fixed;top:0;left:0;right:0;z-index:6;background:var(--glass);padding:8px 0;
+            transform:translateY(-110%);transition:transform .2s;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  body.mini-on .mini-bar{transform:none}
+  .mini-bar .wrap{display:flex;align-items:center;gap:10px}
+  .mini-bar .search{flex:1;max-width:520px}
+  .mini-bar .search input{font-size:16px;padding:9px 12px 9px 40px;border-width:2px;border-radius:10px}
+  .mini-bar .search svg{left:12px;width:18px;height:18px}
+  .mini-bar .mini-call{color:#fff;font-weight:700;font-size:15px;text-decoration:none;white-space:nowrap}
+  @media (max-width:520px){ .mini-bar .mini-call{display:none} }
   .chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
   .chips .wrap::-webkit-scrollbar{display:none}
   @media (min-width:861px){
@@ -324,6 +335,14 @@ __PREVIEW_FLAG__
     </div>
   </div>
 </header>
+
+<div class="mini-bar" id="mini-bar" aria-hidden="true"><div class="wrap">
+  <div class="search">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+    <input id="q2" type="search" placeholder="Search Our Stock…" autocomplete="off" aria-label="Search our stock" tabindex="-1">
+  </div>
+  <a class="mini-call" href="tel:+12626964602">262-696-4602</a>
+</div></div>
 
 <nav class="chips" aria-label="Sections"><div class="wrap" id="chips"></div></nav>
 
@@ -808,7 +827,33 @@ $("#request-form").addEventListener("submit", async e=>{
 });
 
 // keep section headings clear of the sticky menu bar, whatever its height
-function setBarOffset(){ try{ document.documentElement.style.scrollPaddingTop = (document.querySelector(".chips").offsetHeight + 10) + "px"; }catch(e){} }
+function setBarOffset(){ try{
+  const mini = document.body.classList.contains("mini-on") ? $("#mini-bar").offsetHeight : 0;
+  document.documentElement.style.setProperty("--mini-h", $("#mini-bar").offsetHeight + "px");
+  document.documentElement.style.scrollPaddingTop = (document.querySelector(".chips").offsetHeight + mini + 10) + "px"; }catch(e){} }
+
+// small search bar on top once the big one scrolls out of view; both stay in sync
+(function(){
+  const q1 = $("#q"), q2 = $("#q2"), bar = $("#mini-bar");
+  q1.addEventListener("input", ()=>{ q2.value = q1.value; });
+  q2.addEventListener("input", ()=>{
+    q1.value = q2.value; q1.dispatchEvent(new Event("input"));
+    const m = $("#main"); if(m.getBoundingClientRect().top < 0) m.scrollIntoView({block:"start"});
+  });
+  q2.addEventListener("blur", ()=>{ clearTimeout(tLog); logSearch(); });
+  q2.addEventListener("keydown", e=>{ if(e.key==="Enter") q2.blur(); });
+  function setMini(on){
+    if(on === document.body.classList.contains("mini-on")) return;
+    if(!on && document.activeElement === q2) return;
+    document.body.classList.toggle("mini-on", on);
+    bar.setAttribute("aria-hidden", on ? "false" : "true"); q2.tabIndex = on ? 0 : -1;
+    setBarOffset();
+  }
+  if("IntersectionObserver" in window){
+    new IntersectionObserver(es => setMini(!es[0].isIntersecting)).observe($(".hero .search"));
+  }
+  q2.addEventListener("blur", ()=>{ const r=$(".hero .search").getBoundingClientRect(); if(r.bottom>0) setMini(false); });
+})();
 window.addEventListener("resize", setBarOffset);
 render();   // food, hours and everything else show right away; drinks fill in when stock arrives
 load(); setInterval(load, REFRESH_SECONDS*1000);
