@@ -285,6 +285,15 @@ const SECTIONS = [
   { id:"seltzer", name:"Seltzers" },
 ];
 
+// Made Here stock: every food item shows "In Stock" except the ones listed here,
+// which are set by hand (true = In Stock, false = Out of Stock, null = Call to Check).
+const FOOD_STOCK = {
+  "Shrimp Salad": true,
+  "Chicken Salad": null,
+  "Smoked Stuffed Meatloaf": null,
+  "Buffalo Chicken Wings": null,
+};
+
 // Food made here, shown in two groups: "Meats" and "Sides".
 // photo: a file in the img/food folder (leave "" until you have one).
 // match: word(s) used to find this item's stock in KORONA.
@@ -399,7 +408,7 @@ function render(){
   let foodShown=0, menuHtml="";
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
   const card = (f, section) => {
-      const st = foodStatus(f, section);
+      const st = section==="food" ? (f.name in FOOD_STOCK ? FOOD_STOCK[f.name] : true) : foodStatus(f, section);
       if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
