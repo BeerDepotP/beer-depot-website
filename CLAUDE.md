@@ -1,6 +1,6 @@
 # The Beer Depot website — how we work
 
-- Owner: The Beer Depot, Pewaukee WI. Hosted on Netlify (project "cute-salamander-50d302"), deployed from the `main` branch of this repo.
+- Owner: The Beer Depot, Pewaukee WI. Domain: beerdepotpewaukee.com (bought through Netlify 2026-11-03). Hosted on Netlify (project "cute-salamander-50d302"), deployed from the `main` branch of this repo.
 - **Every push to `main` is a Netlify production deploy and costs 15 credits.** The owner asked that changes be batched.
 - Do all work on the `drafts` branch. Push `drafts` freely (it does not publish).
 - Only merge `drafts` into `main` and push when the owner explicitly says to publish.
