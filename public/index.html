@@ -286,12 +286,12 @@ const SECTIONS = [
 ];
 
 // Made Here stock: every food item shows "In Stock" except the ones listed here,
-// which are set by hand (true = In Stock, false = Out of Stock, null = Call to Check).
+// which are set by hand (true = In Stock, false = Out of Stock).
 const FOOD_STOCK = {
   "Shrimp Salad": true,
-  "Chicken Salad": null,
-  "Smoked Stuffed Meatloaf": null,
-  "Buffalo Chicken Wings": null,
+  "Chicken Salad": false,
+  "Smoked Stuffed Meatloaf": false,
+  "Buffalo Chicken Wings": false,
 };
 
 // Food made here, shown in two groups: "Meats" and "Sides".
@@ -412,7 +412,7 @@ function render(){
       if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
-      const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Call to Check</span>';
+      const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
       const img = f.photo ? `<img src="img/food/${esc(f.photo)}" alt="${esc(f.name)}" loading="lazy">` : "";
       return `<article class="dish ${st===false?"dim":""}">
         <div class="ph ${f.photo?"has-img":""}">${img}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg></div>
@@ -453,7 +453,7 @@ function render(){
     if(!matches(g.name+" "+(g.desc||""), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
-    const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Call to Check</span>';
+    const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
     return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
       ${g.prices.length?`<div class="prices">${priceRows(g.prices)}</div>`:""}</div>${status}</li>`;
   }).join("");
