@@ -653,9 +653,8 @@ function render(){
         + `<div class="menu">${cards}</div>`;
     }
   }
-  const localExtra = extraItems("local", LOCAL, qRaw, onlyIn);
-  if(localExtra.length) localHtml += `<h3 class="grp">More Local Favorites</h3><ul class="items">${localExtra.map(it=>rowHtml(it,qRaw)).join("")}</ul>`;
-  const localShown = foodShown - foodBefore + localExtra.length; foodShown = foodBefore;
+  // Only the cards in LOCAL show here (no extra list of other KORONA products).
+  const localShown = foodShown - foodBefore; foodShown = foodBefore;
   $("#catering").hidden = !!qRaw;
   $("#local-menu").innerHTML = localHtml;
   $("#local-favorites").hidden = !localShown;
