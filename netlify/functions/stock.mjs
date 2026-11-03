@@ -34,7 +34,9 @@ const SECTION_RULES = [
 ];
 // Groups that never appear on the site, even if a pattern above matches:
 // tobacco and vapes, kept off on purpose.
-const BLOCK_RULES = /tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine|pouch|kratom/i;
+// Groups (or products) the owner has retired: anything named "DO NOT USE" is always skipped.
+const RETIRED = /do\s*not\s*use|don'?t\s*use|\bdnu\b/i;
+const BLOCK_RULES = /do\s*not\s*use|don'?t\s*use|\bdnu\b|tobacco|cigar|cigarette|smokes\b|vape|vapor|e-?cig|nicotine|pouch|kratom/i;
 // If a KORONA group name isn't caught by the patterns, add it here exactly as it
 // appears in KORONA Studio, e.g. { "Spirits - Clear": "vodka" }.
 const SECTION_BY_GROUP = {};
@@ -183,6 +185,9 @@ export async function buildStock() {
   };
   for (const p of products) {
     if (p.active === false || p.deactivated) continue;
+    if (RETIRED.test(p.name || "") || groupChain(p.commodityGroup?.id, groups).some(n => RETIRED.test(n))) {
+      report.skippedDoNotUse = (report.skippedDoNotUse || 0) + 1; continue;
+    }
     const tags = (p.tags || []).map(t => tagKey(t.name || tagNames[t.id]));
     if (tags.some(t => HIDE_TAGS.has(t))) { report.hiddenByTag = (report.hiddenByTag || 0) + 1; continue; }
     const allocated = tags.some(t => ALLOCATED_TAGS.has(t));
