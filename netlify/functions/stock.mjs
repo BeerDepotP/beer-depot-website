@@ -16,7 +16,7 @@
 const SECTION_RULES = [
   ["nonalc",  /non[\s\-_]*al|\bn\s*\/\s*a\b|\bna\s+(beer|wine|spirit)|zero[\s-]*proof|alcohol[\s-]*free|no[\s-]*alc/i],   // checked first
   ["thc",     /\bthc\b|hemp|delta[\s-]*[89]|cbd/i],
-  ["mixers",  /\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|old[\s-]*fashion|sour mix|cocktail mix|sparkling water|seltzer water/i],
+  ["mixers",  /energy|\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|old[\s-]*fashion|sour mix|cocktail mix|sparkling water|seltzer water/i],
   ["seltzer", /seltz/i],
   ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
   ["vodka",   /vodk/i],
@@ -46,7 +46,7 @@ const TAG_SECTIONS = {
   "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer", "hard seltzer": "seltzer", "hard seltzers": "seltzer",
   "whiskey": "whiskey", "whisky": "whiskey", "bourbon": "whiskey", "whiskey and bourbon": "whiskey",
   "wine": "wine", "tequila": "tequila", "vodka": "vodka", "brandy": "brandy", "gin": "gin", "rum": "rum",
-  "liqueur": "liqueur", "thc": "thc", "thc drinks": "thc", "mixers": "mixers", "mixer": "mixers", "soda": "mixers", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
+  "liqueur": "liqueur", "thc": "thc", "thc drinks": "thc", "mixers": "mixers", "mixer": "mixers", "soda": "mixers", "energy drinks": "mixers", "energy": "mixers", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
   "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
 };
 // Non-Alcoholic is split into Beer / Wine / Spirits by these tags.
@@ -207,7 +207,7 @@ export async function buildStock() {
     let sub;
     if (section === "mixers") {
       const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
-      sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /paloma/.test(g) ? "paloma" : /old[\s-]*fashion/.test(g) ? "oldfashioned"
+      sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /paloma/.test(g) ? "paloma" : /old[\s-]*fashion/.test(g) ? "oldfashioned" : /energy/.test(g) ? "energy"
           : /tonic|club|ginger\s*ale|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : undefined;
     }
     if (section === "nonalc") {
