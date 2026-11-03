@@ -43,9 +43,9 @@ const FOOD = [
   { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
   { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
-  { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]] },
-  { group:"Take & Bake Pizza", name:"12\" Take & Bake Pizza", match:"12 pizza", photo:"", prices:[["Each","13.00"]] },
-  { group:"Take & Bake Pizza", name:"10\" Gluten-Free Take & Bake Pizza", match:"gluten free pizza", photo:"", prices:[["Each","15.00"]] },
+  { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]], toppings:true },
+  { group:"Take & Bake Pizza", name:"12\" Take & Bake Pizza", match:"12 pizza", photo:"", prices:[["Each","13.00"]], toppings:true },
+  { group:"Take & Bake Pizza", name:"10\" Gluten-Free Take & Bake Pizza", match:"gluten free pizza", photo:"", prices:[["Each","15.00"]], toppings:true },
 ];
 // Local Favorites: cards like Made Here, grouped by who makes them. Shown to everyone.
 // photo: a file in img/food. match: words that must all be in the KORONA product name.

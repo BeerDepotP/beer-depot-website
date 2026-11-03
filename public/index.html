@@ -139,6 +139,9 @@
   .pr b{font-weight:700;color:var(--ink)}
   .extras summary{cursor:pointer;font-weight:600;color:var(--orange-deep);padding:2px 0}
   .extras[open] summary{margin-bottom:4px}
+  .top-note{margin:0 0 4px;color:var(--muted);font-size:14px}
+  .top-list{list-style:none;margin:0;padding:0;columns:2;column-gap:12px;font-size:15px}
+  .top-list li{padding:2px 0;break-inside:avoid}
 
   ul.gear{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:40px}
   @media (max-width:700px){ul.gear{grid-template-columns:1fr}}
@@ -499,9 +502,9 @@ const FOOD = [
   { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
   { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
-  { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]] },
-  { group:"Take & Bake Pizza", name:"12\" Take & Bake Pizza", match:"12 pizza", photo:"", prices:[["Each","13.00"]] },
-  { group:"Take & Bake Pizza", name:"10\" Gluten-Free Take & Bake Pizza", match:"gluten free pizza", photo:"", prices:[["Each","15.00"]] },
+  { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]], toppings:true },
+  { group:"Take & Bake Pizza", name:"12\" Take & Bake Pizza", match:"12 pizza", photo:"", prices:[["Each","13.00"]], toppings:true },
+  { group:"Take & Bake Pizza", name:"10\" Gluten-Free Take & Bake Pizza", match:"gluten free pizza", photo:"", prices:[["Each","15.00"]], toppings:true },
 ];
 // Local Favorites: cards like Made Here, grouped by who makes them. Shown to everyone.
 // photo: a file in img/food. match: words that must all be in the KORONA product name.
@@ -668,16 +671,13 @@ function render(){
         <div class="body"><h3>${highlight(f.label||f.name,qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
         ${f.prices&&f.prices.length?`<div class="prices">${priceRows(f.prices)}</div>`:""}
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
+        ${f.toppings?(()=>{ const on = PIZZA_TOPPINGS.filter(tp => switches[toppingKey(tp)] !== false);
+          return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
         <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
   for(const grp of FOOD_GROUPS){
     const cards = FOOD.filter(f=>f.group===grp).map(f=>card(f,"food")).join("");
-    let note = FOOD_GROUP_NOTES[grp] || "";
-    if(grp==="Take & Bake Pizza"){
-      const on = PIZZA_TOPPINGS.filter(tp => switches[toppingKey(tp)] !== false);
-      const list = on.length > 1 ? on.slice(0,-1).join(", ") + " and " + on[on.length-1] : (on[0] || "");
-      note = on.length ? `Pile on as many toppings as you like for the same price: ${list}.` : "Ask us about today's toppings.";
-    }
+    const note = FOOD_GROUP_NOTES[grp] || "";
     if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
   $("#menu").innerHTML = menuHtml;
