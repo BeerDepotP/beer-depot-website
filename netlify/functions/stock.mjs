@@ -223,7 +223,38 @@ export async function buildStock() {
   return { items, report };
 }
 
-export default async (req) => {
+// ---------- Saved copy, so visitors never wait on KORONA ----------
+// The latest stock list is kept in Netlify Blobs ("stock-latest"). Visitors get that
+// copy instantly; if it's more than a minute old, a fresh one is built in the
+// background (and stock-refresh.mjs also rebuilds it on a schedule).
+const FRESH_MS = 60 * 1000;
+const LOCK_MS = 90 * 1000;
+
+function savedStore() {
+  try { return getStore({ name: "beer-depot", consistency: "strong" }); } catch { return null; }
+}
+
+export async function refreshSaved(store = savedStore()) {
+  if (!store) return null;
+  const lock = await store.get("stock-refreshing", { type: "json" });
+  if (lock && Date.now() - lock.at < LOCK_MS) return null;          // someone else is already refreshing
+  await store.setJSON("stock-refreshing", { at: Date.now() });
+  try {
+    const { items } = await buildStock();
+    const data = { updated: new Date().toISOString(), items };
+    await store.setJSON("stock-latest", data);
+    return data;
+  } finally {
+    await store.setJSON("stock-refreshing", { at: 0 });
+  }
+}
+
+const headers = {
+  "Cache-Control": "public, max-age=0, must-revalidate",
+  "Netlify-CDN-Cache-Control": "public, durable, s-maxage=30, stale-while-revalidate=600",
+};
+
+export default async (req, context) => {
   const missing = ["KORONA_ACCOUNT_ID", "KORONA_USER", "KORONA_PASSWORD"].filter(k => !process.env[k]);
   if (missing.length) {
     return Response.json({ error: "KORONA login is not set up yet.", missing }, { status: 503, headers: { "Cache-Control": "no-store" } });
@@ -231,15 +262,22 @@ export default async (req) => {
   const url = new URL(req.url);
   const wantReport = url.searchParams.get("report") && url.searchParams.get("report") === process.env.REPORT_KEY;
   try {
-    const { items, report } = await buildStock();
-    const body = wantReport ? { updated: new Date().toISOString(), report }
-                            : { updated: new Date().toISOString(), items };
-    return Response.json(body, {
-      headers: wantReport ? { "Cache-Control": "no-store" } : {
-        "Cache-Control": "public, max-age=0, must-revalidate",
-        "Netlify-CDN-Cache-Control": "public, durable, s-maxage=60, stale-while-revalidate=300",
-      },
-    });
+    if (wantReport) {
+      const { report } = await buildStock();
+      return Response.json({ updated: new Date().toISOString(), report }, { headers: { "Cache-Control": "no-store" } });
+    }
+    const store = savedStore();
+    const saved = store ? await store.get("stock-latest", { type: "json" }) : null;
+    if (saved) {
+      if (Date.now() - Date.parse(saved.updated) > FRESH_MS) {
+        const job = refreshSaved(store).catch(e => console.error("refresh", e));
+        if (context && typeof context.waitUntil === "function") context.waitUntil(job);
+      }
+      return Response.json(saved, { headers });
+    }
+    // first time ever: build it now and save it
+    const data = (await refreshSaved(store)) || { updated: new Date().toISOString(), items: (await buildStock()).items };
+    return Response.json(data, { headers });
   } catch (e) {
     console.error(e);
     return Response.json({ error: "Could not read stock from KORONA." }, { status: 502, headers: { "Cache-Control": "no-store" } });

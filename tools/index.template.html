@@ -165,6 +165,12 @@
     border-radius:999px;padding:10px 20px;cursor:pointer}
   button.more:hover{background:var(--orange);color:#fff}
   button.more.less{border-color:var(--line)}
+  .sk{display:inline-block;border-radius:8px;background:linear-gradient(90deg,#EFE7DE 0%,#F8F3EE 50%,#EFE7DE 100%);background-size:200% 100%;animation:sk 1.2s linear infinite}
+  .sk-h{width:220px;height:40px}
+  .sk-name{width:60%;height:16px}
+  .sk-pill{width:70px;height:22px;border-radius:999px}
+  .sk-note{text-align:center;color:var(--muted);font-weight:600;margin:6px 0 0}
+  @keyframes sk{to{background-position:-200% 0}}
   .empty{padding:40px 0 10px}
   .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
   .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
@@ -451,16 +457,21 @@ $("#regate").onclick=openGate;
 if(store("bd-age")==="21"){ foodOnly=false; } else if(store("bd-age")==="no"){ foodOnly=true; document.body.classList.add("food-only"); } else { openGate(); }
 
 /* ---------- data ---------- */
+// Repeat visitors see the last stock list right away while the fresh one loads.
+function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
+function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw })); }catch(e){} }
+if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; } }
+
 async function load(){
+  const swJob = SWITCH_URL ? fetch(SWITCH_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null) : Promise.resolve(null);
+  let data = null;
   try{
-    let data;
     if(STOCK_URL){ const r = await fetch(STOCK_URL,{cache:"no-store"}); if(!r.ok) throw new Error(r.status); data = await r.json(); }
     else { data = SAMPLE; }
     stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
-  }catch(e){ loadError = true; }
-  if(SWITCH_URL){
-    try{ const r = await fetch(SWITCH_URL,{cache:"no-store"}); if(r.ok){ const j = await r.json(); switches = j.items || {}; } }catch(e){}
-  }
+  }catch(e){ loadError = !stock; }
+  const sw = await swJob; if(sw) switches = sw.items || {};
+  if(data && STOCK_URL) saveCache(data, switches);
   render();
 }
 
@@ -648,6 +659,11 @@ function render(){
     html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
       <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
   }
+  if(!stock && !loadError){
+    html = Array.from({length:3},()=>`<section class="shelf skel" aria-hidden="true"><div class="shelf-head"><span class="sk sk-h"></span></div>
+      <ul class="items">${Array.from({length:6},()=>'<li><span class="sk sk-name"></span><span class="sk sk-pill"></span></li>').join("")}</ul></section>`).join("")
+      + '<p class="sk-note" role="status">Loading today\'s shelves…</p>';
+  }
   $("#drinks").innerHTML = html;
 
   // chips
@@ -739,6 +755,7 @@ $("#request-form").addEventListener("submit", async e=>{
   btn.disabled=false; btn.textContent="Send Request";
 });
 
+render();   // food, hours and everything else show right away; drinks fill in when stock arrives
 load(); setInterval(load, REFRESH_SECONDS*1000);
 </script>
 </body>
