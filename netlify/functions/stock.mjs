@@ -16,7 +16,7 @@
 const SECTION_RULES = [
   ["nonalc",  /non[\s\-_]*al|\bn\s*\/\s*a\b|\bna\s+(beer|wine|spirit)|zero[\s-]*proof|alcohol[\s-]*free|no[\s-]*alc/i],   // checked first
   ["thc",     /\bthc\b|hemp|delta[\s-]*[89]|cbd/i],
-  ["mixers",  /\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|sour mix|cocktail mix|sparkling water|seltzer water/i],
+  ["mixers",  /\bsodas?\b|\bpop\b|juice|\bmix\b|mixers?|\bwaters?\b|tonic|club soda|ginger beer|root beer|ginger ale|bitters|grenadine|bloody|margarita mix|paloma|old[\s-]*fashion|sour mix|cocktail mix|sparkling water|seltzer water/i],
   ["seltzer", /seltz/i],
   ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
   ["vodka",   /vodk/i],
@@ -208,7 +208,7 @@ export async function buildStock() {
     let sub;
     if (section === "mixers") {
       const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
-      sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /paloma/.test(g) ? "paloma"
+      sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /paloma/.test(g) ? "paloma" : /old[\s-]*fashion/.test(g) ? "oldfashioned"
           : /tonic|club|ginger\s*ale|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : undefined;
     }
     if (section === "nonalc") {
