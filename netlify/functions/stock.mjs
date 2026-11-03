@@ -14,20 +14,20 @@
 // patterns, most specific group first. First match wins. Groups that match nothing
 // (tobacco, vapes, snacks, etc.) are left off the website.
 const SECTION_RULES = [
-  ["seltzer", /seltzer/i],
-  ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cocktail/i],
-  ["vodka",   /vodka/i],
+  ["seltzer", /seltz/i],
+  ["cocktails", /ready[\s-]*to[\s-]*drink|\brtd\b|cockt/i],
+  ["vodka",   /vodk/i],
   ["gin",     /\bgin\b/i],
   ["rum",     /\brum\b/i],
-  ["whiskey", /whisk|bourbon|scotc|\brye\b/i],
-  ["tequila", /tequi|mezcal/i],
-  ["brandy",  /brandy|cognac/i],
-  ["liqueur", /liqueur|liqour|liquo|cordial|schna|vermo/i],
-  ["wine",    /wine|champagne|prosecco|\bsake\b/i],
-  ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domestic|import|malt/i],
-  ["local",   /bacon|brat|jerky|beef st|sausage|cheese|kreamer|pernat|northern|patt|burger/i],
+  ["whiskey", /whisk|bourb|scotc|\brye\b/i],
+  ["tequila", /tequi|mezca/i],
+  ["brandy",  /brand|cogna/i],
+  ["liqueur", /liqueur|liqour|liquo|cordi|schna|vermo/i],
+  ["wine",    /wine|champ|prose|\bsake\b/i],
+  ["local",   /bacon|brat|jerky|beef st|sausa|chees|kreamer|pernat|northern|patt|burger/i],
   ["food",    /food|deli|kitchen|smoked|smokehouse|meat|made here|prepared|hot case/i],
   ["outdoor", /charcoal|pellet|firewood|lighter fluid|propane|grill|outside|outdoor|\bice\b(?!\s*cream)/i],
+  ["beer",    /beer|\bales?\b|lager|\bipa\b|craft|domes|impor|malt/i],
 ];
 // Groups that never appear on the site, even if a pattern above matches:
 // tobacco/vapes (kept off on purpose), plus root beer and ginger beer (sodas).
