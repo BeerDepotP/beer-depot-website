@@ -27,6 +27,7 @@
   header .lockbtn{margin-left:auto;background:transparent;color:#E8D9CC;border:0;font:600 15px var(--body);text-decoration:underline;cursor:pointer}
   nav.tabs{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:8px;padding:8px 14px 12px;max-width:760px;margin:0 auto}
   @media (max-width:560px){nav.tabs{grid-template-columns:1fr 1fr}}
+  @media (min-width:561px){nav.tabs{grid-template-columns:repeat(5,auto)}}
   .tab{position:relative;font:700 15px var(--body);color:#fff;background:transparent;border:2px solid #5A4537;border-radius:999px;padding:8px 14px;cursor:pointer}
   .tab[aria-selected="true"]{background:var(--orange);border-color:var(--orange)}
   .badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;
@@ -69,6 +70,13 @@
   .it{font-weight:600}
   .who{color:var(--muted);font-size:15px}
   .who a{color:var(--ink);font-weight:700}
+  .sp-card{display:flex;flex-direction:column;gap:10px}
+  .sp-card input{font:600 17px var(--body);width:100%;padding:12px 14px;border:2px solid var(--line);border-radius:10px}
+  .sp-card input:focus{border-color:var(--orange);outline:none}
+  .sp-btns{display:flex;gap:10px}
+  .sp-btns .btn{margin-top:4px}
+  .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .sp-status{margin:0;color:var(--muted);font-size:15px}
   .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--glass);color:#fff;padding:10px 16px;border-radius:999px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5}
   .toast.show{opacity:1}
   .toast.err{background:#A3361A}
@@ -79,6 +87,7 @@
   <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><button class="lockbtn" id="lock" hidden>Lock</button></header>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
+    <button class="tab" role="tab" data-tab="specials" aria-selected="false">Specials</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -100,6 +109,17 @@
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
     <div id="local"></div>
+  </section>
+
+  <section id="p-specials" hidden>
+    <h2 class="sec">This Week's Specials</h2>
+    <p class="help">Shows as a banner at the top of the website. Up to 5 lines. Leave them all empty to hide the banner.</p>
+    <form id="sp-form" class="card sp-card">
+      <div id="sp-fields"></div>
+      <div class="sp-btns"><button class="btn" type="submit" id="sp-save">Save Specials</button>
+      <button class="btn ghost" type="button" id="sp-clear">Clear All</button></div>
+      <p class="sp-status" id="sp-status" role="status"></p>
+    </form>
   </section>
 
   <section id="p-nofind" hidden>
@@ -130,7 +150,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","nofind","top","requests"];
+const TABS = ["food","specials","nofind","top","requests"];
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
 function toast(text, err){ const t=$("#toast"); t.textContent=text; t.className="toast show"+(err?" err":""); clearTimeout(toast.t); toast.t=setTimeout(()=>t.className="toast",2200); }
@@ -201,6 +221,30 @@ async function loadReport(w){
   if(!Object.keys(seenBefore).length) seenBefore = rep.seen || {};
 }
 
+/* ---------- specials ---------- */
+const SP_MAX = 5;
+function renderSpecialsForm(items){
+  $("#sp-fields").innerHTML = Array.from({length:SP_MAX},(_,i)=>
+    `<input maxlength="100" placeholder="${i===0?"e.g. Spotted Cow 12pk $15.99":""}" aria-label="Special ${i+1}" value="${esc((items||[])[i]||"")}">`).join("");
+}
+async function loadSpecials(){
+  const j = await fetch("/api/specials",{cache:"no-store"}).then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]}));
+  renderSpecialsForm(j.items);
+  $("#sp-status").textContent = j.items && j.items.length ? `Showing on the website now · last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : "No specials showing right now.";
+}
+async function saveSpecials(items){
+  $("#sp-save").disabled = true;
+  try{
+    const j = await api("/api/specials",{ items });
+    renderSpecialsForm(j.items);
+    $("#sp-status").textContent = j.items.length ? "Saved. Showing on the website within a minute." : "Cleared. The banner is hidden.";
+    toast(j.items.length ? "Specials saved" : "Specials cleared");
+  }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
+  $("#sp-save").disabled = false;
+}
+$("#sp-form").addEventListener("submit", e=>{ e.preventDefault(); saveSpecials([...$$("#sp-fields input")].map(i=>i.value)); });
+$("#sp-clear").onclick = ()=>{ $$("#sp-fields input").forEach(i=>i.value=""); saveSpecials([]); };
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -210,6 +254,7 @@ async function openTab(name){
   try{ history.replaceState(null,"","#"+name); }catch(e){}
   window.scrollTo(0,0);
   if(name==="food") return;
+  if(name==="specials"){ loadSpecials(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
     seenBefore = rep.seen || {};          // highlight what's new on this visit
