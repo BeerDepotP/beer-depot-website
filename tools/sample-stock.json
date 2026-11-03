@@ -141,49 +141,58 @@
 "allocated": true
 },
 {
-"name": "Allocated sample Weller 12 750ml",
+"name": "Weller 12 750ml",
 "section": "whiskey",
-"inStock": false
+"inStock": false,
+"allocated": true
 },
 {
-"name": "Allocated sample Eagle Rare 10 750ml",
+"name": "Eagle Rare 10 750ml",
 "section": "whiskey",
-"inStock": true
+"inStock": true,
+"allocated": true
 },
 {
-"name": "Allocated sample Elmer T. Lee 750ml",
+"name": "Elmer T. Lee 750ml",
 "section": "whiskey",
-"inStock": false
+"inStock": false,
+"allocated": true
 },
 {
-"name": "Allocated sample Rock Hill Farms 750ml",
+"name": "Rock Hill Farms 750ml",
 "section": "whiskey",
-"inStock": true
+"inStock": true,
+"allocated": true
 },
 {
-"name": "Allocated sample Old Fitzgerald BiB 750ml",
+"name": "Old Fitzgerald BiB 750ml",
 "section": "whiskey",
-"inStock": false
+"inStock": false,
+"allocated": true
 },
 {
-"name": "Allocated sample Michter's 10 750ml",
+"name": "Michter's 10 750ml",
 "section": "whiskey",
-"inStock": true
+"inStock": true,
+"allocated": true
 },
 {
-"name": "Allocated sample Weller Full Proof 750ml",
+"name": "Weller Full Proof 750ml",
 "section": "whiskey",
-"inStock": false
+"inStock": false,
+"allocated": true
 },
 {
-"name": "Allocated sample Blood Oath 750ml",
+"name": "Blood Oath 750ml",
 "section": "whiskey",
-"inStock": true
+"inStock": true,
+"allocated": true
 },
 {
-"name": "Allocated sample Penelope Rio 750ml",
+"name": "Penelope Rio 750ml",
 "section": "whiskey",
-"inStock": false
+"inStock": false,
+"allocated": true
 },
 {
 "name": "Captain Morgan Original Spiced 1.75L",
