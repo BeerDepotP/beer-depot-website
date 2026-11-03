@@ -424,8 +424,9 @@ const SECTIONS = [
 // Sections split into smaller parts (by KORONA commodity group or tag), in this order.
 const SUBSECTIONS = {
   nonalc: [["beer","Beer"],["wine","Wine"],["spirits","Spirits"],[undefined,"More Non-Alcoholic"]],
+  // a third value of "21" means only visitors who said they're 21+ see that part
   mixers: [["soda","Soda"],["bloody","Bloody Mary Mix"],["tonic","Tonic, Club Soda, Ginger Ale & Seltzer"],["juice","Juice"],
-           ["margarita","Margarita Mix"],["paloma","Paloma Mix"],["oldfashioned","Old Fashioned Mix"],[undefined,"More Mixers"]],
+           ["margarita","Margarita Mix","21"],["paloma","Paloma Mix","21"],["oldfashioned","Old Fashioned Mix","21"],[undefined,"More Mixers","21"]],
 };
 
 /* The Beer Depot: food and Local Favorites menu.
@@ -549,6 +550,11 @@ function highlight(name, q){
 }
 function matches(name, q){ if(!q) return true; const n=norm(name); return norm(q).split(" ").every(w=>n.includes(w)); }
 
+function adultOnlySub(it){
+  const subs = SUBSECTIONS[it.section]; if(!subs) return false;
+  const row = subs.find(([k])=>k===it.sub) || subs.find(([k])=>k===undefined);
+  return !!(row && row[2]==="21");
+}
 function cardMatches(card, it){
   const words = norm(card.match||card.name).split(" "), n = " "+norm(it.name);
   return words.every(w=>n.includes(" "+w));
@@ -651,7 +657,7 @@ function render(){
   // new arrivals (drinks only, so it respects the 21+ check)
   const drinkIds = new Set(SECTIONS.filter(s=>(!foodOnly || s.open) && !(s.until && new Date() >= new Date(s.until+"T00:00:00-06:00"))).map(s=>s.id));
   const secName = Object.fromEntries(SECTIONS.map(s=>[s.id,s.name]));
-  const fresh = (stock||[]).filter(it=>it.isNew && it.inStock && drinkIds.has(it.section) && matches(it.name,qRaw)).sort((a,b)=>a.name.localeCompare(b.name));
+  const fresh = (stock||[]).filter(it=>it.isNew && it.inStock && drinkIds.has(it.section) && !(foodOnly && adultOnlySub(it)) && matches(it.name,qRaw)).sort((a,b)=>a.name.localeCompare(b.name));
   $("#new-arrivals").hidden = !fresh.length;
   $("#new-count").textContent = fresh.length + (fresh.length===1?" Item":" Items");
   $("#new-list").innerHTML = fresh.map(it=>`<li><span class="name">${highlight(it.name,qRaw)}<span class="sec-tag">${esc(secName[it.section]||"")}</span></span><span class="status in">In Stock</span></li>`).join("");
@@ -662,7 +668,7 @@ function render(){
     for(const s of SECTIONS){
       if(foodOnly && !s.open) continue;
       if(s.until && new Date() >= new Date(s.until+"T00:00:00-06:00")) continue;
-      let items = stock.filter(it=>it.section===s.id && matches(it.name,qRaw) && (!onlyIn || it.inStock));
+      let items = stock.filter(it=>it.section===s.id && matches(it.name,qRaw) && (!onlyIn || it.inStock) && !(foodOnly && adultOnlySub(it)));
       // Allocated Bourbon (KORONA tag) gets its own box beside Whiskey & Bourbon
       const alloc = s.id==="whiskey" ? items.filter(it=>it.allocated).sort((a,b)=>(b.inStock-a.inStock) || a.name.localeCompare(b.name)) : [];
       if(alloc.length) items = items.filter(it=>!it.allocated);
