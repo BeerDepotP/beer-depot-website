@@ -123,7 +123,8 @@
   .with-side{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:32px;align-items:start}
   .with-side .main-list ul.items{columns:1}
   @media (max-width:860px){.with-side{grid-template-columns:1fr;gap:18px}.with-side .alloc{order:-1;position:static}}
-  .alloc{background:var(--glass);color:#E8D9CC;border-radius:14px;padding:16px 18px 8px;margin-top:6px;position:sticky;top:70px}
+  .chip.alloc-chip{background:var(--glass);border-color:var(--glass);color:var(--orange)}
+  .alloc{scroll-margin-top:70px;background:var(--glass);color:#E8D9CC;border-radius:14px;padding:16px 18px 8px;margin-top:6px;position:sticky;top:70px}
   .alloc h3{font-family:var(--display);font-weight:900;font-size:30px;line-height:1;color:var(--orange);margin:0 0 6px}
   .alloc p{margin:0 0 8px;font-size:15px}
   .alloc p a{color:#fff;font-weight:700}
@@ -550,7 +551,7 @@ function render(){
       }
       const list = `<ul class="items">${shown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}`;
-      const side = alloc.length ? `<aside class="alloc" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
+      const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
         <p>Limited bottles. Call <a href="tel:+12626964602">262-696-4602</a> to ask.</p>
         <ul class="items">${alloc.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul></aside>` : "";
@@ -567,7 +568,8 @@ function render(){
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
+    + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }
 
 /* ---------- hours ---------- */
