@@ -117,6 +117,30 @@
 "inStock": true
 },
 {
+"name": "Blanton's Single Barrel 750ml",
+"section": "whiskey",
+"inStock": false,
+"allocated": true
+},
+{
+"name": "Weller Special Reserve 750ml",
+"section": "whiskey",
+"inStock": true,
+"allocated": true
+},
+{
+"name": "E.H. Taylor Small Batch 750ml",
+"section": "whiskey",
+"inStock": true,
+"allocated": true
+},
+{
+"name": "Stagg Jr 750ml",
+"section": "whiskey",
+"inStock": false,
+"allocated": true
+},
+{
 "name": "Captain Morgan Original Spiced 1.75L",
 "section": "rum",
 "inStock": true

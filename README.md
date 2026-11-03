@@ -80,4 +80,5 @@ every device). New rows are marked "New". `/searches` redirects here.
 Tag a product in KORONA Studio to control where it shows on the website. Tags win over commodity groups.
 - Section tags: Ready to Drink Cocktails (or Cocktails / RTD), Beer, Seltzers, Whiskey (or Bourbon), Wine, Tequila, Vodka, Brandy, Gin, Rum, Liqueur, Local Favorites, Grilling & Outdoor.
 - `Hide From Website` keeps a product off the site.
+- `Allocated Bourbon` puts a product in the Allocated Bourbon box beside Whiskey & Bourbon.
 Tagged products in Local Favorites or Grilling & Outdoor that don't have a card show in a list under the cards.

@@ -47,6 +47,8 @@ const TAG_SECTIONS = {
   "grilling and outdoor": "outdoor", "grilling": "outdoor", "outdoor": "outdoor",
 };
 const HIDE_TAGS = new Set(["hide from website", "hide", "not on website", "no website"]);
+// "Allocated Bourbon" puts a product in its own box beside Whiskey & Bourbon.
+const ALLOCATED_TAGS = new Set(["allocated bourbon", "allocated", "allocated whiskey"]);
 const tagKey = s => String(s || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
 
 // Individual products that sit in the wrong KORONA group: product-name pattern -> section.
@@ -171,7 +173,8 @@ export async function buildStock() {
     if (p.active === false || p.deactivated) continue;
     const tags = (p.tags || []).map(t => tagKey(t.name || tagNames[t.id]));
     if (tags.some(t => HIDE_TAGS.has(t))) { report.hiddenByTag = (report.hiddenByTag || 0) + 1; continue; }
-    const tagSection = tags.map(t => TAG_SECTIONS[t]).find(Boolean);
+    const allocated = tags.some(t => ALLOCATED_TAGS.has(t));
+    const tagSection = allocated ? "whiskey" : tags.map(t => TAG_SECTIONS[t]).find(Boolean);
     const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
     const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups));
     if (tagSection) report.placedByTag = (report.placedByTag || 0) + 1;
@@ -189,7 +192,7 @@ export async function buildStock() {
     // (has a purchase price) or has moved (on-hand isn't exactly zero).
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
     if (!everStocked) { report.skippedNeverStocked++; continue; }
-    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0 });
+    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0, ...(allocated ? { allocated: true } : {}) });
     tally(gname, section, "shown");
     report.sections[section] = (report.sections[section] || 0) + 1;
   }

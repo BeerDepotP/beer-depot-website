@@ -2,7 +2,7 @@ import json
 S={
 "vodka":[("Tito's Handmade Vodka 750ml",1),("Tito's Handmade Vodka 1.75L",1),("Smirnoff No. 21 1.75L",1),("Absolut 750ml",1),("Grey Goose 750ml",0),("New Amsterdam 1.75L",1),("Ketel One 750ml",1),("Deep Eddy Lemon 750ml",0)],
 "gin":[("Tanqueray London Dry 750ml",1),("Bombay Sapphire 750ml",1),("Hendrick's 750ml",0),("Gordon's 1.75L",1),("Aviation 750ml",1)],
-"whiskey":[("Jim Beam 1.75L",1),("Jack Daniel's Old No. 7 750ml",1),("Buffalo Trace 750ml",0),("Maker's Mark 750ml",1),("Crown Royal 750ml",1),("Jameson Irish Whiskey 750ml",1),("Woodford Reserve 750ml",1),("Evan Williams 1.75L",1),("Bulleit Bourbon 750ml",0),("Fireball Cinnamon Whisky 750ml",1)],
+"whiskey":[("Jim Beam 1.75L",1),("Jack Daniel's Old No. 7 750ml",1),("Buffalo Trace 750ml",0),("Maker's Mark 750ml",1),("Crown Royal 750ml",1),("Jameson Irish Whiskey 750ml",1),("Woodford Reserve 750ml",1),("Evan Williams 1.75L",1),("Bulleit Bourbon 750ml",0),("Fireball Cinnamon Whisky 750ml",1),("Blanton's Single Barrel 750ml",0),("Weller Special Reserve 750ml",1),("E.H. Taylor Small Batch 750ml",1),("Stagg Jr 750ml",0)],
 "rum":[("Captain Morgan Original Spiced 1.75L",1),("Bacardi Superior 750ml",1),("Malibu Coconut 750ml",1),("Kraken Black Spiced 750ml",0),("Sailor Jerry 750ml",1)],
 "wine":[("Barefoot Moscato 1.5L",1),("Josh Cabernet Sauvignon 750ml",1),("Kendall-Jackson Chardonnay 750ml",1),("La Marca Prosecco 750ml",1),("Apothic Red 750ml",0),("Sutter Home White Zinfandel 1.5L",1)],
 "liqueur":[("Kahlúa 750ml",1),("Baileys Original Irish Cream 750ml",1),("Dr. McGillicuddy's Mentholmint 750ml",1),("RumChata 750ml",1),("Jägermeister 750ml",0),("Southern Comfort 750ml",1)],
@@ -20,6 +20,7 @@ random.seed(4)
 S["beer"] += [(f"{b} {k}",int(random.random()>.25)) for b in ["Lakefront","Third Space","Good City","MobCraft","Leinenkugel's","Central Waters","Karben4","Hacienda"] for k in ["IPA 6pk","Lager 12pk","Seasonal 6pk","Amber 6pk","Stout 4pk"]]
 items=[{"name":n,"section":s,"inStock":bool(i)} for s,l in S.items() for n,i in l]
 for it in items:
+    if it["name"] in ("Blanton's Single Barrel 750ml","Weller Special Reserve 750ml","E.H. Taylor Small Batch 750ml","Stagg Jr 750ml"): it["allocated"]=True
     if it["name"] in ("Hacienda IPA 6pk","Good City Lager 12pk","Kendall-Jackson Chardonnay 750ml","Casamigos Blanco 750ml"): it["isNew"]=True
 json.dump({"updated":None,"items":items},open("sample-stock.json","w"),indent=0)
 print(len(items))
