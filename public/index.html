@@ -619,7 +619,7 @@ function render(){
           + `</div>`;
       }
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
-        <p>Limited bottles. Call <a href="tel:+12626964602">262-696-4602</a> to ask.</p>
+        <p>Limited Bottles Sold on a First Come, First Serve Basis</p>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}</aside>` : "";
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
