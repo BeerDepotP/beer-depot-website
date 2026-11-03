@@ -26,7 +26,7 @@ items=[{"name":n,"section":s,"inStock":bool(i)} for s,l in S.items() for n,i in 
 for it in items:
     if it["name"] in ("Blanton's Single Barrel 750ml","Weller Special Reserve 750ml","E.H. Taylor Small Batch 750ml","Stagg Jr 750ml") or it["name"] in [f"{n} 750ml" for n in ALLOC_EXTRA]: it["allocated"]=True
     if it["section"]=="mixers":
-        n=it["name"].lower(); it["sub"] = "bloody" if "bloody" in n else "margarita" if "margarita" in n else "paloma" if "paloma" in n else "oldfashioned" if "old fashion" in n else "energy" if any(w in n for w in ["red bull","monster","celsius"]) else "tonic" if any(w in n for w in ["tonic","ginger ale","lacroix","club"]) else "juice" if "juice" in n else "soda"
+        n=it["name"].lower(); it["sub"] = "bloody" if "bloody" in n else "margarita" if "margarita" in n else "other" if "paloma" in n else "oldfashioned" if "old fashion" in n else "energy" if any(w in n for w in ["red bull","monster","celsius"]) else "tonic" if any(w in n for w in ["tonic","ginger ale","lacroix","club"]) else "juice" if "juice" in n else "soda"
     if it["section"]=="mixers" and it.get("sub")=="soda": it["inStock"]=True
     if it["section"]=="nonalc":
         n=it["name"]; it["sub"] = "wine" if ("Fre" in n or "Wine" in n) else "spirits" if ("Ritual" in n or "Lyre" in n) else "beer"
