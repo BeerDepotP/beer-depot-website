@@ -128,6 +128,28 @@
   .empty h2{font-family:var(--display);font-size:38px;margin:0 0 6px}
   .notice{background:#FFF3EA;border:1.5px solid #F7C7A6;border-radius:10px;padding:12px 14px;margin:18px 0 0;font-size:15px}
 
+  .open-pill{display:inline-flex;align-items:center;gap:7px;font-weight:700;font-size:15px;color:#fff;text-decoration:none;border-radius:999px;padding:7px 14px;white-space:nowrap}
+  .open-pill::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
+  .open-pill.is-open{background:#1F5F34}
+  .open-pill.is-closed{background:#7A2418}
+  .visit{background:#fff;padding:40px 0 10px;margin-top:44px}
+  .visit h2{font-family:var(--display);font-weight:900;font-size:clamp(32px,5.5vw,46px);line-height:1;margin:0 0 12px}
+  .visit-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+  @media (max-width:700px){.visit-grid{grid-template-columns:1fr;gap:26px}}
+  ul.hours{list-style:none;margin:0;padding:0;max-width:380px}
+  ul.hours li{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line);color:#4A3B31}
+  ul.hours li.today{font-weight:700;font-size:19px;color:var(--ink)}
+  ul.hours li.today span:first-child::after{content:" (Today)";font-weight:600;font-size:15px;color:var(--orange-deep)}
+  .open-now{font-weight:700;margin:0 0 10px}
+  .open-now.is-open{color:var(--in)} .open-now.is-closed{color:#A3361A}
+  .addr{font-size:19px;font-weight:600;margin:0 0 14px;max-width:30ch}
+  .btn.dir{display:inline-block;text-decoration:none;padding:13px 22px}
+  .addr-call{color:var(--muted)}
+  .new-arrivals{background:#FFF7F0}
+  .new-arrivals .shelf-head{border-color:var(--orange)}
+  .new-arrivals .lede{margin:8px 0 6px;color:#4A3B31}
+  .sec-tag{font-size:13px;font-weight:600;color:var(--muted);margin-left:6px}
+  .request{margin-top:0}
   .request{background:var(--kraft);padding:40px 0 44px;margin-top:44px}
   .request h2{font-family:var(--display);font-weight:900;font-size:clamp(30px,5.5vw,46px);line-height:1;margin:0;overflow-wrap:break-word}
   .request .lede{margin:10px 0 18px;color:#4A3B31}
@@ -200,6 +222,7 @@
       <label class="toggle"><input type="checkbox" id="only-in"> In Stock Only</label>
       <span id="updated"><span class="live-dot off"></span>Loading stock…</span>
       <a class="req-link" href="#request" id="req-top">Request an Item</a>
+      <a class="open-pill" href="#hours" id="open-pill"></a>
     </div>
   </div>
 </header>
@@ -228,8 +251,31 @@
       <ul class="gear" id="gear"></ul>
     </div>
   </section>
+  <section class="shelf new-arrivals" id="new-arrivals" hidden>
+    <div class="wrap">
+      <div class="shelf-head"><h2>New Arrivals</h2><span class="count" id="new-count"></span></div>
+      <p class="lede">Just came in over the last two weeks.</p>
+      <ul class="items" id="new-list"></ul>
+    </div>
+  </section>
   <div class="drinks wrap" id="drinks"></div>
 </main>
+
+<section class="visit" id="hours">
+  <div class="wrap visit-grid">
+    <div>
+      <h2>Hours</h2>
+      <p class="open-now" id="open-now"></p>
+      <ul class="hours" id="hours-list"></ul>
+    </div>
+    <div>
+      <h2>Find Us</h2>
+      <p class="addr" id="addr"></p>
+      <p><a class="btn yes dir" id="dir" href="#" target="_blank" rel="noopener">Get Directions</a></p>
+      <p class="addr-call">Questions? Call <a href="tel:+12626964602"><strong>262-696-4602</strong></a></p>
+    </div>
+  </div>
+</section>
 
 <section class="request" id="request">
   <div class="wrap">
@@ -274,6 +320,20 @@ const REFRESH_SECONDS = 60;
 const SECTION_LIMIT = 20;              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
+// Store info
+const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
+const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("The Beer Depot, " + ADDRESS);
+// Hours by day (0 = Sunday). Times are 24-hour "HH:MM"; null = closed all day.
+const HOURS = [
+  ["Sunday",    "09:00", "16:00"],
+  ["Monday",    "09:00", "20:00"],
+  ["Tuesday",   "09:00", "20:00"],
+  ["Wednesday", "09:00", "20:00"],
+  ["Thursday",  "09:00", "20:00"],
+  ["Friday",    "09:00", "21:00"],
+  ["Saturday",  "09:00", "21:00"],
+];
+
 // open:true = shown to everyone (not behind the 21+ check).
 const SECTIONS = [
   { id:"cocktails", name:"Ready to Drink Cocktails" },
@@ -482,6 +542,14 @@ function render(){
   $("#grilling-outdoor").hidden = !gearShown;
   $("#outdoor-count").textContent = gearShown + (gearShown===1?" Item":" Items");
 
+  // new arrivals (drinks only, so it respects the 21+ check)
+  const drinkIds = new Set(SECTIONS.filter(s=>!foodOnly || s.open).map(s=>s.id));
+  const secName = Object.fromEntries(SECTIONS.map(s=>[s.id,s.name]));
+  const fresh = (stock||[]).filter(it=>it.isNew && it.inStock && drinkIds.has(it.section) && matches(it.name,qRaw)).sort((a,b)=>a.name.localeCompare(b.name));
+  $("#new-arrivals").hidden = !fresh.length;
+  $("#new-count").textContent = fresh.length + (fresh.length===1?" Item":" Items");
+  $("#new-list").innerHTML = fresh.map(it=>`<li><span class="name">${highlight(it.name,qRaw)}<span class="sec-tag">${esc(secName[it.section]||"")}</span></span><span class="status in">In Stock</span></li>`).join("");
+
   // drinks
   let html="", total=0;
   if(stock){
@@ -516,8 +584,35 @@ function render(){
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`).join("");
 }
+
+/* ---------- hours ---------- */
+function chicagoNow(){
+  const parts = new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const get = t => parts.find(p=>p.type===t).value;
+  const day = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].indexOf(get("weekday"));
+  return { day, mins: (+get("hour"))*60 + (+get("minute")) };
+}
+const toMins = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
+function fmtTime(t){ let [h,m]=t.split(":").map(Number); const ap = h>=12?"PM":"AM"; h = h%12||12; return m ? `${h}:${String(m).padStart(2,"0")} ${ap}` : `${h} ${ap}`; }
+function openStatus(){
+  const {day, mins} = chicagoNow(), [ , o, c] = HOURS[day];
+  if(o && mins >= toMins(o) && mins < toMins(c)) return { open:true, text:`Open Now · Until ${fmtTime(c)}` };
+  if(o && mins < toMins(o)) return { open:false, text:`Closed · Opens ${fmtTime(o)} Today` };
+  for(let i=1;i<=7;i++){ const d=(day+i)%7; if(HOURS[d][1]) return { open:false, text:`Closed · Opens ${fmtTime(HOURS[d][1])} ${i===1?"Tomorrow":HOURS[d][0]}` }; }
+  return { open:false, text:"Closed" };
+}
+function renderHours(){
+  const st = openStatus(), {day} = chicagoNow();
+  const pill = $("#open-pill"); pill.textContent = st.text; pill.className = "open-pill " + (st.open?"is-open":"is-closed");
+  const on = $("#open-now"); on.textContent = st.text; on.className = "open-now " + (st.open?"is-open":"is-closed");
+  const order = [1,2,3,4,5,6,0];      // Monday first
+  $("#hours-list").innerHTML = order.map(d=>{ const [n,o,c]=HOURS[d];
+    return `<li class="${d===day?"today":""}"><span>${n}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("");
+  $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
+}
+renderHours(); setInterval(renderHours, 60000);
 
 function ago(d){
   const s = Math.max(0, Math.round((Date.now()-d.getTime())/1000));

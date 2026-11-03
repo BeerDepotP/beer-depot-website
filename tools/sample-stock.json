@@ -154,7 +154,8 @@
 {
 "name": "Kendall-Jackson Chardonnay 750ml",
 "section": "wine",
-"inStock": true
+"inStock": true,
+"isNew": true
 },
 {
 "name": "La Marca Prosecco 750ml",
@@ -259,7 +260,8 @@
 {
 "name": "Casamigos Blanco 750ml",
 "section": "tequila",
-"inStock": true
+"inStock": true,
+"isNew": true
 },
 {
 "name": "Jose Cuervo Especial Gold 1.75L",
@@ -399,7 +401,8 @@
 {
 "name": "Good City Lager 12pk",
 "section": "beer",
-"inStock": true
+"inStock": true,
+"isNew": true
 },
 {
 "name": "Good City Seasonal 6pk",
@@ -519,7 +522,8 @@
 {
 "name": "Hacienda IPA 6pk",
 "section": "beer",
-"inStock": true
+"inStock": true,
+"isNew": true
 },
 {
 "name": "Hacienda Lager 12pk",

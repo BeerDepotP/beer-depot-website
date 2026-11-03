@@ -41,6 +41,36 @@ const SECTION_BY_PRODUCT = [
   [/bardstown/i, "whiskey"],
 ];
 
+// ---------- New Arrivals ----------
+// The first time a product shows up with stock, we note the date in Netlify Blobs.
+// On the very first run every product that already has stock history is recorded
+// as "old", so only products that arrive after launch count as new.
+import { getStore } from "@netlify/blobs";
+const NEW_DAYS = 14;
+
+async function markNewArrivals(items) {
+  let store;
+  try { store = getStore({ name: "beer-depot", consistency: "strong" }); } catch { return; } // Blobs not available
+  const seen = (await store.get("first-stocked", { type: "json" })) || null;
+  const now = Date.now();
+  if (!seen) {
+    const ids = {};
+    for (const it of items) ids[it.id] = 0;
+    await store.setJSON("first-stocked", { seeded: now, ids });
+    return;
+  }
+  let changed = false;
+  for (const it of items) {
+    if (!(it.id in seen.ids)) {
+      if (!it.inStock) continue;                 // only count it once it actually has stock
+      seen.ids[it.id] = now; changed = true;
+    }
+    const t = seen.ids[it.id];
+    if (t && now - t < NEW_DAYS * 86400000 && it.inStock) it.isNew = true;
+  }
+  if (changed) await store.setJSON("first-stocked", seen);
+}
+
 // ---------- KORONA API ----------
 const HOST = process.env.KORONA_HOST || "185.koronacloud.com";
 const ACCOUNT = process.env.KORONA_ACCOUNT_ID;
@@ -139,12 +169,15 @@ export async function buildStock() {
     // (has a purchase price) or has moved (on-hand isn't exactly zero).
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
     if (!everStocked) { report.skippedNeverStocked++; continue; }
-    items.push({ name: (p.name || "").trim(), section, inStock: onHand > 0 });
+    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0 });
     tally(gname, section, "shown");
     report.sections[section] = (report.sections[section] || 0) + 1;
   }
   items.sort((a, b) => a.name.localeCompare(b.name));
+  try { await markNewArrivals(items); } catch (e) { console.error("new arrivals", e); }
   report.shown = items.length;
+  report.newArrivals = items.filter(i => i.isNew).length;
+  for (const it of items) delete it.id;            // the website doesn't need KORONA ids
   return { items, report };
 }
 
