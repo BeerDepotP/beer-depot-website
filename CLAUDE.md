@@ -20,7 +20,7 @@
 
 ## Waiting to go live (remind the owner when they say publish)
 - Cloudflare Web Analytics: owner makes a free Cloudflare account, adds the site, and sends the beacon token; add the script tag to tools/index.template.html.
-- Turn on Netlify Forms (Forms → Enable form detection) and the email notification for the `request` form.
+- Netlify Forms detection is ON (owner enabled it 2026-11-03). Still to do: email notification for the `request` form.
 
 ## Future ideas the owner wants
 - Online ordering + payment for FOOD ONLY (Made Here and catering), pickup in store. Orders would land in a new Store Tools "Orders" tab with a badge. Payment provider not chosen yet (Stripe or Square; ask whether their current card processor offers online payments).
