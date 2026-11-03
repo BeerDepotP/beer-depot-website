@@ -204,7 +204,6 @@ export async function buildStock() {
     // "Has ever had stock": it has a stock record AND it was received at some point
     // (has a purchase price) or has moved (on-hand isn't exactly zero).
     const everStocked = onHand !== undefined && (onHand !== 0 || Number(p.lastPurchasePrice) > 0);
-    if (!everStocked) { report.skippedNeverStocked++; continue; }
     let sub;
     if (section === "mixers") {
       const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
@@ -218,7 +217,10 @@ export async function buildStock() {
         sub = /wine|champ|prose/.test(g) ? "wine" : /spirit|liquo|whisk|vodk|gin|tequi|rum|zero proof/.test(g) ? "spirits" : /beer|brew|ipa|lager/.test(g) ? "beer" : undefined;
       }
     }
-    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: onHand > 0, ...(allocated ? { allocated: true } : {}), ...(sub ? { sub } : {}) });
+    // Soda always shows In Stock (and shows even without stock history in KORONA)
+    const alwaysIn = section === "mixers" && sub === "soda";
+    if (!everStocked && !alwaysIn) { report.skippedNeverStocked++; continue; }
+    items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: alwaysIn || onHand > 0, ...(allocated ? { allocated: true } : {}), ...(sub ? { sub } : {}) });
     tally(gname, section, "shown");
     report.sections[section] = (report.sections[section] || 0) + 1;
   }

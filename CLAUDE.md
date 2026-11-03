@@ -9,6 +9,7 @@
 - Live stock comes from KORONA via `netlify/functions/stock.mjs`, which serves a saved copy from Blobs ("stock-latest") instantly and refreshes it in the background when over 60s old; `stock-refresh.mjs` also rebuilds it every 10 min, 6 AM–10 PM Central. Section rules live at the top of that file. Check sorting with `/api/stock?report=<REPORT_KEY>`.
 - Store Tools at /food-stock (PIN in FOOD_PIN): tabs Food Stock (switches, Netlify Blobs), Couldn't Find It, Top Searches, Requests, with unread badges. No deploy needed for switch changes. Menu data: tools/menu.js. Functions: food-stock.mjs, insights.mjs, shared PIN check in netlify/lib/pin.mjs.
 - Hot Ham banner: HOT_HAM in tools/index.template.html (Sunday 9 AM–3 PM). Home-screen icons in public/img + public/manifest.webmanifest.
+- Soda (Soda & Mixers → Soda) always shows In Stock, even without KORONA stock history (stock.mjs `alwaysIn`).
 - THC section (KORONA group THC) after Seltzers, 21+ only, auto-hides from 2026-12-11 (federal hemp THC limit) via `until` in SECTIONS.
 - KORONA tags override sections (TAG_SECTIONS / HIDE_TAGS in stock.mjs). Tag "Allocated Bourbon" -> Whiskey & Bourbon, shown in its own box on the right (top on phones).
 - Owner preferences: Title Case on names, labels and buttons ("Mac & Cheese", "Each", "In Stock"). Never show "Call to Check".
