@@ -69,3 +69,8 @@ Each Made Here and Local Favorites item has an on/off switch. Changes show on th
 - Set the PIN once in Netlify: Environment variables → `FOOD_PIN` (mark it secret if your plan allows).
 - After 8 wrong PINs, the page locks for 15 minutes.
 - The menu itself (names, prices, photos) is in `tools/menu.js`.
+
+## Searches page
+Go to `/searches` (same PIN as Food Stock). It shows this week's and last week's top searches,
+searches that found nothing ("Couldn't Find It"), and product requests from the request box.
+Searches are counted once per visitor per search, by week (Central time).

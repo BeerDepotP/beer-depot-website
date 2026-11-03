@@ -9,3 +9,8 @@
 - Live stock comes from KORONA via `netlify/functions/stock.mjs`. Section rules live at the top of that file. Check sorting with `/api/stock?report=<REPORT_KEY>`.
 - Made Here and Local Favorites stock is set by the owner on /food-stock (Netlify Blobs, PIN in FOOD_PIN); no deploy needed for those changes. Menu data: tools/menu.js.
 - Owner preferences: Title Case on names, labels and buttons ("Mac & Cheese", "Each", "In Stock"). Never show "Call to Check".
+
+## Waiting to go live (remind the owner when they say publish)
+- Add `FOOD_PIN` in Netlify environment variables BEFORE publishing (Food Stock and Searches pages need it).
+- Cloudflare Web Analytics: owner makes a free Cloudflare account, adds the site, and sends the beacon token; add the script tag to tools/index.template.html.
+- Turn on Netlify Forms (Forms → Enable form detection) and the email notification for the `request` form.

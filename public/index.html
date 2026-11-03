@@ -356,7 +356,7 @@ const SAMPLE = null;
 const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {};
+let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {}, lastFound = 0;
 const showing = new Map();   // section id -> how many products are showing
 
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
@@ -504,6 +504,7 @@ function render(){
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}</section>`;
     }
   }
+  lastFound = total + foodShown + gearShown + localShown;
   if(qRaw && !total && !foodShown && !gearShown && !localShown){
     html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
       <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
@@ -521,7 +522,17 @@ function ago(d){
   return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
 }
 
-let t; $("#q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(render,120); });
+// Count what people search for (live site only). Logged once they stop typing.
+const INSIGHTS_URL = STOCK_URL ? "/api/insights" : null;
+const logged = new Set();
+function logSearch(){
+  const q = $("#q").value.trim().toLowerCase();
+  if(!INSIGHTS_URL || q.length < 2 || logged.has(q)) return;
+  logged.add(q);
+  fetch(INSIGHTS_URL,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"search",q,found:lastFound})}).catch(()=>{});
+}
+let t, tLog; $("#q").addEventListener("input",()=>{ clearTimeout(t); t=setTimeout(render,120); clearTimeout(tLog); tLog=setTimeout(logSearch,1800); });
+$("#q").addEventListener("blur",()=>{ clearTimeout(tLog); logSearch(); });
 $("#only-in").addEventListener("change",render);
 /* ---------- request box ---------- */
 document.addEventListener("click", e=>{
@@ -546,6 +557,8 @@ $("#request-form").addEventListener("submit", async e=>{
   try{
     const r = await fetch("/", {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:new URLSearchParams(new FormData(f)).toString()});
     if(!r.ok) throw new Error(r.status);
+    if(INSIGHTS_URL) fetch(INSIGHTS_URL,{method:"POST",keepalive:true,headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({type:"request",item:f.item.value,name:f.name.value,phone:f.phone.value})}).catch(()=>{});
     f.reset(); msg.className="req-msg ok"; msg.textContent="Request sent. Thanks! We'll see what we can do.";
   }catch(err){
     msg.className="req-msg err"; msg.textContent="Your request didn't go through. Try again, or call us at 262-696-4602.";

@@ -16,6 +16,8 @@
   header{background:var(--glass);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:2}
   header img{width:96px}
   header h1{font-family:var(--display);font-weight:900;font-size:30px;margin:0;line-height:1}
+  header nav{margin-left:auto}
+  header nav a{color:#fff;font-weight:700;text-decoration:none;border:2px solid var(--orange);border-radius:999px;padding:6px 12px;font-size:15px}
   main{max-width:620px;margin:0 auto;padding:16px 16px 60px}
   :focus-visible{outline:3px solid var(--orange);outline-offset:2px}
   .card{background:#fff;border-radius:14px;padding:18px}
@@ -49,7 +51,7 @@
 </style>
 </head>
 <body>
-<header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Food Stock</h1></header>
+<header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Food Stock</h1><nav><a href="/searches/">Searches</a></nav></header>
 <main>
   <form class="card pin" id="pin-form">
     <h2>Enter Your PIN</h2>
