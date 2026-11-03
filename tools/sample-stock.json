@@ -141,6 +141,51 @@
 "allocated": true
 },
 {
+"name": "Allocated sample Weller 12 750ml",
+"section": "whiskey",
+"inStock": false
+},
+{
+"name": "Allocated sample Eagle Rare 10 750ml",
+"section": "whiskey",
+"inStock": true
+},
+{
+"name": "Allocated sample Elmer T. Lee 750ml",
+"section": "whiskey",
+"inStock": false
+},
+{
+"name": "Allocated sample Rock Hill Farms 750ml",
+"section": "whiskey",
+"inStock": true
+},
+{
+"name": "Allocated sample Old Fitzgerald BiB 750ml",
+"section": "whiskey",
+"inStock": false
+},
+{
+"name": "Allocated sample Michter's 10 750ml",
+"section": "whiskey",
+"inStock": true
+},
+{
+"name": "Allocated sample Weller Full Proof 750ml",
+"section": "whiskey",
+"inStock": false
+},
+{
+"name": "Allocated sample Blood Oath 750ml",
+"section": "whiskey",
+"inStock": true
+},
+{
+"name": "Allocated sample Penelope Rio 750ml",
+"section": "whiskey",
+"inStock": false
+},
+{
 "name": "Captain Morgan Original Spiced 1.75L",
 "section": "rum",
 "inStock": true

@@ -129,6 +129,10 @@
   .alloc p{margin:0 0 8px;font-size:15px}
   .alloc p a{color:#fff;font-weight:700}
   .alloc ul.items{columns:1}
+  .alloc .more-row{margin:12px 0 8px}
+  .alloc button.more{background:transparent;color:#fff;border-color:var(--orange)}
+  .alloc button.more:hover{background:var(--orange)}
+  .alloc button.more.less{border-color:#5A4537}
   .alloc ul.items li{border-color:#4E3626}
   .alloc .name{color:#fff;font-weight:600}
   .alloc li.is-out .name{color:#B9A99C}
@@ -330,7 +334,8 @@
 const STOCK_URL = "/api/stock";          // where live stock comes from
 const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
 const REFRESH_SECONDS = 60;
-const SECTION_LIMIT = 20;              // products shown per section before "See All"
+const SECTION_LIMIT = 20;
+const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
 // Store info
@@ -603,10 +608,19 @@ function render(){
       }
       const list = `<ul class="items">${shown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}`;
+      const aLimit = qRaw ? alloc.length : (showing.get("allocated") || ALLOCATED_LIMIT);
+      const allocShown = alloc.slice(0, aLimit);
+      let allocBtn = "";
+      if(!qRaw && alloc.length > ALLOCATED_LIMIT){
+        allocBtn = `<div class="more-row">`
+          + (aLimit < alloc.length ? `<button class="more" data-sec="allocated" data-step="${ALLOCATED_LIMIT}" data-act="more">Show More Allocated Bourbon</button>` : "")
+          + (aLimit > ALLOCATED_LIMIT ? `<button class="more less" data-sec="allocated" data-act="less">Show Less</button>` : "")
+          + `</div>`;
+      }
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
         <p>Limited bottles. Call <a href="tel:+12626964602">262-696-4602</a> to ask.</p>
-        <ul class="items">${alloc.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul></aside>` : "";
+        <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
+        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}</aside>` : "";
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>
         ${side ? `<div class="with-side"><div class="main-list">${items.length?list:""}</div>${side}</div>` : list}</section>`;
     }
@@ -675,7 +689,8 @@ $("#only-in").addEventListener("change",render);
 document.addEventListener("click", e=>{
   const mb = e.target.closest && e.target.closest("button.more");
   if(mb){ const id=mb.dataset.sec;
-          if(mb.dataset.act==="more"){ showing.set(id,(showing.get(id)||SECTION_LIMIT)+SECTION_LIMIT); render(); }
+          const step = Number(mb.dataset.step) || SECTION_LIMIT;
+          if(mb.dataset.act==="more"){ showing.set(id,(showing.get(id)||step)+step); render(); }
           else { showing.delete(id); render(); document.getElementById(id).scrollIntoView({block:"start"}); }
           return; }
   if(e.target && e.target.id==="req-top"){ setTimeout(()=>$("#req-item").focus({preventScroll:true}),400); }
