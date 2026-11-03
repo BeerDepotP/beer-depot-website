@@ -48,11 +48,11 @@ const LOCAL = [
   { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Bacon Cheddar Brats", match:"bacon cheddar brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
   { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Fresh Hungarian Brats", match:"hungarian brat", photo:"", prices:[], tag:"Thu–Sun, Summer" },
   { maker:"Sausage Haus", where:"Oconomowoc, WI", name:"Burger Patties", match:"patt", photo:"", prices:[], tag:"Thu–Sun, Summer" },
-  { maker:"Grebe's", where:"", name:"Grebe's Better Butter Rolls", match:"grebe butter roll", photo:"", prices:[] },
-  { maker:"Grebe's", where:"", name:"Grebe's Brat Buns", match:"grebe brat bun", photo:"", prices:[] },
-  { maker:"Grebe's", where:"", name:"Grebe's White Bread Loaf", match:"grebe white bread", photo:"", prices:[] },
-  { maker:"Grebe's", where:"", name:"Grebe's Crullers", match:"grebe cruller", photo:"", prices:[] },
-  { maker:"Grebe's", where:"", name:"Grebe's Mini Chocolate Covered Crullers", match:"grebe chocolate cruller", photo:"", prices:[] },
+  { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Better Butter Rolls", match:"grebe butter roll", photo:"", prices:[] },
+  { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Brat Buns", match:"grebe brat bun", photo:"", prices:[] },
+  { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's White Bread Loaf", match:"grebe white bread", photo:"", prices:[] },
+  { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Crullers", match:"grebe cruller", photo:"", prices:[] },
+  { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Mini Chocolate Covered Crullers", match:"grebe chocolate cruller", photo:"", prices:[] },
 ];
 const MAKER_NOTES = {
   "Grebe's":"Fresh bakery rolls, buns, bread and crullers.", "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
