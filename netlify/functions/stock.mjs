@@ -208,7 +208,7 @@ export async function buildStock() {
     if (section === "mixers") {
       const g = groupChain(p.commodityGroup?.id, groups).join(" ").toLowerCase() + " " + tags.join(" ");
       sub = /bloody/.test(g) ? "bloody" : /margarita/.test(g) ? "margarita" : /old[\s-]*fashion/.test(g) ? "oldfashioned" : /energy/.test(g) ? "energy"
-          : /tonic|club|ginger\s*ale|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : "other";   // everything else, incl. the "Other Mixers" group
+          : /tonic|club|ginger\s*ale|ginger\s*beer|seltz|sparkling/.test(g) ? "tonic" : /juice/.test(g) ? "juice" : /soda|\bpop\b|cola/.test(g) ? "soda" : "other";   // everything else, incl. the "Other Mixers" group
     }
     if (section === "nonalc") {
       sub = naSub;
