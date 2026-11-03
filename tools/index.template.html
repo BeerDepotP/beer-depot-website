@@ -587,7 +587,7 @@ function render(){
   // grilling & outdoor
   let gearShown=0;
   $("#gear").innerHTML = OUTDOOR.map(g=>{
-    const st = foodStatus(g,"outdoor");
+    const st = true;   // Grilling & Outdoor always shows In Stock
     if(!matches(g.name+" "+(g.desc||""), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
@@ -595,7 +595,7 @@ function render(){
     return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
       ${g.prices.length?`<div class="prices">${priceRows(g.prices)}</div>`:""}</div>${status}</li>`;
   }).join("");
-  const gearExtra = extraItems("outdoor", OUTDOOR, qRaw, onlyIn);
+  const gearExtra = extraItems("outdoor", OUTDOOR, qRaw, false).map(it=>({...it, inStock:true}));
   if(gearExtra.length){ $("#gear").insertAdjacentHTML("beforeend", gearExtra.map(it=>`<li class="${it.inStock?"":"is-out"}"><div class="g-main"><span class="name">${highlight(it.name,qRaw)}</span></div><span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")); gearShown += gearExtra.length; }
   $("#grilling-outdoor").hidden = !gearShown;
   $("#outdoor-count").textContent = gearShown + (gearShown===1?" Item":" Items");
