@@ -43,7 +43,7 @@ const SECTION_BY_GROUP = {};
 // "Hide From Website" to keep it off the site.
 const TAG_SECTIONS = {
   "ready to drink cocktails": "cocktails", "ready to drink": "cocktails", "cocktails": "cocktails", "rtd": "cocktails",
-  "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer",
+  "beer": "beer", "seltzer": "seltzer", "seltzers": "seltzer", "hard seltzer": "seltzer", "hard seltzers": "seltzer",
   "whiskey": "whiskey", "whisky": "whiskey", "bourbon": "whiskey", "whiskey and bourbon": "whiskey",
   "wine": "wine", "tequila": "tequila", "vodka": "vodka", "brandy": "brandy", "gin": "gin", "rum": "rum",
   "liqueur": "liqueur", "thc": "thc", "thc drinks": "thc", "mixers": "mixers", "mixer": "mixers", "soda": "mixers", "non alcoholic": "nonalc", "non-alcoholic": "nonalc", "na": "nonalc", "n a": "nonalc", "zero proof": "nonalc", "local favorites": "local", "local favorite": "local", "local": "local",
