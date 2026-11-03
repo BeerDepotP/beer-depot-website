@@ -13,7 +13,9 @@ menu = (here / "menu.js").read_text()
 tpl = tpl.replace("__MENU__", menu)
 (root / "public/menu.js").write_text(menu)   # used by the Food Stock switches page
 
+def b64(name): return "data:image/png;base64," + base64.b64encode((root / "public/img" / name).read_bytes()).decode()
 preview = (tpl
+    .replace("__FAV32__", b64("favicon-32.png")).replace("__FAV64__", b64("favicon-64.png")).replace("__ATI__", b64("apple-touch-icon.png"))
     .replace("__LOGO__", "data:image/png;base64," + logo_b64)
     .replace("__STOCK_URL__", "null")
     .replace("__SAMPLE_DATA__", "const SAMPLE = " + json.dumps(sample) + ";")
@@ -21,6 +23,7 @@ preview = (tpl
 (root / "preview.html").write_text(preview)
 
 live = (tpl
+    .replace("__FAV32__", "/img/favicon-32.png").replace("__FAV64__", "/img/favicon-64.png").replace("__ATI__", "/img/apple-touch-icon.png")
     .replace("__LOGO__", "img/logo-orange.png")
     .replace("__STOCK_URL__", '"/api/stock"')
     .replace("__SAMPLE_DATA__", "const SAMPLE = null;")

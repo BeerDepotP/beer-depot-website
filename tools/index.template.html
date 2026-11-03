@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Beer Depot · Pewaukee, WI</title>
 <meta name="description" content="See what's in stock at The Beer Depot in Pewaukee, WI: beer, seltzers, spirits, ready-to-drink cocktails and food smoked and made here.">
+<link rel="icon" type="image/png" sizes="32x32" href="__FAV32__">
+<link rel="icon" type="image/png" sizes="64x64" href="__FAV64__">
+<link rel="apple-touch-icon" href="__ATI__">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#2B1A10">
+<meta name="apple-mobile-web-app-title" content="Beer Depot">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -210,6 +216,11 @@
   .btn{font:700 18px var(--body);padding:15px 18px;border-radius:12px;border:2px solid var(--orange);cursor:pointer}
   .btn.yes{background:var(--orange);color:#fff}
   .btn.no{background:transparent;color:#fff}
+  .ham-banner{display:flex;align-items:center;justify-content:center;gap:10px;background:#C8102E;color:#fff;text-decoration:none;
+    font-family:var(--display);font-weight:900;font-size:clamp(22px,4.5vw,30px);line-height:1.05;padding:10px 16px;text-align:center}
+  .ham-banner[hidden]{display:none}
+  .ham-banner svg{width:24px;height:24px;fill:#FFD08A;flex:none}
+  .ham-banner:hover{background:#A60D26}
   .preview-flag{background:var(--orange);color:#fff;text-align:center;font-weight:600;font-size:14px;padding:7px 12px}
   .food-only-note{display:none}
   .food-only .food-only-note{display:block}
@@ -230,6 +241,10 @@
 </div>
 
 __PREVIEW_FLAG__
+<a class="ham-banner" id="ham-banner" href="#made-here" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7z"/></svg>
+  <span>Hot Ham Available Now Until 3 PM</span>
+</a>
 
 <header class="hero">
   <div class="wrap">
@@ -347,6 +362,8 @@ const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon
 // Store info
 const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
 const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("The Beer Depot, " + ADDRESS);
+// Hot Ham banner: shown across the top on this day, between these times.
+const HOT_HAM = { day: 0, from: "09:00", until: "15:00" };   // Sunday 9 AM to 3 PM
 // Hours by day (0 = Sunday). Times are 24-hour "HH:MM"; null = closed all day.
 const HOURS = [
   ["Sunday",    "09:00", "16:00"],
@@ -617,6 +634,8 @@ function renderHours(){
   $("#hours-list").innerHTML = order.map(d=>{ const [n,o,c]=HOURS[d];
     return `<li class="${d===day?"today":""}"><span>${n}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("");
   $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
+  const {mins} = chicagoNow();
+  $("#ham-banner").hidden = !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until));
 }
 try{ if(window.matchMedia("(min-width: 861px)").matches) $("#hours-det").open = true; }catch(e){}
 renderHours(); setInterval(renderHours, 60000);
