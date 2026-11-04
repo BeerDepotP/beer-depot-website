@@ -147,14 +147,15 @@
   .chip.sale-chip{background:#D7261E;border-color:#D7261E;color:#fff}
   .chip.sale-chip.on{border-color:var(--ink)}
   /* ---------- sections drawer ---------- */
-  .sec-btn{position:fixed;right:12px;bottom:max(16px,env(safe-area-inset-bottom));z-index:7;display:flex;align-items:center;gap:8px;background:var(--glass);color:#fff;border:2px solid var(--orange);
-           border-radius:999px;padding:11px 16px;font:700 16px var(--body);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+  .chips-row{display:flex;align-items:center}
+  .chips-row .wrap{flex:1;min-width:0;padding-left:8px}
+  .sec-btn{flex:none;display:flex;align-items:center;gap:6px;margin-left:10px;background:var(--glass);color:#fff;border:0;border-radius:10px;
+           padding:8px 11px;font:700 15px var(--body);cursor:pointer}
   .sec-btn svg{width:20px;height:20px;fill:var(--orange)}
-  @media (min-width:861px){ .sec-btn{bottom:76px} }   /* stay clear of the Netlify badge */
-  body.gate-open .sec-btn{display:none}
+  @media (max-width:560px){ .sec-btn span{display:none} .sec-btn{padding:8px} }
   .drawer-bg{position:fixed;inset:0;background:rgba(20,12,6,.45);z-index:20;opacity:0;pointer-events:none;transition:opacity .25s}
-  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);background:#fff;z-index:21;transform:translateX(105%);transition:transform .28s ease;
-          display:flex;flex-direction:column;box-shadow:-6px 0 24px rgba(0,0,0,.25)}
+  .drawer{position:fixed;top:0;left:0;bottom:0;width:min(320px,86vw);background:#fff;z-index:21;transform:translateX(-105%);transition:transform .28s ease;
+          display:flex;flex-direction:column;box-shadow:6px 0 24px rgba(0,0,0,.25)}
   body.drawer-open .drawer{transform:none} body.drawer-open .drawer-bg{opacity:1;pointer-events:auto}
   .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--glass);color:#fff}
   .drawer-head h2{margin:0;font-family:var(--display);font-weight:900;font-size:28px;color:var(--orange)}
@@ -405,15 +406,16 @@ __PREVIEW_FLAG__
   <a class="mini-call" href="tel:+12626964602">262-696-4602</a>
 </div></div>
 
-<button class="sec-btn" id="sec-btn" type="button" aria-controls="drawer" aria-expanded="false">
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>Sections</button>
 <div class="drawer-bg" id="drawer-bg"></div>
 <aside class="drawer" id="drawer" aria-label="All sections" aria-hidden="true">
   <div class="drawer-head"><h2>Sections</h2><button class="drawer-x" id="drawer-x" type="button" aria-label="Close">&times;</button></div>
   <ul id="drawer-list"></ul>
 </aside>
 
-<nav class="chips" aria-label="Sections"><div class="wrap" id="chips"></div></nav>
+<nav class="chips" aria-label="Sections"><div class="chips-row">
+  <button class="sec-btn" id="sec-btn" type="button" aria-controls="drawer" aria-expanded="false" aria-label="All sections">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg><span>Sections</span></button>
+  <div class="wrap" id="chips"></div></div></nav>
 
 <main id="main">
   <section class="sale shelf" id="on-sale" hidden>
@@ -989,7 +991,7 @@ function fitAlloc(){
 }
 let fitT; window.addEventListener("resize", ()=>{ clearTimeout(fitT); fitT = setTimeout(fitAlloc, 150); });
 
-// Sections drawer (opens from the right): same list and order as the menu bar
+// Sections drawer (opens from the left): same list and order as the menu bar
 function fillDrawer(){
   const chips = [...$("#chips").querySelectorAll("a.chip")];
   $("#drawer-list").innerHTML = chips.map(c=>`<li><a href="${c.getAttribute("href")}" class="${c.classList.contains("sale-chip")?"sale-chip":""}${c.classList.contains("on")?" on":""}">${c.innerHTML}</a></li>`).join("");
