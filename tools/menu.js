@@ -29,7 +29,7 @@ const FOOD = [
   { group:"Meats", name:"Smoked Pulled Pork", match:"pulled pork", photo:"pulled-pork.jpg", prices:[["Per lb","9.99"]] },
   { group:"Meats", name:"Smoked Pulled Chicken", match:"pulled chicken", photo:"pulled-chicken.jpg", prices:[["Per lb","7.99"]] },
   { group:"Meats", name:"Buffalo Chicken Wings", match:"wings", photo:"buffalo-wings.jpg", prices:[["6 Wings","7.00"]] },
-  { group:"Meats", name:"Gyro Meat", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
+  { group:"Meats", name:"Gyro Meat", label:"Gyro", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
     extras:[["Pita","0.75"],["Onion & Tomato","1.75"],["Feta Cheese, Small","3.29"],["Tzatziki, Single Serving","0.75"],["Tzatziki, Small","2.99"],["Tzatziki, Large","4.99"]] },
   { group:"Meats", name:"Smoked Lasagna", match:"lasagna", photo:"", prices:[["Each","8.49"]] },
   { group:"Meats", name:"Smoked Stuffed Meatloaf", desc:"Stuffed with Cheesy Potatoes", match:"meatloaf", photo:"", prices:[["Each","9.99"]] },
