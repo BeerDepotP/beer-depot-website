@@ -1,0 +1,36 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+@page{size:11in 8.5in;margin:0}
+*{box-sizing:border-box}
+body{margin:0;width:11in;height:8.5in;font-family:"Barlow",Arial,sans-serif;color:#22160F;background:#fff}
+.half{width:11in;height:4.25in;padding:.2in;position:relative}
+.half + .half::before{content:"";position:absolute;top:0;left:.15in;right:.15in;border-top:1px dashed #9A8E86}
+.card{height:100%;border:.1in solid #2B1A10;padding:.18in .3in;display:flex;align-items:center;gap:.32in}
+.logo{width:1.55in;flex:none}
+.text{flex:1;display:flex;flex-direction:column;justify-content:center;height:100%}
+.kick{font:700 11pt "Barlow",Arial;letter-spacing:.06em;text-transform:uppercase;color:#2B1A10;margin:0}
+h1{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;font-weight:900;font-size:46pt;line-height:.9;color:#F26B1D;margin:.03in 0 .08in}
+.lede{font:600 13pt "Barlow",Arial;margin:0 0 .08in;line-height:1.25}
+.fine{font:500 9pt "Barlow",Arial;color:#6B5A4E;margin:0;line-height:1.3}
+.side{flex:none;display:flex;flex-direction:column;align-items:center;text-align:center}
+.qr{width:2.6in;height:2.6in;border:.04in solid #F26B1D;border-radius:.12in;padding:.03in;background:#fff}
+.qr img{width:100%;height:100%;image-rendering:pixelated;display:block}
+.scan{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;font-weight:900;font-size:22pt;color:#2B1A10;margin:.05in 0 0;line-height:1}
+.url{font:700 9pt "Barlow",Arial;margin:.02in 0 0}
+</style></head><body>
+<div class="half"><div class="card">
+ <img class="logo" src="logo-orange.png">
+ <div class="text">
+  <p class="kick">Allocated Bourbon</p>
+  <h1>Join the Bourbon Club</h1>
+  <p class="lede">Every Thursday at 5 PM, get an email with every allocated bottle we have in stock.</p>
+  <p class="fine">Must be 21 or older · Free · First come, first served, in store only · Unsubscribe anytime</p>
+ </div>
+ <div class="side">
+  <div class="qr"><img src="bourbon-club-qr.png"></div>
+  <p class="scan">Scan to Join</p>
+  <p class="url">or visit beerdepotpewaukee.com/club</p>
+ </div>
+</div></div>
+<div class="half" id="h2"></div>
+<script>document.getElementById("h2").innerHTML=document.querySelector(".half").innerHTML</script>
+</body></html>
