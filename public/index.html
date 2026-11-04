@@ -129,6 +129,41 @@
   .cater-call svg{width:26px;height:26px;fill:var(--orange)}
   .cater-call span{display:flex;flex-direction:column;font-family:var(--display);font-weight:900;font-size:30px;line-height:1}
   .cater-call small{font-family:var(--body);font-weight:700;font-size:14px;color:#E8D9CC;margin-bottom:3px}
+  /* ---------- On Sale ---------- */
+  .sale{background:#FFF1E6}
+  .sale .shelf-head{border-bottom-color:#D7261E}
+  .sale .shelf-head h2{color:#B3150F}
+  .sale-card{background:#fff;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;border:2px solid #F3C9B2;position:relative}
+  .sale-card .ph{aspect-ratio:4/3;background:var(--glass-2);position:relative;display:flex;align-items:center;justify-content:center}
+  .sale-card .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .sale-card .ph svg{width:30%;fill:var(--orange);opacity:.85}
+  .sale-card .save{position:absolute;top:10px;left:10px;background:#D7261E;color:#fff;font-weight:800;font-size:15px;padding:5px 11px;border-radius:999px;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+  .sale-card .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+  .sale-card h3{margin:0;font-size:19px;line-height:1.2}
+  .sale-card .note{margin:0;color:var(--muted);font-size:15px}
+  .sale-card .pricing{margin-top:auto;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding-top:6px}
+  .sale-card .now{font-family:var(--display);font-weight:900;font-size:32px;color:#B3150F;line-height:1}
+  .sale-card .was{color:var(--muted);font-size:16px;text-decoration:line-through}
+  .chip.sale-chip{background:#D7261E;border-color:#D7261E;color:#fff}
+  .chip.sale-chip.on{border-color:var(--ink)}
+  /* ---------- sections drawer ---------- */
+  .sec-btn{position:fixed;right:12px;bottom:max(16px,env(safe-area-inset-bottom));z-index:7;display:flex;align-items:center;gap:8px;background:var(--glass);color:#fff;border:2px solid var(--orange);
+           border-radius:999px;padding:11px 16px;font:700 16px var(--body);cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+  .sec-btn svg{width:20px;height:20px;fill:var(--orange)}
+  @media (min-width:861px){ .sec-btn{bottom:76px} }   /* stay clear of the Netlify badge */
+  body.gate-open .sec-btn{display:none}
+  .drawer-bg{position:fixed;inset:0;background:rgba(20,12,6,.45);z-index:20;opacity:0;pointer-events:none;transition:opacity .25s}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);background:#fff;z-index:21;transform:translateX(105%);transition:transform .28s ease;
+          display:flex;flex-direction:column;box-shadow:-6px 0 24px rgba(0,0,0,.25)}
+  body.drawer-open .drawer{transform:none} body.drawer-open .drawer-bg{opacity:1;pointer-events:auto}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--glass);color:#fff}
+  .drawer-head h2{margin:0;font-family:var(--display);font-weight:900;font-size:28px;color:var(--orange)}
+  .drawer-x{background:transparent;border:0;color:#fff;font-size:30px;line-height:1;cursor:pointer;padding:0 4px}
+  .drawer ul{list-style:none;margin:0;padding:6px 0 30px;overflow-y:auto;flex:1}
+  .drawer li a{display:block;padding:13px 20px;font-weight:600;font-size:18px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  .drawer li a:hover{background:#FFF1E6}
+  .drawer li a.on{font-weight:800;color:var(--orange-deep);border-left:5px solid var(--orange);padding-left:15px;background:#FFF6EF}
+  .drawer li a.sale-chip{color:#B3150F}
   .made.local{background:#fff}
   .made.local .dish{border:1.5px solid var(--line)}
   .maker-note{margin:-4px 0 12px;color:#4A3B31;font-size:15px}
@@ -370,9 +405,25 @@
   <a class="mini-call" href="tel:+12626964602">262-696-4602</a>
 </div></div>
 
+<button class="sec-btn" id="sec-btn" type="button" aria-controls="drawer" aria-expanded="false">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>Sections</button>
+<div class="drawer-bg" id="drawer-bg"></div>
+<aside class="drawer" id="drawer" aria-label="All sections" aria-hidden="true">
+  <div class="drawer-head"><h2>Sections</h2><button class="drawer-x" id="drawer-x" type="button" aria-label="Close">&times;</button></div>
+  <ul id="drawer-list"></ul>
+</aside>
+
 <nav class="chips" aria-label="Sections"><div class="wrap" id="chips"></div></nav>
 
 <main id="main">
+  <section class="sale shelf" id="on-sale" hidden>
+    <div class="wrap">
+      <div class="shelf-head"><h2>On Sale</h2><span class="count" id="sale-count"></span></div>
+      <p class="lede">Deals this week, while they last.</p>
+      <div class="menu" id="sale-list"></div>
+    </div>
+  </section>
+
   <section class="made shelf" id="made-here">
     <div class="wrap">
       <div class="shelf-head"><h2>Made Here</h2><span class="count" id="food-count"></span></div>
@@ -455,7 +506,8 @@
 /* ================= SETTINGS (safe to edit) ================= */
 const STOCK_URL = "/api/stock";          // where live stock comes from
 const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
-const SPECIALS_URL = STOCK_URL ? "/api/specials" : null;   // This Week's Specials (edited in Store Tools)
+const SPECIALS_URL = STOCK_URL ? "/api/specials" : null;
+const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edited in Store Tools → Sales)   // This Week's Specials (edited in Store Tools)
 const REFRESH_SECONDS = 60;
 const SECTION_LIMIT = 20;
 const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
@@ -602,6 +654,7 @@ const OUTDOOR = [
 /* =========================================================== */
 
 const SAMPLE = null;
+const SAMPLE_SALES = [];
 const FOOD_PHOTOS = {};
 const PREVIEW_ALL_IN = false;
 
@@ -614,9 +667,9 @@ const showing = new Map();   // section id -> how many products are showing
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
 
 /* ---------- age gate ---------- */
-function openGate(){ $("#gate").hidden=false; $("#gate-yes").focus(); }
+function openGate(){ $("#gate").hidden=false; document.body.classList.add("gate-open"); $("#gate-yes").focus(); }
 function closeGate(isAdult){
-  $("#gate").hidden=true; foodOnly=!isAdult;
+  $("#gate").hidden=true; document.body.classList.remove("gate-open"); foodOnly=!isAdult;
   document.body.classList.toggle("food-only",foodOnly);
   store("bd-age", isAdult ? "21" : "no");
   render();
@@ -633,12 +686,29 @@ function renderSpecials(list){
   $("#specials").hidden = !items.length;
   $("#specials-list").innerHTML = items.map(s=>`<li>${esc(s)}</li>`).join("");
 }
+let saleItems = [];
+function renderSales(list){
+  saleItems = (list||[]).filter(s=>s && s.name && s.price);
+  const sec = $("#on-sale"); sec.hidden = !saleItems.length;
+  $("#sale-count").textContent = saleItems.length ? saleItems.length + (saleItems.length===1?" Deal":" Deals") : "";
+  const flame = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11l-9-9H4v8l9 9 8-8zM7 8.5A1.5 1.5 0 1 1 7 5.5a1.5 1.5 0 0 1 0 3z"/></svg>';
+  $("#sale-list").innerHTML = saleItems.map(s=>{
+    const save = s.was && Number(s.was) > Number(s.price) ? (Number(s.was) - Number(s.price)).toFixed(2) : "";
+    const src = s.img || (s.photo ? "/api/sales?photo=" + encodeURIComponent(s.photo) : "");
+    return `<article class="sale-card"><div class="ph">${src?`<img src="${esc(src)}" alt="${esc(s.name)}" loading="lazy">`:flame}${save?`<span class="save">Save $${save}</span>`:""}</div>
+      <div class="body"><h3>${esc(s.name)}</h3>${s.note?`<p class="note">${esc(s.note)}</p>`:""}
+      <div class="pricing"><span class="now">$${esc(s.price)}</span>${s.was?`<span class="was">Reg. $${esc(s.was)}</span>`:""}</div></div></article>`;
+  }).join("");
+}
 function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
 let specials = null;
 function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, sp: specials })); }catch(e){} }
+if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]")); }catch(e){} }
+else renderSales(SAMPLE_SALES);
 if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; } if(c && c.sp) renderSpecials(c.sp); }
 
 async function load(){
+  if(SALES_URL) fetch(SALES_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSales(j.on ? j.items : []); try{ localStorage.setItem("bd-sales", JSON.stringify(j.on ? j.items : [])); }catch(e){} render(); } }).catch(()=>{});
   if(SPECIALS_URL) fetch(SPECIALS_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ specials = j.items||[]; renderSpecials(specials); } }).catch(()=>{});
   const swJob = SWITCH_URL ? fetch(SWITCH_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null) : Promise.resolve(null);
   let data = null;
@@ -863,7 +933,7 @@ function render(){
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
   setTimeout(setBarOffset, 0);
   $("#chips").dataset.built = "0";
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
+  $("#chips").innerHTML = (saleItems.length ? '<a class="chip sale-chip" href="#on-sale">On Sale</a>' : "") + (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
     + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }
 
@@ -1004,6 +1074,22 @@ function fitAlloc(){
   }
 }
 let fitT; window.addEventListener("resize", ()=>{ clearTimeout(fitT); fitT = setTimeout(fitAlloc, 150); });
+
+// Sections drawer (opens from the right): same list and order as the menu bar
+function fillDrawer(){
+  const chips = [...$("#chips").querySelectorAll("a.chip")];
+  $("#drawer-list").innerHTML = chips.map(c=>`<li><a href="${c.getAttribute("href")}" class="${c.classList.contains("sale-chip")?"sale-chip":""}${c.classList.contains("on")?" on":""}">${c.innerHTML}</a></li>`).join("");
+}
+function openDrawer(){ fillDrawer(); document.body.classList.add("drawer-open"); $("#drawer").setAttribute("aria-hidden","false"); $("#sec-btn").setAttribute("aria-expanded","true"); setTimeout(()=>{ const a=$("#drawer-list a.on")||$("#drawer-list a"); if(a) a.focus({preventScroll:true}); },50); }
+function closeDrawer(){ document.body.classList.remove("drawer-open"); $("#drawer").setAttribute("aria-hidden","true"); $("#sec-btn").setAttribute("aria-expanded","false"); }
+$("#sec-btn").onclick = openDrawer; $("#drawer-x").onclick = closeDrawer; $("#drawer-bg").onclick = closeDrawer;
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && document.body.classList.contains("drawer-open")) closeDrawer(); });
+$("#drawer-list").addEventListener("click", e=>{
+  const a = e.target.closest("a"); if(!a) return;
+  e.preventDefault(); closeDrawer();
+  const el = document.getElementById(a.getAttribute("href").slice(1));
+  if(el) setTimeout(()=>el.scrollIntoView({block:"start"}), 120);
+});
 
 // Highlight the menu chip for the section on screen, and keep it centered in the bar (phones)
 let spyId = "", spyT;

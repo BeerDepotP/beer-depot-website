@@ -25,6 +25,10 @@ preview = (tpl
     .replace("__STOCK_URL__", "null")
     .replace("__SAMPLE_DATA__", "const SAMPLE = " + json.dumps(sample) + ";")
     .replace("__PREVIEW_ALL_IN__", "const PREVIEW_ALL_IN = true;")
+    .replace("__SAMPLE_SALES__", "const SAMPLE_SALES = " + json.dumps([
+        {"name":"Spotted Cow 12pk Cans","price":"15.99","was":"18.99","note":"While supplies last","img":"data:image/jpeg;base64,"+base64.b64encode((root/"public/img/food/smoked-beans.jpg").read_bytes()).decode()},
+        {"name":"Tito's Vodka 1.75L","price":"34.99","was":"39.99"},
+        {"name":"Smoked Pulled Pork","price":"8.49","was":"9.99","note":"Per lb, this weekend only","img":"data:image/jpeg;base64,"+base64.b64encode((root/"public/img/food/pulled-pork.jpg").read_bytes()).decode()}]) + ";")
     .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = " + json.dumps({f.name: "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode() for f in (root / "public/img/food").glob("*.jpg")}) + ";")
     .replace("__PREVIEW_FLAG__", '<div class="preview-flag">Preview with sample stock. Live KORONA stock gets connected next.</div>'))
 (root / "preview.html").write_text(preview)
@@ -38,6 +42,7 @@ live = (tpl
     .replace("__SAMPLE_DATA__", "const SAMPLE = null;")
     .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = {};")
     .replace("__PREVIEW_ALL_IN__", "const PREVIEW_ALL_IN = false;")
+    .replace("__SAMPLE_SALES__", "const SAMPLE_SALES = [];")
     .replace("__PREVIEW_FLAG__", ""))
 (root / "public/index.html").write_text(live)
 print("built preview.html and public/index.html")

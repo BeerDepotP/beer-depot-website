@@ -76,6 +76,18 @@
   .sp-btns{display:flex;gap:10px}
   .sp-btns .btn{margin-top:4px}
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .sl-item{display:grid;grid-template-columns:120px 1fr;gap:12px;margin-bottom:12px}
+  .sl-ph{position:relative;aspect-ratio:4/3;border-radius:10px;background:#EFE6DD;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;border:2px dashed var(--line)}
+  .sl-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .sl-ph input{display:none}
+  .sl-f{display:flex;flex-direction:column;gap:8px}
+  .sl-f input{font:600 16px var(--body);width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:10px}
+  .sl-f input:focus{border-color:var(--orange);outline:none}
+  .sl-row{display:flex;gap:8px;align-items:center}
+  .sl-row label{flex:1;font-size:13px;font-weight:700;color:var(--muted)}
+  .sl-save-amt{font-weight:800;color:#B3150F;font-size:15px}
+  .sl-rm{width:auto;margin:0;padding:6px 12px;font-size:15px;align-self:flex-start}
+  @media (max-width:480px){.sl-item{grid-template-columns:96px 1fr}}
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
   #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
@@ -95,6 +107,7 @@
   <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
     <button class="tab" role="tab" data-tab="specials" aria-selected="false">Specials</button>
+    <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -128,6 +141,17 @@
       <button class="btn ghost" type="button" id="sp-clear">Clear All</button></div>
       <p class="sp-status" id="sp-status" role="status"></p>
     </form>
+  </section>
+
+  <section id="p-sales" hidden>
+    <h2 class="sec">On Sale</h2>
+    <p class="help">Shows as an "On Sale" section at the top of the website, with an On Sale tab in the menu. Turn it off to hide it; your items stay saved for next time.</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show On Sale on the Website</span><span class="st" id="sl-on-st"></span></span>
+      <button class="sw sl-sw" role="switch" aria-checked="false" aria-label="Show On Sale on the website" id="sl-on"></button></li></ul>
+    <div id="sl-list"></div>
+    <button class="btn ghost" type="button" id="sl-add">+ Add Sale Item</button>
+    <button class="btn" type="button" id="sl-save">Save Sales</button>
+    <p class="sp-status" id="sl-status" role="status"></p>
   </section>
 
   <section id="p-nofind" hidden>
@@ -175,7 +199,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","specials","nofind","top","requests","club"];
+const TABS = ["food","specials","sales","nofind","top","requests","club"];
 let toppingsOpen = false;
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
@@ -274,6 +298,81 @@ async function saveSpecials(items){
 $("#sp-form").addEventListener("submit", e=>{ e.preventDefault(); saveSpecials([...$$("#sp-fields input")].map(i=>i.value)); });
 $("#sp-clear").onclick = ()=>{ $$("#sp-fields input").forEach(i=>i.value=""); saveSpecials([]); };
 
+/* ---------- sales ---------- */
+let sales = { on:false, items:[] };
+const slId = () => Math.random().toString(36).slice(2,10);
+const slMoney = v => { const n = Number(String(v||"").replace(/[^0-9.]/g,"")); return isFinite(n) && n>0 ? n : 0; };
+function slSaveText(it){ const p = slMoney(it.price), w = slMoney(it.was); return p && w > p ? `Customer Saves $${(w-p).toFixed(2)}` : ""; }
+function renderSales(){
+  $("#sl-on").setAttribute("aria-checked", sales.on);
+  const st = $("#sl-on-st"); st.className = "st" + (sales.on ? " on" : "");
+  st.textContent = sales.on ? "On · Showing on the website" : "Off · Hidden from the website";
+  $("#sl-list").innerHTML = sales.items.length ? sales.items.map((it,i)=>`<div class="card sl-item" data-i="${i}">
+    <label class="sl-ph">${it.photo?`<img src="/api/sales?photo=${encodeURIComponent(it.photo)}" alt="">`:(it._preview?`<img src="${it._preview}" alt="">`:"Tap to Add Photo")}<input type="file" accept="image/*" data-k="photo"></label>
+    <div class="sl-f">
+      <input data-k="name" placeholder="Item Name (e.g. Spotted Cow 12pk)" maxlength="80" value="${esc(it.name||"")}">
+      <div class="sl-row"><label>Sale Price<input data-k="price" inputmode="decimal" placeholder="15.99" value="${esc(it.price||"")}"></label>
+        <label>Regular Price<input data-k="was" inputmode="decimal" placeholder="18.99" value="${esc(it.was||"")}"></label></div>
+      <input data-k="note" placeholder="Note (optional, e.g. While Supplies Last)" maxlength="80" value="${esc(it.note||"")}">
+      <div class="sl-row"><span class="sl-save-amt">${slSaveText(it)}</span><button class="btn ghost sl-rm" type="button">Remove</button></div>
+    </div></div>`).join("") : '<p class="help">No sale items yet. Tap "+ Add Sale Item".</p>';
+}
+async function loadSales(){
+  try{ const j = await api("/api/sales",{action:"list"}); sales = { on: !!j.on, items: j.items || [] }; renderSales();
+       $("#sl-status").textContent = j.updated ? `Last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : ""; }
+  catch(err){ $("#sl-status").textContent = err.message; }
+}
+async function saveSales(msg){
+  $("#sl-save").disabled = true;
+  try{
+    const j = await api("/api/sales",{action:"save", on: sales.on, items: sales.items.map(({_preview,...x})=>x)});
+    sales = { on: !!j.on, items: j.items || [] }; renderSales();
+    $("#sl-status").textContent = msg || (sales.on ? "Saved. Showing on the website within a minute." : "Saved. On Sale is turned off, so it's hidden.");
+    toast("Sales saved");
+  }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
+  $("#sl-save").disabled = false;
+}
+$("#sl-list").addEventListener("input", e=>{
+  const box = e.target.closest(".sl-item"), k = e.target.dataset.k; if(!box || !k || k==="photo") return;
+  const it = sales.items[+box.dataset.i]; it[k] = e.target.value;
+  if(k==="price"||k==="was") box.querySelector(".sl-save-amt").textContent = slSaveText(it);
+});
+$("#sl-list").addEventListener("click", e=>{
+  const b = e.target.closest(".sl-rm"); if(!b) return;
+  const i = +b.closest(".sl-item").dataset.i;
+  if(!confirm("Remove " + (sales.items[i].name || "this item") + "?")) return;
+  sales.items.splice(i,1); renderSales(); $("#sl-status").textContent = "Removed. Tap Save Sales to update the website.";
+});
+// photos: shrunk in the browser to about 1000px wide before upload
+function shrinkPhoto(file){
+  return new Promise((res, rej)=>{
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = ()=>{ const s = Math.min(1, 1000 / Math.max(img.width, img.height)); const c = document.createElement("canvas");
+      c.width = Math.round(img.width*s); c.height = Math.round(img.height*s); c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.82)); };
+    img.onerror = ()=>rej(new Error("Couldn't read that photo.")); img.src = url;
+  });
+}
+$("#sl-list").addEventListener("change", async e=>{
+  if(e.target.dataset.k !== "photo" || !e.target.files[0]) return;
+  const i = +e.target.closest(".sl-item").dataset.i, it = sales.items[i];
+  try{
+    toast("Uploading photo…");
+    const data = await shrinkPhoto(e.target.files[0]);
+    it._preview = data; it.photo = ""; renderSales();
+    const j = await api("/api/sales",{action:"photo", id: it.id || (it.id = slId()), data});
+    it.photo = j.photo; delete it._preview; renderSales();
+    toast("Photo added. Tap Save Sales."); $("#sl-status").textContent = "Photo added. Tap Save Sales to update the website.";
+  }catch(err){ toast(err.message,true); }
+});
+$("#sl-add").onclick = ()=>{ sales.items.push({id: slId(), name:"", price:"", was:"", note:"", photo:""}); renderSales(); const ins = $$("#sl-list .sl-item input[data-k=name]"); ins[ins.length-1].focus(); };
+$("#sl-save").onclick = ()=>{
+  const bad = sales.items.find(it=>!String(it.name||"").trim() || !slMoney(it.price));
+  if(bad){ toast("Each item needs a name and a sale price.", true); return; }
+  saveSales();
+};
+$("#sl-on").onclick = ()=>{ sales.on = !sales.on; renderSales(); saveSales(sales.on ? "On Sale is now showing on the website." : "On Sale is now hidden from the website."); };
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -284,6 +383,7 @@ async function openTab(name){
   window.scrollTo(0,0);
   if(name==="food") return;
   if(name==="specials"){ loadSpecials(); return; }
+  if(name==="sales"){ loadSales(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -298,7 +398,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
