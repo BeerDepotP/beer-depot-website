@@ -224,7 +224,8 @@ export async function buildStock() {
     }
     // Soda always shows In Stock (and shows even without stock history in KORONA)
     const alwaysIn = section === "mixers" && sub === "soda";
-    if (!everStocked && !alwaysIn) { report.skippedNeverStocked++; continue; }
+    const showAll = section === "mixers" && sub === "tonic";   // owner wants every tonic/club soda/ginger item listed, In or Out by real stock
+    if (!everStocked && !alwaysIn && !showAll) { report.skippedNeverStocked++; continue; }
     items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: alwaysIn || onHand > 0, ...(allocated ? { allocated: true } : {}), ...(sub ? { sub } : {}) });
     tally(gname, section, "shown");
     report.sections[section] = (report.sections[section] || 0) + 1;
