@@ -13,6 +13,7 @@
 - Grilling & Outdoor always shows In Stock (template), fixed list only. Owner said 2026-11-03: do NOT add ice (KORONA group ICE stays off the site). Soda (Soda & Mixers → Soda) always shows In Stock, even without KORONA stock history (stock.mjs `alwaysIn`).
 - THC section (KORONA group THC) after Seltzers, 21+ only, auto-hides from 2026-12-11 (federal hemp THC limit) via `until` in SECTIONS.
 - KORONA tags override sections (TAG_SECTIONS / HIDE_TAGS in stock.mjs). Tag "Allocated Bourbon" -> Whiskey & Bourbon, shown in its own box on the right (top on phones).
+- Food photos: JPGs in public/img/food (900x675, 4:3, ~80 quality), set `photo:"file.jpg"` in tools/menu.js; build.py inlines them into preview.html (FOOD_PHOTOS). Owner sends phone photos; correct lighting (sun stripes on the wood board) and crop 4:3 around the dish.
 - Local Favorites makers: Northern Trails & Kraemer (Watertown), Pernat's (Ixonia), Sausage Haus (Oconomowoc), Grebe's (West Allis). Each flavor is its own card/switch; `name` is the unique switch key, `label` is what shows.
 - Any KORONA group or product with "DO NOT USE" (or DNU) in its name is always skipped (RETIRED in stock.mjs). Owner retired groups this way, e.g. "DO NOT USE SODA", "DO NOT USE JUICE".
 - Owner preferences: Title Case on names, labels and buttons ("Mac & Cheese", "Each", "In Stock"). Never show "Call to Check".

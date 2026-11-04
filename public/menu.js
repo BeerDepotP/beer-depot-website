@@ -40,7 +40,7 @@ const FOOD = [
   { group:"Sides", name:"Smoked Bacon & Jalapeño Mac & Cheese", match:"jalapeno mac", photo:"", prices:[["Each","8.49"]] },
   { group:"Sides", name:"Shrimp Salad", match:"shrimp salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
   { group:"Sides", name:"Chicken Salad", match:"chicken salad", photo:"", prices:[["Small","4.99"],["Large","8.99"]] },
-  { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"", prices:[["Small","4.49"],["Large","6.99"]] },
+  { group:"Sides", name:"Italian Pasta Salad", match:"pasta salad", photo:"pasta-salad.jpg", prices:[["Small","4.49"],["Large","6.99"]] },
   { group:"Sides", name:"Potato Salad", match:"potato salad", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Sides", name:"Smoked Beans", match:"beans", photo:"", prices:[["Small","2.99"],["Large","5.49"]] },
   { group:"Take & Bake Pizza", name:"14\" Take & Bake Pizza", match:"14 pizza", photo:"", prices:[["Each","16.00"]], toppings:true },

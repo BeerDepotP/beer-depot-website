@@ -24,6 +24,7 @@ preview = (tpl
     .replace("__LOGO__", "data:image/png;base64," + logo_b64)
     .replace("__STOCK_URL__", "null")
     .replace("__SAMPLE_DATA__", "const SAMPLE = " + json.dumps(sample) + ";")
+    .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = " + json.dumps({f.name: "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode() for f in (root / "public/img/food").glob("*.jpg")}) + ";")
     .replace("__PREVIEW_FLAG__", '<div class="preview-flag">Preview with sample stock. Live KORONA stock gets connected next.</div>'))
 (root / "preview.html").write_text(preview)
 
@@ -34,6 +35,7 @@ live = (tpl
     .replace("__LOGO__", "img/logo-orange.png")
     .replace("__STOCK_URL__", '"/api/stock"')
     .replace("__SAMPLE_DATA__", "const SAMPLE = null;")
+    .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = {};")
     .replace("__PREVIEW_FLAG__", ""))
 (root / "public/index.html").write_text(live)
 print("built preview.html and public/index.html")
