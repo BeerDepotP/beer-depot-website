@@ -51,12 +51,12 @@ const FOOD = [
 // photo: a file in img/food. match: words that must all be in the KORONA product name.
 // name: unique (used for the on/off switch). label: what the card shows under the maker heading.
 const LOCAL = [
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Garlic Beef Stick", label:"Garlic Beef Stick", match:"northern garlic stick", photo:"", prices:[["Each","10.99"]] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Jalapeño Cheddar Beef Stick", label:"Jalapeño Cheddar Beef Stick", match:"northern jalapeno cheddar stick", photo:"", prices:[["Each","10.99"]] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Pepper Jack Beef Stick", label:"Pepper Jack Beef Stick", match:"northern pepper jack stick", photo:"", prices:[["Each","10.99"]] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails BBQ Beef Stick", label:"BBQ Beef Stick", match:"northern bbq stick", photo:"", prices:[["Each","10.99"]] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Hot Wing Beef Stick", label:"Hot Wing Beef Stick", match:"northern hot wing stick", photo:"", prices:[["Each","10.99"]] },
-  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Garlic Cheddar Beef Stick", label:"Garlic Cheddar Beef Stick", match:"northern garlic cheddar stick", photo:"", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Garlic Beef Stick", label:"Garlic Snack Stick", match:"northern garlic stick", photo:"northern-trails-garlic.jpg", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Jalapeño Cheddar Beef Stick", label:"Jalapeño Cheddar Snack Stick", match:"northern jalapeno cheddar stick", photo:"northern-trails-jalapeno-cheddar.jpg", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Pepper Jack Beef Stick", label:"Pepper Jack Snack Stick", match:"northern pepper jack stick", photo:"northern-trails-pepper-jack.jpg", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails BBQ Beef Stick", label:"BBQ Snack Stick", match:"northern bbq stick", photo:"northern-trails-bbq.jpg", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Hot Wing Beef Stick", label:"Hot Wing Snack Stick", match:"northern hot wing stick", photo:"northern-trails-hot-wing.jpg", prices:[["Each","10.99"]] },
+  { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Garlic Cheddar Beef Stick", label:"Garlic Cheddar Snack Stick", match:"northern garlic cheddar stick", photo:"northern-trails-garlic-cheddar.jpg", prices:[["Each","10.99"]] },
   { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Garlic Summer Sausage", label:"Garlic Summer Sausage", match:"northern garlic summer sausage", photo:"", prices:[["Each","10.99"]] },
   { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Regular Summer Sausage", label:"Regular Summer Sausage", match:"northern regular summer sausage", photo:"", prices:[["Each","10.99"]] },
   { maker:"Northern Trails", where:"Watertown, WI", name:"Northern Trails Bacon", label:"Bacon", match:"northern bacon", photo:"", prices:[["Each","8.99"]] },
