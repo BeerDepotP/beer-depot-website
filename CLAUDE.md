@@ -22,7 +22,7 @@
 - Store info (ADDRESS, HOURS) is at the top of tools/index.template.html; the Google info (JSON-LD LiquorStore, hours, address) and sharing tags are in its <head> too, so update both if hours change. robots.txt hides /food-stock and /api; sitemap.xml lists the home page. New Arrivals: stock.mjs records each product's first in-stock date in Blobs (`first-stocked`); first run seeds everything as old.
 
 ## Waiting to go live (remind the owner when they say publish)
-- Bourbon Club: sign-up box at the bottom of the Allocated Bourbon box; bourbon-club.mjs saves emails to Blobs "bourbon-club" ({email:{joined,token}}). Sending alerts is NOT built yet (needs an email service + DNS records on beerdepotpewaukee.com).
+- Bourbon Club: sign-up box at the bottom of the Allocated Bourbon box; bourbon-club.mjs saves emails to Blobs "bourbon-club" ({email:{joined,token}}) and handles ?unsub=<token>. bourbon-club-weekly.mjs emails every in-stock Allocated Bourbon bottle each Thursday 5 PM Central (skips weeks with none; once per day; record in "bourbon-club-sent"). Email built in netlify/lib/club-email.mjs, sent via Resend. Still to do: owner makes a Resend account, adds its DNS records for beerdepotpewaukee.com in Netlify, and sets RESEND_API_KEY in Netlify.
 - Netlify Forms detection is ON (owner enabled it 2026-11-03). Still to do: email notification for the `request` form.
 
 ## Future ideas the owner wants

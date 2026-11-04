@@ -846,16 +846,16 @@ $("#request-form").addEventListener("submit", async e=>{
 // Allocated Bourbon Club sign-up box (inside the Allocated Bourbon box)
 let clubDone = false; try{ clubDone = localStorage.getItem("bd-club") === "1"; }catch(e){}
 function clubBox(){
-  if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! We'll email you when new allocated bottles arrive.</p></div>`;
+  if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! Watch for our email Thursday at 5 PM.</p></div>`;
   return `<div class="club" id="club"><h4>Join the Bourbon Club</h4>
-    <p>Get an email the moment new allocated bottles hit our shelves.</p>
+    <p>Every Thursday at 5 PM, get an email with every allocated bottle we have in stock.</p>
     <form id="club-form" novalidate>
       <input type="email" name="email" placeholder="Your Email" autocomplete="email" aria-label="Your email" required>
       <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       <label class="age"><input type="checkbox" name="of_age" required> I'm 21 or Older</label>
       <button type="submit">Join the Club</button>
       <p class="club-msg" id="club-msg" role="status"></p>
-      <p class="fine">Only new bourbon alerts. Unsubscribe anytime.</p>
+      <p class="fine">One email a week, only on weeks we have bottles. Unsubscribe anytime.</p>
     </form></div>`;
 }
 document.addEventListener("submit", async e=>{
