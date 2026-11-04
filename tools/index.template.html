@@ -87,7 +87,7 @@
   .chips .wrap{display:flex;gap:8px;overflow-x:auto;padding-top:10px;padding-bottom:10px;scrollbar-width:none}
   .chips .wrap::-webkit-scrollbar{display:none}
   @media (min-width:861px){
-    .chips .wrap{flex-wrap:wrap;overflow:visible;gap:6px;max-width:1240px}
+    .chips .wrap{flex-wrap:wrap;overflow:visible;gap:6px;max-width:1240px;justify-content:center;margin-left:auto;margin-right:auto}
     .chips .chip{font-size:14px;padding:6px 12px}
   }
   .chip{flex:none;font:600 15px var(--body);padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);
@@ -771,7 +771,7 @@ function render(){
   if(cKeep && cf2){ cf2.email.value = cKeep.email; cf2.of_age.checked = cKeep.age; if(cKeep.focus && cf2[cKeep.focus]) cf2[cKeep.focus].focus(); }
 
   fitAlloc();
-  setTimeout(spy, 0);
+  setTimeout(()=>{ balanceChips(); setBarOffset(); spy(); }, 0);
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
@@ -967,6 +967,20 @@ function glideBar(bar, target){
 window.addEventListener("scroll", ()=>{ if(!spyT) spyT = requestAnimationFrame(()=>{ spyT = 0; spy(); }); }, { passive:true });
 
 // keep section headings clear of the sticky menu bar, whatever its height
+// On computers, split the menu buttons into rows of about equal length so both rows look even
+function balanceChips(){
+  const bar = $("#chips"); if(!bar) return;
+  bar.style.maxWidth = "";
+  if(!matchMedia("(min-width:861px)").matches) return;
+  const chips = [...bar.children]; if(!chips.length) return;
+  const first = chips[0].offsetTop, rows = new Set(chips.map(c=>c.offsetTop)).size;
+  if(rows < 2) return;
+  const total = chips.reduce((s,c)=>s+c.offsetWidth+6,0);
+  let w = Math.ceil(total/rows) + 40;
+  bar.style.maxWidth = w + "px";
+  while(new Set(chips.map(c=>c.offsetTop)).size > rows && w < 1240){ w += 20; bar.style.maxWidth = w + "px"; }
+}
+window.addEventListener("resize", balanceChips);
 function setBarOffset(){ try{
   const mini = document.body.classList.contains("mini-on") ? $("#mini-bar").offsetHeight : 0;
   document.documentElement.style.setProperty("--mini-h", $("#mini-bar").offsetHeight + "px");
