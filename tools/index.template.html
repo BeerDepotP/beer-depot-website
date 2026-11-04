@@ -179,18 +179,24 @@
   .alloc .alloc-open{font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:7px}
   .alloc .alloc-open::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
   .alloc .alloc-open.is-open{color:#6FDC8F} .alloc .alloc-open.is-closed{color:#FF8A73}
-  .alloc .alloc-dir{align-self:flex-start;margin:12px 0 10px}
+  .alloc .alloc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 4px}
+  .alloc .alloc-top .alloc-open{margin:0}
+  .alloc .alloc-dir-link{color:#fff;font-weight:700;font-size:14px;text-decoration:none;border:2px solid var(--orange);border-radius:999px;padding:4px 12px;white-space:nowrap}
+  .alloc .alloc-dir-link:hover{background:var(--orange)}
   .alloc ul.items{columns:1}
-  .club{border-top:1px solid #4E3626;margin:6px 0 10px;padding-top:14px}
-  .club h4{font-family:var(--display);font-weight:900;font-size:24px;line-height:1;color:var(--orange);margin:0 0 6px}
-  .club form{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-  .club input[type=email]{font:500 16px var(--body);padding:10px 12px;border-radius:10px;border:2px solid var(--orange);background:#fff;color:var(--ink)}
+  .club{border-top:1px solid #4E3626;margin:4px 0 10px;padding-top:12px}
+  .club h4{font-family:var(--display);font-weight:900;font-size:22px;line-height:1;color:var(--orange);margin:0 0 4px}
+  .club form{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+  .club .club-row{display:flex;gap:6px}
+  .club .club-row input{flex:1;min-width:0}
+  .club input[type=email]{font:500 16px var(--body);padding:8px 12px;border-radius:10px;border:2px solid var(--orange);background:#fff;color:var(--ink)}
   .club .age{display:flex;align-items:center;gap:8px;font-size:14px;color:#E8D9CC;cursor:pointer}
   .club .age input{width:18px;height:18px;accent-color:var(--orange)}
-  .club button{font:700 16px var(--body);background:var(--orange);color:#fff;border:0;border-radius:999px;padding:11px 16px;cursor:pointer}
+  .club button{font:700 16px var(--body);background:var(--orange);color:#fff;border:0;border-radius:999px;padding:9px 18px;cursor:pointer;flex:none}
   .club button:disabled{opacity:.6}
-  .club .fine{font-size:13px;color:#B9A99C;margin:2px 0 0}
-  .club .club-msg{font-weight:700;margin:4px 0 0}
+  .club .fine{font-size:13px;color:#B9A99C;margin:0}
+  .club .club-msg{font-weight:700;margin:0}
+  .club .club-msg:empty{display:none}
   .club .club-msg.ok{color:#6FDC8F} .club .club-msg.err{color:#FF8A73}
   .club .hp{position:absolute;left:-9999px}
   .alloc .more-row{margin:12px 0 8px}
@@ -707,9 +713,9 @@ function render(){
           + `</div>`;
       }
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
-        <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p>
+        <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></div>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}<a class="dir alloc-dir" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a>${clubBox()}</aside>` : "";
+        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}${clubBox()}</aside>` : "";
       if(SUBSECTIONS[s.id]){
         const subs = SUBSECTIONS[s.id];
         let body = "";
@@ -752,6 +758,8 @@ function render(){
   $("#drinks").innerHTML = html;
   const cf2 = $("#club-form");
   if(cKeep && cf2){ cf2.email.value = cKeep.email; cf2.of_age.checked = cKeep.age; if(cKeep.focus && cf2[cKeep.focus]) cf2[cKeep.focus].focus(); }
+
+  fitAlloc();
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
@@ -848,14 +856,14 @@ let clubDone = false; try{ clubDone = localStorage.getItem("bd-club") === "1"; }
 function clubBox(){
   if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! Watch for our email Thursday at 5 PM.</p></div>`;
   return `<div class="club" id="club"><h4>Join the Bourbon Club</h4>
-    <p>Every Thursday at 5 PM, get an email with every allocated bottle we have in stock.</p>
+    <p>Every Thursday at 5 PM, get our list of allocated bottles in stock.</p>
     <form id="club-form" novalidate>
-      <input type="email" name="email" placeholder="Your Email" autocomplete="email" aria-label="Your email" required>
+      <div class="club-row"><input type="email" name="email" placeholder="Your Email" autocomplete="email" aria-label="Your email" required>
+      <button type="submit">Join</button></div>
       <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       <label class="age"><input type="checkbox" name="of_age" required> I'm 21 or Older</label>
-      <button type="submit">Join the Club</button>
       <p class="club-msg" id="club-msg" role="status"></p>
-      <p class="fine">One email a week, only on weeks we have bottles. Unsubscribe anytime.</p>
+      <p class="fine">Unsubscribe anytime.</p>
     </form></div>`;
 }
 document.addEventListener("submit", async e=>{
@@ -876,9 +884,27 @@ document.addEventListener("submit", async e=>{
     f.parentElement.outerHTML = clubBox();
   }catch(err){
     msg.textContent = err.message || "That didn't go through. Try again, or call us at 262-696-4602.";
-    btn.disabled = false; btn.textContent = "Join the Club";
+    btn.disabled = false; btn.textContent = "Join";
   }
 });
+
+// On computers, don't let the Allocated Bourbon box run much taller than the whiskey list
+// beside it (it leaves a big white gap). Shows fewer bottles, at least 5, with Show More.
+function fitAlloc(){
+  const box = document.getElementById("allocated"), main = document.querySelector("#whiskey .main-list ul.items");
+  if(!box || !main || showing.has("allocated") || !matchMedia("(min-width:861px)").matches) return;
+  const lis = [...box.querySelectorAll("ul.items li")];
+  lis.forEach(li => li.style.display = "");
+  let shown = lis.length, hid = false;
+  while(shown > 5 && box.offsetHeight > main.offsetHeight + 60){ lis[--shown].style.display = "none"; hid = true; }
+  if(hid && !box.querySelector("button.more:not(.less)")){
+    const row = document.createElement("div"); row.className = "more-row";
+    row.innerHTML = `<button class="more" data-sec="allocated" data-step="${ALLOCATED_LIMIT}" data-act="more">Show More Allocated Bourbon</button>`;
+    box.querySelector("ul.items").after(row);
+    while(shown > 5 && box.offsetHeight > main.offsetHeight + 60){ lis[--shown].style.display = "none"; }
+  }
+}
+let fitT; window.addEventListener("resize", ()=>{ clearTimeout(fitT); fitT = setTimeout(fitAlloc, 150); });
 
 // keep section headings clear of the sticky menu bar, whatever its height
 function setBarOffset(){ try{
