@@ -1,2 +1,4 @@
 /searches   /food-stock   301
 /searches/  /food-stock   301
+/club       /bourbon-club/?from=sign   302
+/club/      /bourbon-club/?from=sign   302

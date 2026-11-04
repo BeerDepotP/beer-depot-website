@@ -311,10 +311,11 @@ const fmtDate = s => { try{ return new Date(s.length===10 ? s+"T12:00:00" : s).t
 async function loadClub(){
   try{ club = await api("/api/bourbon-club",{action:"list"}); }catch(err){ $("#club-sum").textContent = err.message; return; }
   $("#club-sum").innerHTML = `<p class="club-n"><strong>${club.count}</strong> ${club.count===1?"Member":"Members"}</p>`
+    + `<p class="help">${club.members.filter(m=>m.source==="sign").length} joined from the QR sign in the store.</p>`
     + (club.last ? `<p class="help">Last email: ${fmtDate(club.last.date)}, ${club.last.bottles} bottles, sent to ${club.last.sent}.</p>` : `<p class="help">No weekly email sent yet.</p>`)
     + (club.ready ? "" : `<p class="help" style="color:var(--red)">Email sending isn't connected yet (BREVO_API_KEY in Netlify). Sign-ups are still being saved.</p>`);
   $("#club-list").innerHTML = club.members.length
-    ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
+    ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}${m.source==="sign"?" · QR Sign":""}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
     : `<p class="help">No members yet.</p>`;
 }
 $("#club-test").addEventListener("submit", async e=>{
@@ -326,7 +327,7 @@ $("#club-test").addEventListener("submit", async e=>{
 });
 $("#club-dl").onclick = ()=>{
   if(!club || !club.members.length){ toast("No members yet."); return; }
-  const csv = "Email,Joined\n" + club.members.map(m=>`${m.email},${m.joined.slice(0,10)}`).join("\n");
+  const csv = "Email,Joined,From\n" + club.members.map(m=>`${m.email},${m.joined.slice(0,10)},${m.source==="sign"?"QR Sign":"Website"}`).join("\n");
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
   a.download = "bourbon-club-" + new Date().toISOString().slice(0,10) + ".csv"; a.click();
 };

@@ -39,7 +39,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   const list = (await store.get(KEY, { type: "json" })) || {};
   if (!list[email]) {
-    list[email] = { joined: new Date().toISOString(), token: randomBytes(12).toString("hex") };
+    list[email] = { joined: new Date().toISOString(), token: randomBytes(12).toString("hex"), source: String(b.source || "website").replace(/[^a-z]/g, "").slice(0, 12) };
     await store.setJSON(KEY, list);
   }
   return json({ ok: true });
@@ -63,7 +63,7 @@ async function storeTools(b) {
     try { await sendTest(to, bottles); } catch (e) { return json({ error: e.message }, 502); }
     return json({ ok: true, bottles: bottles.length });
   }
-  const members = Object.entries(list).map(([email, m]) => ({ email, joined: m.joined })).sort((x, y) => y.joined.localeCompare(x.joined));
+  const members = Object.entries(list).map(([email, m]) => ({ email, joined: m.joined, source: m.source || "website" })).sort((x, y) => y.joined.localeCompare(x.joined));
   const last = await store.get("bourbon-club-sent", { type: "json" });
   return json({ count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
 }
