@@ -35,7 +35,7 @@ async function sendOne(to, bottles, token, subject = SUBJECT) {
   const r = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ sender: FROM(), to: [{ email: to }], subject, htmlContent: html, textContent: text,
+    body: JSON.stringify({ sender: FROM(), replyTo: FROM(), to: [{ email: to }], subject, htmlContent: html, textContent: text,
       headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
   });
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -55,5 +55,5 @@ export async function sendClub(members, bottles) {
 
 // A test copy to the owner, from Store Tools.
 export async function sendTest(to, bottles) {
-  await sendOne(to, bottles, "test", "TEST: " + SUBJECT);
+  await sendOne(to, bottles, "test", SUBJECT);
 }
