@@ -511,6 +511,7 @@ const OUTDOOR = [
 
 __SAMPLE_DATA__
 __FOOD_PHOTOS__
+__PREVIEW_ALL_IN__
 
 const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
@@ -586,6 +587,7 @@ const rowHtml = (it,qRaw) => `<li class="${it.inStock?"":"is-out"}"><span class=
 // Made Here and Local Favorites: the on/off switch wins; otherwise the starting value.
 function itemStatus(f, section){
   if(section==="food" || section==="local"){
+    if(PREVIEW_ALL_IN) return true;          // preview only: show every food card In Stock
     if(f.name in switches) return !!switches[f.name];
     if(f.name in DEFAULT_STOCK) return DEFAULT_STOCK[f.name];
     if(section==="food") return true;
