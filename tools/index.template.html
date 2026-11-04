@@ -615,7 +615,7 @@ function render(){
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
   const card = (f, section) => {
       const st = itemStatus(f, section);
-      if(!matches(f.name+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
+      if(!matches(f.name+" "+(f.label||"")+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
       const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
