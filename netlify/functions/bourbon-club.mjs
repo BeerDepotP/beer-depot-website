@@ -1,7 +1,7 @@
 // Allocated Bourbon Club sign-ups.
 // POST { email, of_age } adds a member to the "bourbon-club" list in Blobs.
 // GET ?unsub=<token> removes a member (link in every email).
-// POST { pin, action:"list" | "test" | "remove" } is for Store Tools.
+// POST { pin, action:"list" | "test" | "remove" | "sending" (on:true/false) } is for Store Tools.
 // The weekly email itself is bourbon-club-weekly.mjs (Thursdays 5 PM Central).
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
@@ -54,6 +54,9 @@ async function storeTools(b) {
     const e = String(b.email || "").trim().toLowerCase();
     if (list[e]) { delete list[e]; await store.setJSON(KEY, list); }
   }
+  if (b.action === "sending") {
+    await store.setJSON("bourbon-club-settings", { sending: !!b.on, changed: new Date().toISOString() });
+  }
   if (b.action === "test") {
     const to = String(b.to || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(to)) return json({ error: "Enter the email to send the test to." }, 400);
@@ -65,7 +68,8 @@ async function storeTools(b) {
   }
   const members = Object.entries(list).map(([email, m]) => ({ email, joined: m.joined, source: m.source || "website" })).sort((x, y) => y.joined.localeCompare(x.joined));
   const last = await store.get("bourbon-club-sent", { type: "json" });
-  return json({ count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
+  const settings = (await store.get("bourbon-club-settings", { type: "json" })) || {};
+  return json({ sending: settings.sending !== false, count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
 }
 
 export const config = { path: "/api/bourbon-club" };

@@ -78,7 +78,7 @@
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
-  #club-test{margin-bottom:6px} #club-dl{margin:0 0 10px}
+  #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
   details.toppings{margin-top:10px}
   details.toppings summary{cursor:pointer;display:inline-block;font:700 15px var(--body);color:var(--glass);background:#fff;border:2px solid var(--orange);border-radius:999px;padding:7px 14px;list-style:none}
@@ -154,6 +154,8 @@
     <h2 class="sec">Bourbon Club</h2>
     <p class="help">Every Thursday at 5 PM, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.</p>
     <div class="card club-sum" id="club-sum"></div>
+    <ul class="sw-list club-on-card"><li><span><span class="nm">Thursday Emails</span><span class="st" id="club-on-st"></span></span>
+      <button class="club-sw sw" role="switch" aria-checked="true" aria-label="Thursday Bourbon Club emails" id="club-on"></button></li></ul>
     <form class="card sp-card" id="club-test">
       <h3 class="grp" style="margin:0">Send Yourself a Test</h3>
       <input type="email" id="club-to" placeholder="Your Email" autocomplete="email" aria-label="Email for the test">
@@ -296,7 +298,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw");
+  const sw = e.target.closest(".sw:not(.club-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
@@ -314,10 +316,24 @@ async function loadClub(){
     + `<p class="help">${club.members.filter(m=>m.source==="sign").length} joined from the QR sign in the store.</p>`
     + (club.last ? `<p class="help">Last email: ${fmtDate(club.last.date)}, ${club.last.bottles} bottles, sent to ${club.last.sent}.</p>` : `<p class="help">No weekly email sent yet.</p>`)
     + (club.ready ? "" : `<p class="help" style="color:var(--red)">Email sending isn't connected yet (BREVO_API_KEY in Netlify). Sign-ups are still being saved.</p>`);
+  setClubSwitch(club.sending);
   $("#club-list").innerHTML = club.members.length
     ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}${m.source==="sign"?" · QR Sign":""}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
     : `<p class="help">No members yet.</p>`;
 }
+function setClubSwitch(on){
+  $("#club-on").setAttribute("aria-checked", on);
+  const st = $("#club-on-st"); st.className = "st" + (on ? " on" : "");
+  st.textContent = on ? "On · Sends Thursdays at 5 PM" : "Off · No emails will go out";
+}
+$("#club-on").addEventListener("click", async ()=>{
+  const b = $("#club-on"), next = b.getAttribute("aria-checked") !== "true";
+  if(!next && !confirm("Turn off the Thursday Bourbon Club emails? Nothing will be sent until you turn them back on.")) return;
+  b.disabled = true;
+  try{ club = await api("/api/bourbon-club",{action:"sending", on: next}); setClubSwitch(club.sending); toast(next ? "Thursday Emails: On" : "Thursday Emails: Off"); }
+  catch(err){ toast(err.message, true); }
+  b.disabled = false;
+});
 $("#club-test").addEventListener("submit", async e=>{
   e.preventDefault();
   const btn = $("#club-test-btn"), msg = $("#club-test-msg"); btn.disabled = true; msg.textContent = "Sending…";

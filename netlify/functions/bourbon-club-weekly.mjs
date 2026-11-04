@@ -12,6 +12,8 @@ function chicago(d = new Date()) {
 
 export async function sendWeekly(store, { force = false } = {}) {
   const { date } = chicago();
+  const settings = (await store.get("bourbon-club-settings", { type: "json" })) || {};
+  if (settings.sending === false) return { skipped: "Thursday emails are switched off in Store Tools" };
   const last = await store.get("bourbon-club-sent", { type: "json" });
   if (!force && last && last.date === date) return { skipped: "already sent today" };
   const stock = (await refreshSaved(store).catch(() => null)) || (await store.get("stock-latest", { type: "json" }));
