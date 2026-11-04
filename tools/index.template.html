@@ -96,6 +96,7 @@
   .chip.food{background:var(--orange);border-color:var(--orange);color:#fff}
   .chip.on{border:2.5px solid var(--ink);font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.18)}
   .chip.food.on{border-color:var(--ink)}
+  .chip.alloc-chip.on{border:2.5px solid var(--orange);font-weight:800}
 
   /* ---------- sections ---------- */
   section.shelf{padding:34px 0 8px;scroll-margin-top:60px}
@@ -919,7 +920,7 @@ let spyId = "", spyT;
 function spy(){
   const bar = $("#chips"); if(!bar) return;
   const chips = [...bar.querySelectorAll("a.chip:not(.alloc-chip)")];
-  const line = (document.querySelector(".chips").getBoundingClientRect().bottom || 0) + 40;
+  const barB = document.querySelector(".chips").getBoundingClientRect().bottom || 0, line = barB + 140;
   let cur = null, best = -Infinity;
   for(const c of chips){
     const el = document.getElementById(c.getAttribute("href").slice(1));
@@ -927,7 +928,14 @@ function spy(){
     const top = el.getBoundingClientRect().top;
     if(top <= line && top > best){ best = top; cur = c; }
   }
-  chips.forEach(c => c.classList.toggle("on", c === cur));
+  // Allocated Bourbon: lit while its box crosses the line (on computers the whiskey list beside it stays lit too)
+  const ac = bar.querySelector("a.alloc-chip"), ab = document.getElementById("allocated");
+  let allocOn = false;
+  if(ac && ab){ const r = ab.getBoundingClientRect(); allocOn = r.top <= line && r.bottom > barB + 60; if(cur && cur.getAttribute("href") !== "#whiskey" && cur.getAttribute("href") !== "#" + (document.getElementById("allocated").closest("section")||{}).id) allocOn = false; }
+  const side = matchMedia("(min-width:861px)").matches;
+  chips.forEach(c => c.classList.toggle("on", c === cur && !(allocOn && !side)));
+  if(ac) ac.classList.toggle("on", allocOn);
+  if(allocOn && !side) cur = ac;
   const id = cur ? cur.getAttribute("href") : "";
   if(cur && id !== spyId && bar.scrollWidth > bar.clientWidth){
     bar.scrollTo({ left: cur.offsetLeft - (bar.clientWidth - cur.offsetWidth)/2, behavior: "smooth" });
