@@ -1,7 +1,10 @@
-// Bourbon Club email: builds and sends the weekly "what's in" email through Resend.
-// Needs RESEND_API_KEY in Netlify. Optional: CLUB_FROM (default bourbon@beerdepotpewaukee.com).
+// Bourbon Club email: builds the weekly "what's in" email and sends it through Brevo.
+// Needs BREVO_API_KEY in Netlify. Optional: CLUB_FROM_EMAIL (default bourbon@beerdepotpewaukee.com).
+// The member list lives on our own site (Blobs "bourbon-club"), so switching email
+// services only means changing sendOne() below and the key.
 const SITE = "https://beerdepotpewaukee.com";
-const FROM = () => process.env.CLUB_FROM || "The Beer Depot <bourbon@beerdepotpewaukee.com>";
+const FROM = () => ({ name: "The Beer Depot", email: process.env.CLUB_FROM_EMAIL || "bourbon@beerdepotpewaukee.com" });
+const SUBJECT = "This Week's Allocated Bourbon at The Beer Depot";
 const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -25,21 +28,32 @@ export function clubEmail(bottles, token) {
   return { html, text, unsub };
 }
 
-// Sends one email per member (so each gets their own unsubscribe link), 100 per request.
+async function sendOne(to, bottles, token, subject = SUBJECT) {
+  const key = process.env.BREVO_API_KEY;
+  if (!key) throw new Error("BREVO_API_KEY isn't set in Netlify yet.");
+  const { html, text, unsub } = clubEmail(bottles, token);
+  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ sender: FROM(), to: [{ email: to }], subject, htmlContent: html, textContent: text,
+      headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
+  });
+  if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
+}
+
+// One email per member (each has their own unsubscribe link), 10 at a time.
 export async function sendClub(members, bottles) {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) throw new Error("RESEND_API_KEY isn't set in Netlify yet.");
-  let sent = 0;
-  for (let i = 0; i < members.length; i += 100) {
-    const batch = members.slice(i, i + 100).map(([email, m]) => {
-      const { html, text, unsub } = clubEmail(bottles, m.token);
-      return { from: FROM(), to: [email], subject: "This Week's Allocated Bourbon at The Beer Depot", html, text,
-               headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } };
-    });
-    const r = await fetch("https://api.resend.com/emails/batch", {
-      method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: JSON.stringify(batch) });
-    if (!r.ok) throw new Error(`Resend ${r.status}: ${(await r.text()).slice(0, 300)}`);
-    sent += batch.length;
+  let sent = 0; const failed = [];
+  for (let i = 0; i < members.length; i += 10) {
+    const res = await Promise.allSettled(members.slice(i, i + 10).map(([email, m]) => sendOne(email, bottles, m.token)));
+    res.forEach((x, j) => x.status === "fulfilled" ? sent++ : failed.push(members[i + j][0] + ": " + x.reason.message));
+    if (sent === 0 && failed.length && i === 0) throw new Error(failed[0]);    // key or sender problem: stop right away
   }
+  if (failed.length) console.error("Bourbon Club failures:", failed.slice(0, 20));
   return sent;
+}
+
+// A test copy to the owner, from Store Tools.
+export async function sendTest(to, bottles) {
+  await sendOne(to, bottles, "test", "TEST: " + SUBJECT);
 }

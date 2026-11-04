@@ -76,6 +76,9 @@
   .sp-btns{display:flex;gap:10px}
   .sp-btns .btn{margin-top:4px}
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
+  .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
+  #club-test{margin-bottom:6px} #club-dl{margin:0 0 10px}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
   details.toppings{margin-top:10px}
   details.toppings summary{cursor:pointer;display:inline-block;font:700 15px var(--body);color:var(--glass);background:#fff;border:2px solid var(--orange);border-radius:999px;padding:7px 14px;list-style:none}
@@ -95,6 +98,7 @@
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
+    <button class="tab" role="tab" data-tab="club" aria-selected="false">Bourbon Club</button>
   </nav>
 </div>
 
@@ -145,6 +149,21 @@
     <p class="help">From the request box on the website, newest first. Tap a number to call.</p>
     <div id="requests"></div>
   </section>
+
+  <section id="p-club" hidden>
+    <h2 class="sec">Bourbon Club</h2>
+    <p class="help">Every Thursday at 5 PM, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.</p>
+    <div class="card club-sum" id="club-sum"></div>
+    <form class="card sp-card" id="club-test">
+      <h3 class="grp" style="margin:0">Send Yourself a Test</h3>
+      <input type="email" id="club-to" placeholder="Your Email" autocomplete="email" aria-label="Email for the test">
+      <button class="btn" type="submit" id="club-test-btn">Send Test Email</button>
+      <p class="sp-status" id="club-test-msg" role="status"></p>
+    </form>
+    <h3 class="grp">Members</h3>
+    <button class="btn ghost" type="button" id="club-dl">Download List</button>
+    <div id="club-list"></div>
+  </section>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -154,7 +173,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","specials","nofind","top","requests"];
+const TABS = ["food","specials","nofind","top","requests","club"];
 let toppingsOpen = false;
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
@@ -263,6 +282,7 @@ async function openTab(name){
   window.scrollTo(0,0);
   if(name==="food") return;
   if(name==="specials"){ loadSpecials(); return; }
+  if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
     seenBefore = rep.seen || {};          // highlight what's new on this visit
@@ -283,6 +303,37 @@ document.addEventListener("click", async e=>{
     try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
     catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
+});
+
+/* ---------- Bourbon Club ---------- */
+let club = null;
+const fmtDate = s => { try{ return new Date(s.length===10 ? s+"T12:00:00" : s).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return s; } };
+async function loadClub(){
+  try{ club = await api("/api/bourbon-club",{action:"list"}); }catch(err){ $("#club-sum").textContent = err.message; return; }
+  $("#club-sum").innerHTML = `<p class="club-n"><strong>${club.count}</strong> ${club.count===1?"Member":"Members"}</p>`
+    + (club.last ? `<p class="help">Last email: ${fmtDate(club.last.date)}, ${club.last.bottles} bottles, sent to ${club.last.sent}.</p>` : `<p class="help">No weekly email sent yet.</p>`)
+    + (club.ready ? "" : `<p class="help" style="color:var(--red)">Email sending isn't connected yet (BREVO_API_KEY in Netlify). Sign-ups are still being saved.</p>`);
+  $("#club-list").innerHTML = club.members.length
+    ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
+    : `<p class="help">No members yet.</p>`;
+}
+$("#club-test").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const btn = $("#club-test-btn"), msg = $("#club-test-msg"); btn.disabled = true; msg.textContent = "Sending…";
+  try{ const j = await api("/api/bourbon-club",{action:"test", to:$("#club-to").value}); msg.textContent = `Sent! Check your inbox (and spam) for the test with ${j.bottles} bottles.`; }
+  catch(err){ msg.textContent = err.message; }
+  btn.disabled = false;
+});
+$("#club-dl").onclick = ()=>{
+  if(!club || !club.members.length){ toast("No members yet."); return; }
+  const csv = "Email,Joined\n" + club.members.map(m=>`${m.email},${m.joined.slice(0,10)}`).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+  a.download = "bourbon-club-" + new Date().toISOString().slice(0,10) + ".csv"; a.click();
+};
+document.addEventListener("click", async e=>{
+  const b = e.target.closest && e.target.closest(".club-rm"); if(!b) return;
+  if(!confirm("Remove " + b.dataset.email + " from the Bourbon Club?")) return;
+  try{ await api("/api/bourbon-club",{action:"remove", email:b.dataset.email}); toast("Removed"); loadClub(); }catch(err){ toast(err.message, true); }
 });
 
 /* ---------- PIN ---------- */
