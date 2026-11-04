@@ -181,6 +181,18 @@
   .alloc .alloc-open.is-open{color:#6FDC8F} .alloc .alloc-open.is-closed{color:#FF8A73}
   .alloc .alloc-dir{align-self:flex-start;margin:12px 0 10px}
   .alloc ul.items{columns:1}
+  .club{border-top:1px solid #4E3626;margin:6px 0 10px;padding-top:14px}
+  .club h4{font-family:var(--display);font-weight:900;font-size:24px;line-height:1;color:var(--orange);margin:0 0 6px}
+  .club form{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+  .club input[type=email]{font:500 16px var(--body);padding:10px 12px;border-radius:10px;border:2px solid var(--orange);background:#fff;color:var(--ink)}
+  .club .age{display:flex;align-items:center;gap:8px;font-size:14px;color:#E8D9CC;cursor:pointer}
+  .club .age input{width:18px;height:18px;accent-color:var(--orange)}
+  .club button{font:700 16px var(--body);background:var(--orange);color:#fff;border:0;border-radius:999px;padding:11px 16px;cursor:pointer}
+  .club button:disabled{opacity:.6}
+  .club .fine{font-size:13px;color:#B9A99C;margin:2px 0 0}
+  .club .club-msg{font-weight:700;margin:4px 0 0}
+  .club .club-msg.ok{color:#6FDC8F} .club .club-msg.err{color:#FF8A73}
+  .club .hp{position:absolute;left:-9999px}
   .alloc .more-row{margin:12px 0 8px}
   .alloc button.more{background:transparent;color:#fff;border-color:var(--orange)}
   .alloc button.more:hover{background:var(--orange)}
@@ -783,7 +795,7 @@ function render(){
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
         <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}<a class="dir alloc-dir" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></aside>` : "";
+        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}<a class="dir alloc-dir" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a>${clubBox()}</aside>` : "";
       if(SUBSECTIONS[s.id]){
         const subs = SUBSECTIONS[s.id];
         let body = "";
@@ -820,7 +832,12 @@ function render(){
       <ul class="items">${Array.from({length:6},()=>'<li><span class="sk sk-name"></span><span class="sk sk-pill"></span></li>').join("")}</ul></section>`).join("")
       + '<p class="sk-note" role="status">Loading today\'s shelves…</p>';
   }
+  // keep anything typed in the Bourbon Club box when the list refreshes
+  const cf = $("#club-form"), cAct = document.activeElement;
+  const cKeep = cf ? { email: cf.email.value, age: cf.of_age.checked, focus: cAct && cf.contains(cAct) ? cAct.name : "" } : null;
   $("#drinks").innerHTML = html;
+  const cf2 = $("#club-form");
+  if(cKeep && cf2){ cf2.email.value = cKeep.email; cf2.of_age.checked = cKeep.age; if(cKeep.focus && cf2[cKeep.focus]) cf2[cKeep.focus].focus(); }
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
@@ -910,6 +927,43 @@ $("#request-form").addEventListener("submit", async e=>{
     msg.className="req-msg err"; msg.textContent="Your request didn't go through. Try again, or call us at 262-696-4602.";
   }
   btn.disabled=false; btn.textContent="Send Request";
+});
+
+// Allocated Bourbon Club sign-up box (inside the Allocated Bourbon box)
+let clubDone = false; try{ clubDone = localStorage.getItem("bd-club") === "1"; }catch(e){}
+function clubBox(){
+  if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! We'll email you when new allocated bottles arrive.</p></div>`;
+  return `<div class="club" id="club"><h4>Join the Bourbon Club</h4>
+    <p>Get an email the moment new allocated bottles hit our shelves.</p>
+    <form id="club-form" novalidate>
+      <input type="email" name="email" placeholder="Your Email" autocomplete="email" aria-label="Your email" required>
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label class="age"><input type="checkbox" name="of_age" required> I'm 21 or Older</label>
+      <button type="submit">Join the Club</button>
+      <p class="club-msg" id="club-msg" role="status"></p>
+      <p class="fine">Only new bourbon alerts. Unsubscribe anytime.</p>
+    </form></div>`;
+}
+document.addEventListener("submit", async e=>{
+  if(e.target.id !== "club-form") return;
+  e.preventDefault();
+  const f = e.target, msg = f.querySelector("#club-msg"), btn = f.querySelector("button");
+  const email = f.email.value.trim();
+  msg.className = "club-msg err";
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ msg.textContent = "Please enter a valid email address."; return; }
+  if(!f.of_age.checked){ msg.textContent = "Please confirm you're 21 or older."; return; }
+  btn.disabled = true; btn.textContent = "Joining…";
+  try{
+    if(!STOCK_URL){ clubDone = true; f.parentElement.outerHTML = clubBox(); return; }   // preview: pretend it worked
+    const r = await fetch("/api/bourbon-club", {method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({email, of_age:true, website:f.website.value})});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error || "");
+    clubDone = true; try{ localStorage.setItem("bd-club","1"); }catch(e){}
+    f.parentElement.outerHTML = clubBox();
+  }catch(err){
+    msg.textContent = err.message || "That didn't go through. Try again, or call us at 262-696-4602.";
+    btn.disabled = false; btn.textContent = "Join the Club";
+  }
 });
 
 // keep section headings clear of the sticky menu bar, whatever its height
