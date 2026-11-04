@@ -176,6 +176,8 @@
   .alloc p{margin:0 0 8px;font-size:15px}
   .alloc p a{color:#fff;font-weight:700}
   .alloc .alloc-note{color:#fff;font-weight:600;margin:0 0 4px}
+  .alloc .alloc-rules{color:#F4B98F;font-weight:700;font-size:14px;margin:0 0 8px}
+  .alloc .alloc-rules span{white-space:nowrap}
   .alloc .alloc-open{font-weight:700;margin:0 0 8px;display:flex;align-items:center;gap:7px}
   .alloc .alloc-open::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor}
   .alloc .alloc-open.is-open{color:#6FDC8F} .alloc .alloc-open.is-closed{color:#FF8A73}
@@ -800,7 +802,7 @@ function render(){
           + `</div>`;
       }
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
-        <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></div>
+        <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-rules"><span>Stock Updates Live</span> · <span>First Come, First Served</span> · <span>No Reservations</span></p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></div>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}${clubBox()}</aside>` : "";
       if(SUBSECTIONS[s.id]){
