@@ -27,7 +27,7 @@ const FOOD = [
   { group:"Meats", name:"Smoked Ribs", match:"ribs", photo:"", prices:[["Per lb","9.99"]] },
   { group:"Meats", name:"Smoked Chicken Breast", desc:"Regular or Spicy", match:"chicken breast", photo:"chicken-breast.jpg", prices:[["Each","6.49"]] },
   { group:"Meats", name:"Smoked Pulled Pork", match:"pulled pork", photo:"", prices:[["Per lb","9.99"]] },
-  { group:"Meats", name:"Smoked Pulled Chicken", match:"pulled chicken", photo:"", prices:[["Per lb","7.99"]] },
+  { group:"Meats", name:"Smoked Pulled Chicken", match:"pulled chicken", photo:"pulled-chicken.jpg", prices:[["Per lb","7.99"]] },
   { group:"Meats", name:"Buffalo Chicken Wings", match:"wings", photo:"buffalo-wings.jpg", prices:[["6 Wings","7.00"]] },
   { group:"Meats", name:"Gyro Meat", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
     extras:[["Pita","0.75"],["Onion & Tomato","1.75"],["Feta Cheese, Small","3.29"],["Tzatziki, Single Serving","0.75"],["Tzatziki, Small","2.99"],["Tzatziki, Large","4.99"]] },
