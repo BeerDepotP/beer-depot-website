@@ -94,6 +94,8 @@
         background:#fff;color:var(--ink);text-decoration:none;white-space:nowrap}
   .chip:hover{border-color:var(--orange)}
   .chip.food{background:var(--orange);border-color:var(--orange);color:#fff}
+  .chip.on{border:2.5px solid var(--ink);font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  .chip.food.on{border-color:var(--ink)}
 
   /* ---------- sections ---------- */
   section.shelf{padding:34px 0 8px;scroll-margin-top:60px}
@@ -851,6 +853,7 @@ function render(){
   if(cKeep && cf2){ cf2.email.value = cKeep.email; cf2.of_age.checked = cKeep.age; if(cKeep.focus && cf2[cKeep.focus]) cf2[cKeep.focus].focus(); }
 
   fitAlloc();
+  setTimeout(spy, 0);
 
   // chips
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
@@ -996,6 +999,28 @@ function fitAlloc(){
   }
 }
 let fitT; window.addEventListener("resize", ()=>{ clearTimeout(fitT); fitT = setTimeout(fitAlloc, 150); });
+
+// Highlight the menu chip for the section on screen, and keep it centered in the bar (phones)
+let spyId = "", spyT;
+function spy(){
+  const bar = $("#chips"); if(!bar) return;
+  const chips = [...bar.querySelectorAll("a.chip:not(.alloc-chip)")];
+  const line = (document.querySelector(".chips").getBoundingClientRect().bottom || 0) + 40;
+  let cur = null, best = -Infinity;
+  for(const c of chips){
+    const el = document.getElementById(c.getAttribute("href").slice(1));
+    if(!el) continue;
+    const top = el.getBoundingClientRect().top;
+    if(top <= line && top > best){ best = top; cur = c; }
+  }
+  chips.forEach(c => c.classList.toggle("on", c === cur));
+  const id = cur ? cur.getAttribute("href") : "";
+  if(cur && id !== spyId && bar.scrollWidth > bar.clientWidth){
+    bar.scrollTo({ left: cur.offsetLeft - (bar.clientWidth - cur.offsetWidth)/2, behavior: "smooth" });
+  }
+  spyId = id;
+}
+window.addEventListener("scroll", ()=>{ if(!spyT) spyT = requestAnimationFrame(()=>{ spyT = 0; spy(); }); }, { passive:true });
 
 // keep section headings clear of the sticky menu bar, whatever its height
 function setBarOffset(){ try{
