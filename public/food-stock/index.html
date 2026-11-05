@@ -121,6 +121,7 @@
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
     <button class="tab" role="tab" data-tab="specials" aria-selected="false">Specials</button>
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
+    <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -171,6 +172,19 @@
     <p class="sp-status" id="sl-status" role="status"></p>
   </section>
 
+  <section id="p-seasonal" hidden>
+    <h2 class="sec">Seasonal</h2>
+    <p class="help">A section for the season (Christmas, Fourth of July, Packers Season…). Its name shows in the website's menu bar, the 3-line Browse menu and the section heading. Turn it off and it disappears completely; your items stay saved for next time.</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show Seasonal on the Website</span><span class="st" id="se-on-st"></span></span>
+      <button class="sw" role="switch" aria-checked="false" aria-label="Show Seasonal on the website" id="se-on"></button></li></ul>
+    <div class="card sp-card" style="margin-bottom:12px"><label class="help" for="se-title" style="margin:0">Section Name (Menu Bar, Browse Menu and Heading)</label>
+      <input id="se-title" maxlength="30" placeholder="Seasonal" autocomplete="off"></div>
+    <div id="se-list"></div>
+    <button class="btn ghost" type="button" id="se-add">+ Add Item</button>
+    <button class="btn" type="button" id="se-save">Save Seasonal</button>
+    <p class="sp-status" id="se-status" role="status"></p>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -216,7 +230,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","specials","sales","nofind","top","requests","club"];
+const TABS = ["food","specials","sales","seasonal","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -428,6 +442,66 @@ $("#sl-save").onclick = ()=>{
 };
 $("#sl-on").onclick = ()=>{ sales.on = !sales.on; renderSales(); saveSales(sales.on ? "On Sale is now showing on the website." : "On Sale is now hidden from the website."); };
 
+/* ---------- seasonal ---------- */
+let seasonal = { on:false, title:"Seasonal", items:[] };
+function renderSeasonal(){
+  $("#se-on").setAttribute("aria-checked", seasonal.on);
+  const st = $("#se-on-st"); st.className = "st" + (seasonal.on ? " on" : "");
+  st.textContent = seasonal.on ? "On · Showing on the website" : "Off · Hidden from the website";
+  $("#se-list").innerHTML = seasonal.items.length ? seasonal.items.map((it,i)=>`<div class="card sl-item" data-i="${i}">
+    <label class="sl-ph">${it.photo?`<img src="/api/seasonal?photo=${encodeURIComponent(it.photo)}" alt="">`:(it._preview?`<img src="${it._preview}" alt="">`:"Tap to Add Photo")}<input type="file" accept="image/*" data-k="photo"></label>
+    <div class="sl-f">
+      <input data-k="name" placeholder="Item Name (e.g. Ham Dinner Tray)" maxlength="80" value="${esc(it.name||"")}">
+      <div class="sl-row"><label>Price<input data-k="price" inputmode="decimal" placeholder="39.99" value="${esc(it.price||"")}"></label></div>
+      <input data-k="note" placeholder="Note (optional, e.g. Order by Dec 20)" maxlength="80" value="${esc(it.note||"")}">
+      <div class="sl-row"><button class="btn ghost sl-rm" type="button">Remove</button></div>
+    </div></div>`).join("") : '<p class="help">No items yet. Tap "+ Add Item".</p>';
+  if(document.activeElement !== $("#se-title")) $("#se-title").value = seasonal.title || "";
+}
+async function loadSeasonal(){
+  try{ const j = await api("/api/seasonal",{action:"list"}); seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; renderSeasonal();
+       $("#se-status").textContent = j.updated ? `Last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : ""; }
+  catch(err){ $("#se-status").textContent = err.message; }
+}
+async function saveSeasonal(msg){
+  $("#se-save").disabled = true;
+  try{
+    const j = await api("/api/seasonal",{action:"save", on: seasonal.on, title: $("#se-title").value, items: seasonal.items.map(({_preview,...x})=>x)});
+    seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; renderSeasonal();
+    $("#se-status").textContent = msg || (seasonal.on ? "Saved. Showing on the website within a minute." : "Saved. Seasonal is turned off, so it's hidden.");
+    toast("Seasonal saved");
+  }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
+  $("#se-save").disabled = false;
+}
+$("#se-list").addEventListener("input", e=>{
+  const box = e.target.closest(".sl-item"), k = e.target.dataset.k; if(!box || !k || k==="photo") return;
+  seasonal.items[+box.dataset.i][k] = e.target.value;
+});
+$("#se-list").addEventListener("click", e=>{
+  const b = e.target.closest(".sl-rm"); if(!b) return;
+  const i = +b.closest(".sl-item").dataset.i;
+  if(!confirm("Remove " + (seasonal.items[i].name || "this item") + "?")) return;
+  seasonal.items.splice(i,1); renderSeasonal(); $("#se-status").textContent = "Removed. Tap Save Seasonal to update the website.";
+});
+$("#se-list").addEventListener("change", async e=>{
+  if(e.target.dataset.k !== "photo" || !e.target.files[0]) return;
+  const i = +e.target.closest(".sl-item").dataset.i, it = seasonal.items[i];
+  try{
+    toast("Uploading photo…");
+    const data = await shrinkPhoto(e.target.files[0]);
+    it._preview = data; it.photo = ""; renderSeasonal();
+    const j = await api("/api/seasonal",{action:"photo", id: it.id || (it.id = slId()), data});
+    it.photo = j.photo; delete it._preview; renderSeasonal();
+    toast("Photo added. Tap Save Seasonal."); $("#se-status").textContent = "Photo added. Tap Save Seasonal to update the website.";
+  }catch(err){ toast(err.message,true); }
+});
+$("#se-add").onclick = ()=>{ seasonal.items.push({id: slId(), name:"", price:"", note:"", photo:""}); renderSeasonal(); const ins = $$("#se-list .sl-item input[data-k=name]"); ins[ins.length-1].focus(); };
+$("#se-save").onclick = ()=>{
+  if(seasonal.items.find(it=>!String(it.name||"").trim())){ toast("Each item needs a name.", true); return; }
+  saveSeasonal();
+};
+$("#se-on").onclick = ()=>{ seasonal.on = !seasonal.on; renderSeasonal(); saveSeasonal(seasonal.on ? "Seasonal is now showing on the website." : "Seasonal is now hidden from the website."); };
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -439,6 +513,7 @@ async function openTab(name){
   if(name==="food") return;
   if(name==="specials"){ loadSpecials(); return; }
   if(name==="sales"){ loadSales(); return; }
+  if(name==="seasonal"){ loadSeasonal(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);

@@ -147,6 +147,14 @@
   .sale-card .was{color:var(--muted);font-size:16px;text-decoration:line-through}
   .chip.sale-chip{background:#D7261E;border-color:#D7261E;color:#fff}
   .chip.sale-chip.on{border-color:var(--ink)}
+  .seasonal{background:#F6EEE4}
+  .seasonal .shelf-head{border-bottom-color:var(--orange)}
+  .seasonal .shelf-head h2{color:var(--orange-deep)}
+  .seasonal .sale-card{border-color:#E8D3BE}
+  .seasonal .sale-card .now{color:var(--orange-deep)}
+  .chip.seasonal-chip{background:var(--glass);border-color:var(--glass);color:#fff}
+  .chip.seasonal-chip.on{border-color:var(--orange);box-shadow:inset 0 0 0 1.5px var(--orange)}
+  .drawer li a.seasonal-chip{color:var(--orange-deep)}
   /* ---------- sections drawer ---------- */
   .brand{display:flex;align-items:center;gap:12px}
   .menu-btn{flex:none;width:48px;height:48px;border-radius:12px;border:2px solid var(--orange);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
@@ -446,6 +454,12 @@
       <div class="menu" id="sale-list"></div>
     </div>
   </section>
+  <section class="sale shelf seasonal" id="seasonal" hidden>
+    <div class="wrap">
+      <div class="shelf-head"><h2 id="seasonal-title">Seasonal</h2><span class="count" id="seasonal-count"></span></div>
+      <div class="menu" id="seasonal-list"></div>
+    </div>
+  </section>
 
   <section class="catering" id="catering">
     <div class="wrap catering-in">
@@ -522,6 +536,7 @@
 const STOCK_URL = "/api/stock";          // where live stock comes from
 const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
 const SPECIALS_URL = STOCK_URL ? "/api/specials" : null;
+const SEASONAL_URL = STOCK_URL ? "/api/seasonal" : null;   // Seasonal section (edited in Store Tools → Seasonal)
 const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edited in Store Tools → Sales)   // This Week's Specials (edited in Store Tools)
 const REFRESH_SECONDS = 60;
 const SECTION_LIMIT = 20;
@@ -676,6 +691,7 @@ const MAKER_NOTES = {
 
 const SAMPLE = null;
 const SAMPLE_SALES = [];
+const SAMPLE_SEASONAL = null;
 const FOOD_PHOTOS = {};
 const PREVIEW_ALL_IN = false;
 
@@ -707,6 +723,20 @@ function renderSpecials(list){
   $("#specials").hidden = !items.length;
   $("#specials-list").innerHTML = items.map(s=>`<li>${esc(s)}</li>`).join("");
 }
+let seasonal = { title:"Seasonal", items:[] };
+function renderSeasonal(j){
+  seasonal = (j && j.on && j.items && j.items.length) ? { title: j.title || "Seasonal", items: j.items.filter(s=>s && s.name) } : { title:"Seasonal", items:[] };
+  const sec = $("#seasonal"); sec.hidden = !seasonal.items.length;
+  $("#seasonal-title").textContent = seasonal.title;
+  $("#seasonal-count").textContent = seasonal.items.length ? seasonal.items.length + (seasonal.items.length===1?" Item":" Items") : "";
+  const ph = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg>';
+  $("#seasonal-list").innerHTML = seasonal.items.map(s=>{
+    const src = s.img || (s.photo ? "/api/seasonal?photo=" + encodeURIComponent(s.photo) : "");
+    return `<article class="sale-card"><div class="ph">${src?`<img src="${esc(src)}" alt="${esc(s.name)}" loading="lazy">`:ph}</div>
+      <div class="body"><h3>${esc(s.name)}</h3>${s.note?`<p class="note">${esc(s.note)}</p>`:""}
+      ${s.price?`<div class="pricing"><span class="now">$${esc(s.price)}</span></div>`:""}</div></article>`;
+  }).join("");
+}
 let saleItems = [];
 function renderSales(list){
   saleItems = (list||[]).filter(s=>s && s.name && s.price);
@@ -724,11 +754,12 @@ function renderSales(list){
 function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
 let specials = null;
 function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, swp: swPrices, sp: specials })); }catch(e){} }
-if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]")); }catch(e){} }
-else renderSales(SAMPLE_SALES);
+if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]")); }catch(e){} try{ renderSeasonal(JSON.parse(localStorage.getItem("bd-seasonal")||"null")); }catch(e){} }
+else { renderSales(SAMPLE_SALES); renderSeasonal(SAMPLE_SEASONAL); }
 if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; } if(c && c.sp) renderSpecials(c.sp); }
 
 async function load(){
+  if(SEASONAL_URL) fetch(SEASONAL_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSeasonal(j); try{ localStorage.setItem("bd-seasonal", JSON.stringify(j.on ? j : null)); }catch(e){} render(); } }).catch(()=>{});
   if(SALES_URL) fetch(SALES_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSales(j.on ? j.items : []); try{ localStorage.setItem("bd-sales", JSON.stringify(j.on ? j.items : [])); }catch(e){} render(); } }).catch(()=>{});
   if(SPECIALS_URL) fetch(SPECIALS_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ specials = j.items||[]; renderSpecials(specials); } }).catch(()=>{});
   const swJob = SWITCH_URL ? fetch(SWITCH_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null) : Promise.resolve(null);
@@ -957,7 +988,7 @@ function render(){
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
   setTimeout(setBarOffset, 0);
   $("#chips").dataset.built = "0";
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (saleItems.length ? '<a class="chip sale-chip" href="#on-sale">On Sale</a>' : "") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
+  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (saleItems.length ? '<a class="chip sale-chip" href="#on-sale">On Sale</a>' : "") + (seasonal.items.length ? `<a class="chip seasonal-chip" href="#seasonal">${esc(seasonal.title)}</a>` : "") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
     + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
 }
 
@@ -1105,7 +1136,7 @@ document.querySelectorAll(".home-logo,.mini-logo").forEach(a=>a.addEventListener
 // Sections drawer (opens from the left): same list and order as the menu bar
 function fillDrawer(){
   const chips = [...$("#chips").querySelectorAll("a.chip")];
-  $("#drawer-list").innerHTML = chips.map(c=>`<li><a href="${c.getAttribute("href")}" class="${c.classList.contains("sale-chip")?"sale-chip":""}${c.classList.contains("on")?" on":""}">${c.innerHTML}</a></li>`).join("")
+  $("#drawer-list").innerHTML = chips.map(c=>`<li><a href="${c.getAttribute("href")}" class="${c.classList.contains("sale-chip")?"sale-chip":c.classList.contains("seasonal-chip")?"seasonal-chip":""}${c.classList.contains("on")?" on":""}">${c.innerHTML}</a></li>`).join("")
     + '<li class="drawer-req"><a href="#request">Request an Item</a></li>';
 }
 function openDrawer(){ fillDrawer(); document.body.classList.add("drawer-open"); $("#drawer").setAttribute("aria-hidden","false"); document.querySelectorAll(".sec-open").forEach(b=>b.setAttribute("aria-expanded","true")); setTimeout(()=>{ const a=$("#drawer-list a.on")||$("#drawer-list a"); if(a) a.focus({preventScroll:true}); },50); }
