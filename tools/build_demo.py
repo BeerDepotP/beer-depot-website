@@ -17,7 +17,7 @@ function menuPhoto(f, key){
   return f.photo ? (FOOD_PHOTOS[f.photo] || "") : "";
 }
 (function(){
-  const DB = { food:{items:{},prices:{},edits:{},toppings:null}, specials:{items:["Spotted Cow 12pk $15.99","Tito's 1.75L $34.99"]},
+  const DB = { food:{items:{},prices:{},edits:{},toppings:null},
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
@@ -46,7 +46,6 @@ function menuPhoto(f, key){
       return ok({ok:true,...f});
     }
     if(url.startsWith("/api/stock")) return ok({items:[],updated:new Date().toISOString()});
-    if(url.startsWith("/api/specials")){ if(post){ DB.specials = {items:b.items.filter(Boolean),updated:new Date().toISOString()}; return ok({ok:true,...DB.specials}); } return ok({...DB.specials,updated:new Date().toISOString()}); }
     if(url.startsWith("/api/sales")){ if(!post) return ok(DB.sales);
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="save") DB.sales = {on:!!b.on,items:b.items,updated:new Date().toISOString()};

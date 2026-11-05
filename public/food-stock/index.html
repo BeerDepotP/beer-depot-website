@@ -143,7 +143,6 @@
   <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><button class="lockbtn" id="lock" hidden>Lock</button></header>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
-    <button class="tab" role="tab" data-tab="specials" aria-selected="false">Specials</button>
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
@@ -174,16 +173,6 @@
     <div id="gear"></div>
   </section>
 
-  <section id="p-specials" hidden>
-    <h2 class="sec">This Week's Specials</h2>
-    <p class="help">Shows as a banner at the top of the website. Up to 5 lines. Leave them all empty to hide the banner.</p>
-    <form id="sp-form" class="card sp-card">
-      <div id="sp-fields"></div>
-      <div class="sp-btns"><button class="btn" type="submit" id="sp-save">Save Specials</button>
-      <button class="btn ghost" type="button" id="sp-clear">Clear All</button></div>
-      <p class="sp-status" id="sp-status" role="status"></p>
-    </form>
-  </section>
 
   <section id="p-sales" hidden>
     <h2 class="sec">On Sale</h2>
@@ -254,7 +243,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","specials","sales","seasonal","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -444,30 +433,6 @@ async function loadReport(w){
   if(!Object.keys(seenBefore).length) seenBefore = rep.seen || {};
 }
 
-/* ---------- specials ---------- */
-const SP_MAX = 5;
-function renderSpecialsForm(items){
-  $("#sp-fields").innerHTML = Array.from({length:SP_MAX},(_,i)=>
-    `<input maxlength="100" placeholder="${i===0?"e.g. Spotted Cow 12pk $15.99":""}" aria-label="Special ${i+1}" value="${esc((items||[])[i]||"")}">`).join("");
-}
-async function loadSpecials(){
-  const j = await fetch("/api/specials",{cache:"no-store"}).then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]}));
-  renderSpecialsForm(j.items);
-  $("#sp-status").textContent = j.items && j.items.length ? `Showing on the website now · last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : "No specials showing right now.";
-}
-async function saveSpecials(items){
-  $("#sp-save").disabled = true;
-  try{
-    const j = await api("/api/specials",{ items });
-    renderSpecialsForm(j.items);
-    $("#sp-status").textContent = j.items.length ? "Saved. Showing on the website within a minute." : "Cleared. The banner is hidden.";
-    toast(j.items.length ? "Specials saved" : "Specials cleared");
-  }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
-  $("#sp-save").disabled = false;
-}
-$("#sp-form").addEventListener("submit", e=>{ e.preventDefault(); saveSpecials([...$$("#sp-fields input")].map(i=>i.value)); });
-$("#sp-clear").onclick = ()=>{ $$("#sp-fields input").forEach(i=>i.value=""); saveSpecials([]); };
-
 /* ---------- sales ---------- */
 let sales = { on:false, items:[] };
 const slId = () => Math.random().toString(36).slice(2,10);
@@ -612,7 +577,6 @@ async function openTab(name){
   try{ history.replaceState(null,"","#"+name); }catch(e){}
   window.scrollTo(0,0);
   if(name==="food") return;
-  if(name==="specials"){ loadSpecials(); return; }
   if(name==="sales"){ loadSales(); return; }
   if(name==="seasonal"){ loadSeasonal(); return; }
   if(name==="club"){ loadClub(); return; }
