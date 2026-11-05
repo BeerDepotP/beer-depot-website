@@ -85,13 +85,15 @@ const LOCAL = [
 // Grilling & Outdoor (fixed list). Prices here are the defaults; Store Tools can change them and switch items off.
 const OUTDOOR = [
   { name:"Charcoal", match:"charcoal", prices:[["Each","12.99"]] },
-  { name:"Cookin' Pellets, 40 lb Bag", desc:"Perfect Mix, Cherry, Apple, Hickory or Longhorn Blend", match:"pellet", prices:[["Per Bag","22.99"]] },
+  { name:"Cookin' Pellets, 40 lb Bag", match:"pellet perfect mix cherry apple hickory longhorn", prices:[["Per Bag","22.99"]],
+    variants:["Perfect Mix","Cherry","Apple","Hickory","Longhorn Blend"] },
   { name:"Firewood Bundle", match:"firewood", prices:[["Each","6.49"]] },
   { name:"Lighter Fluid", match:"lighter fluid", prices:[] },
   { name:"Ice", match:"ice", prices:[["7 lb Bag","2.86"],["20 lb Bag","5.71"]] },
   { name:"Propane", match:"propane", prices:[["Tank Exchange","24.99"],["New Tank","79.99"]] },
 ];
 const outdoorKey = n => "Outdoor: " + n;
+const variantKey = (n, v) => "Outdoor: " + n + " – " + v;   // one switch per flavor
 
 const MAKER_NOTES = {
   "Grebe's":"Fresh bakery rolls, buns, bread and crullers.", "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };

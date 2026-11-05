@@ -211,6 +211,11 @@
   .g-main .name{font-weight:600;display:block}
   .g-desc{display:block;color:var(--muted);font-size:15px}
   .g-main .prices{margin-top:4px;max-width:260px}
+  .flavors{list-style:none;margin:6px 0 2px;padding:0;max-width:260px;font-size:15px}
+  .flavors li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
+  .flavors li b{font-weight:700;color:#1F7A3E;font-size:14px}
+  .flavors li.out span{color:var(--muted);text-decoration:line-through}
+  .flavors li.out b{color:var(--muted)}
   ul.gear .status{margin-top:2px}
   .more-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px}
   .na-sub{scroll-margin-top:70px}
@@ -742,12 +747,14 @@ function render(){
   const gearPrices = g => (swPrices[outdoorKey(g.name)] || g.prices).filter(r=>r[1]);
   let gearShown=0;
   $("#gear").innerHTML = OUTDOOR.map(g=>{
-    const st = switches[outdoorKey(g.name)] !== false;   // In Stock unless switched off in Store Tools
-    if(!matches(g.name+" "+(g.desc||""), qRaw)) return "";
+    const vars = (g.variants||[]).map(v=>({ v, on: switches[variantKey(g.name, v)] !== false }));
+    const st = switches[outdoorKey(g.name)] !== false && (!vars.length || vars.some(x=>x.on));   // In Stock unless switched off in Store Tools
+    if(!matches(g.name+" "+(g.desc||"")+" "+(g.variants||[]).join(" "), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
     const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
     return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
+      ${vars.length?`<ul class="flavors">${vars.map(x=>`<li class="${x.on?"":"out"}"><span>${highlight(x.v,qRaw)}</span><b>${x.on?"In Stock":"Out of Stock"}</b></li>`).join("")}</ul>`:""}
       ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div>${status}</li>`;
   }).join("");
   // Only the rows in OUTDOOR show here (no extra KORONA products).

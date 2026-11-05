@@ -81,6 +81,8 @@
   .jump a:hover{background:var(--orange);color:#fff}
   .gear-card{padding:0;margin-bottom:12px;overflow:hidden}
   .gear-card ul.sw-list{border-radius:0}
+  .gear-card li.var-row{padding-left:30px;background:#FBF7F3}
+  .gear-card li.var-row .nm{font-size:16px}
   .gear-prices{padding:10px 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
   .gp-row{display:flex;align-items:center;gap:6px}
   .gp-row input{font:600 16px var(--body);padding:9px 10px;border:2px solid var(--line);border-radius:10px;min-width:0}
@@ -274,7 +276,10 @@ function renderFood(){
   $("#gear").innerHTML = OUTDOOR.map(g=>{
     const key = outdoorKey(g.name), on = switches[key] !== false, rows = swPrices[key] || g.prices;
     return `<div class="card gear-card"><ul class="sw-list"><li><span><span class="nm">${esc(g.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
-      <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(g.name)}"></button></li></ul>
+      <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(g.name)}"></button></li>
+      ${(g.variants||[]).map(v=>{ const vk = variantKey(g.name, v), von = switches[vk] !== false;
+        return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span></span>
+        <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul>
       <div class="gear-prices" data-key="${esc(key)}">${(rows.length?rows:[["Each",""]]).map(r=>`<div class="gp-row"><input class="gp-l" value="${esc(r[0])}" aria-label="Price label" maxlength="30"><span>$</span><input class="gp-p" inputmode="decimal" value="${esc(r[1]||"")}" aria-label="Price" placeholder="0.00"></div>`).join("")}
       <div class="gp-btns"><button class="btn ghost gp-add" type="button">+ Add Price</button><button class="btn gp-save" type="button">Save Prices</button></div></div></div>`;
   }).join("");
