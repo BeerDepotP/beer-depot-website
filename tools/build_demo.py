@@ -20,6 +20,7 @@ function menuPhoto(f, key){
   const DB = { food:{items:{},prices:{},edits:{},toppings:null},
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
+    hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
@@ -54,6 +55,8 @@ function menuPhoto(f, key){
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="save") DB.seasonal = {on:!!b.on,title:(b.title||"Seasonal"),items:b.items,updated:new Date().toISOString()};
       return ok({ok:true,...DB.seasonal}); }
+    if(url.startsWith("/api/hours")){ if(post && b.action==="save"){ if(b.weekly) DB.hours.weekly=b.weekly; if(b.overrides) DB.hours.overrides=b.overrides.slice().sort((x,y)=>x.date<y.date?-1:1); }
+      return ok({ok:true,...DB.hours}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});

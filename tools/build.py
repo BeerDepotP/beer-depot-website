@@ -2,6 +2,7 @@
   - preview.html  : one self-contained file with sample stock (for the claude.ai preview)
   - public/index.html : the real site, which loads live stock from /api/stock
 """
+import datetime
 import base64, json, pathlib
 
 here = pathlib.Path(__file__).parent
@@ -32,6 +33,9 @@ preview = (tpl
     .replace("__SAMPLE_SEASONAL__", "const SAMPLE_SEASONAL = " + json.dumps({"on":True,"title":"Christmas","items":[
         {"name":"Ham Dinner Tray","price":"39.99","note":"Order by Dec 20","img":"data:image/jpeg;base64,"+base64.b64encode((root/"public/img/food/pulled-pork.jpg").read_bytes()).decode()},
         {"name":"Holiday Cheese Box","price":"24.99"}]}) + ";")
+    .replace("__SAMPLE_HOURS__", "const SAMPLE_HOURS = " + json.dumps([
+        {"date":(datetime.date.today()+datetime.timedelta(days=2)).isoformat(),"closed":False,"open":"09:00","close":"15:00","note":"Short hours, staff party"},
+        {"date":"2026-12-25","closed":True,"open":"","close":"","note":"Merry Christmas! See you Friday"}]) + ";")
     .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = " + json.dumps({f.name: "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode() for f in (root / "public/img/food").glob("*.jpg")}) + ";")
     .replace("__PREVIEW_FLAG__", '<div class="preview-flag">Preview with sample stock. Live KORONA stock gets connected next.</div>'))
 (root / "preview.html").write_text(preview)
@@ -47,6 +51,7 @@ live = (tpl
     .replace("__PREVIEW_ALL_IN__", "const PREVIEW_ALL_IN = false;")
     .replace("__SAMPLE_SALES__", "const SAMPLE_SALES = [];")
     .replace("__SAMPLE_SEASONAL__", "const SAMPLE_SEASONAL = null;")
+    .replace("__SAMPLE_HOURS__", "")
     .replace("__PREVIEW_FLAG__", ""))
 (root / "public/index.html").write_text(live)
 print("built preview.html and public/index.html")

@@ -104,6 +104,14 @@
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
   #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
+  .hr-row{display:grid;grid-template-columns:104px 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
+  .hr-row .nm{font-weight:700}
+  .hr-times{display:flex;gap:12px;flex-wrap:wrap}
+  .hr-times label{display:flex;gap:6px;align-items:center;font-size:16px}
+  .hr-times input[type=time],#ov-date{font-size:17px;padding:8px;min-width:0}
+  .hr-times[hidden]{display:none}
+  .hr-closed{color:var(--muted);font-size:16px}
+  @media (max-width:480px){.hr-row{grid-template-columns:1fr auto}.hr-row .nm{grid-column:1/-1}}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
   ul.sw-list li{flex-wrap:wrap}
   .ebtn{flex:none;margin-left:auto;font:700 14px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
@@ -145,6 +153,7 @@
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
+    <button class="tab" role="tab" data-tab="hours" aria-selected="false">Hours</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -198,6 +207,27 @@
     <p class="sp-status" id="se-status" role="status"></p>
   </section>
 
+  <section id="p-hours" hidden>
+    <h2 class="sec">Normal Weekly Hours</h2>
+    <p class="help">These show on the website every week. Turn a day off to show it as Closed.</p>
+    <div id="hr-week"></div>
+    <button class="btn" type="button" id="hr-save">Save Weekly Hours</button>
+    <p class="sp-status" id="hr-status" role="status"></p>
+    <h2 class="sec" style="margin-top:28px">One-Day Changes</h2>
+    <p class="help">Closed on Christmas or short hours for one day only. The website shows a notice, and on the day after, hours go back to normal by themselves. Nothing to undo.</p>
+    <div class="card sp-card" style="margin-bottom:12px">
+      <label class="help" for="ov-date" style="margin:0">Date</label>
+      <input id="ov-date" type="date">
+      <ul class="sw-list" style="margin:10px 0"><li><span><span class="nm">Closed All Day</span></span><button role="switch" aria-checked="true" aria-label="Closed all day" id="ov-closed" class="sw hr-sw"></button></li></ul>
+      <div id="ov-times" hidden class="hr-times"><label>Opens <input id="ov-open" type="time" value="09:00"></label><label>Closes <input id="ov-close" type="time" value="15:00"></label></div>
+      <label class="help" for="ov-note" style="margin:10px 0 0">Note for Customers (Optional)</label>
+      <input id="ov-note" maxlength="60" placeholder="Merry Christmas! See You Friday" autocomplete="off">
+      <button class="btn" type="button" id="ov-add" style="margin-top:12px">Add One-Day Change</button>
+    </div>
+    <div id="ov-list"></div>
+    <p class="sp-status" id="ov-status" role="status"></p>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -243,7 +273,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","hours","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -568,6 +598,42 @@ $("#se-save").onclick = ()=>{
 };
 $("#se-on").onclick = ()=>{ seasonal.on = !seasonal.on; renderSeasonal(); saveSeasonal(seasonal.on ? "Seasonal is now showing on the website." : "Seasonal is now hidden from the website."); };
 
+/* ---------- hours ---------- */
+const DAYN = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DEF_WEEK = [["09:00","16:00"],["09:00","20:00"],["09:00","20:00"],["09:00","20:00"],["09:00","20:00"],["09:00","21:00"],["09:00","21:00"]];
+let hrWeek = DEF_WEEK.map(r=>r.slice()), hrOv = [];
+const hrDate = d => new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+const hrT = t => { const [h,m]=t.split(":").map(Number); return ((h%12)||12)+(m?":"+String(m).padStart(2,"0"):"")+(h<12?" AM":" PM"); };
+function renderHours(){
+  $("#hr-week").innerHTML = hrWeek.map((r,i)=>{ const on = !!r[0];
+    return `<div class="card hr-row" data-i="${i}"><span class="nm">${DAYN[i]}</span>`+
+    (on ? `<span class="hr-times"><label>Opens <input type="time" data-k="0" value="${r[0]}"></label><label>Closes <input type="time" data-k="1" value="${r[1]}"></label></span>` : `<span class="hr-closed">Closed</span>`)+
+    `<button class="sw hr-sw" role="switch" aria-checked="${on}" aria-label="${DAYN[i]} open" data-sw="1"></button></div>`; }).join("");
+  $("#ov-list").innerHTML = hrOv.length ? hrOv.map((o,i)=>`<div class="card" style="margin-bottom:10px"><b>${esc(hrDate(o.date))}</b><br>${o.closed?"Closed All Day":esc(hrT(o.open)+" – "+hrT(o.close))}${o.note?"<br>"+esc(o.note):""}<br><button class="btn ghost" type="button" data-rm="${i}" style="margin-top:8px">Remove</button></div>`).join("") : '<p class="help">No one-day changes right now.</p>';
+}
+async function loadHours(){
+  try{ const j = await api("/api/hours",{action:"list"}); hrWeek = j.weekly ? j.weekly.map(r=>r.slice()) : DEF_WEEK.map(r=>r.slice()); hrOv = j.overrides||[]; renderHours();
+  }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); }
+}
+async function saveHours(body, st, msg){
+  try{ const j = await api("/api/hours",{action:"save",...body}); if(j.weekly) hrWeek = j.weekly.map(r=>r.slice()); hrOv = j.overrides||[]; renderHours(); $(st).textContent = msg;
+  }catch(err){ toast(err.message,true); }
+}
+$("#hr-week").addEventListener("click",e=>{ const b=e.target.closest("[data-sw]"); if(!b) return; const i=+b.closest(".hr-row").dataset.i;
+  hrWeek[i] = hrWeek[i][0] ? ["",""] : DEF_WEEK[i].slice(); renderHours(); $("#hr-status").textContent="Tap Save Weekly Hours to update the website."; });
+$("#hr-week").addEventListener("input",e=>{ const k=e.target.dataset.k; if(k==null) return; hrWeek[+e.target.closest(".hr-row").dataset.i][+k]=e.target.value; });
+$("#hr-save").onclick = ()=>saveHours({weekly:hrWeek},"#hr-status","Saved. The website shows these hours within a minute.");
+$("#ov-closed").onclick = ()=>{ const c = $("#ov-closed").getAttribute("aria-checked")!=="true"; $("#ov-closed").setAttribute("aria-checked",c); $("#ov-times").hidden = c; };
+$("#ov-add").onclick = ()=>{
+  const date=$("#ov-date").value; if(!date){ toast("Pick a date.",true); return; }
+  const closed=$("#ov-closed").getAttribute("aria-checked")==="true";
+  const o={date,closed,open:closed?"":$("#ov-open").value,close:closed?"":$("#ov-close").value,note:$("#ov-note").value};
+  saveHours({overrides:[...hrOv.filter(x=>x.date!==date),o]},"#ov-status","Added. It shows on the website now and goes away on its own after that day.");
+  $("#ov-note").value=""; $("#ov-date").value="";
+};
+$("#ov-list").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; if(!confirm("Remove this change?")) return;
+  saveHours({overrides:hrOv.filter((_,i)=>i!==+b.dataset.rm)},"#ov-status","Removed."); });
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -579,6 +645,7 @@ async function openTab(name){
   if(name==="food") return;
   if(name==="sales"){ loadSales(); return; }
   if(name==="seasonal"){ loadSeasonal(); return; }
+  if(name==="hours"){ loadHours(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -593,7 +660,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;

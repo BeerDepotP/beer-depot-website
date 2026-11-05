@@ -304,6 +304,7 @@
   ul.hours{list-style:none;margin:0 0 8px;padding:0}
   ul.hours li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #4E3626}
   ul.hours li:last-child{border-bottom:0}
+  ul.hours li.hrs-fn{font-size:14px;opacity:.8;border-bottom:0}
   ul.hours li.today{font-weight:700;font-size:17px;color:#fff}
   .addr{margin:10px 0 10px;color:#fff;font-weight:600;line-height:1.35}
   .dir{display:inline-block;background:var(--orange);color:#fff;text-decoration:none;font-weight:700;font-size:15px;border-radius:999px;padding:8px 16px}
@@ -350,6 +351,9 @@
   .ham-banner{display:flex;align-items:center;justify-content:center;gap:10px;background:#C8102E;color:#fff;text-decoration:none;
     font-family:var(--display);font-weight:900;font-size:clamp(22px,4.5vw,30px);line-height:1.05;padding:10px 16px;text-align:center}
   .ham-banner[hidden]{display:none}
+  .hours-note{background:#1F1A17;color:#fff;font-weight:700;font-size:18px;line-height:1.3;padding:10px 16px;text-align:center}
+  .hours-note[hidden]{display:none}
+  .hours-note b{color:#FFD08A}
   .ham-banner svg{width:24px;height:24px;fill:#FFD08A;flex:none}
   .ham-banner:hover{background:#A60D26}
   .preview-flag{background:var(--orange);color:#fff;text-align:center;font-weight:600;font-size:14px;padding:7px 12px}
@@ -376,6 +380,8 @@
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7z"/></svg>
   <span>Hot Ham Available Now Until 3 PM</span>
 </a>
+
+<div class="hours-note" id="hours-note" role="status" hidden></div>
 
 <header class="hero" id="top">
   <div class="wrap">
@@ -528,6 +534,7 @@
 /* ================= SETTINGS (safe to edit) ================= */
 const STOCK_URL = "/api/stock";          // where live stock comes from
 const SWITCH_URL = STOCK_URL ? "/api/food-stock" : null;  // on/off switches for food & Local Favorites
+const HOURS_URL = STOCK_URL ? "/api/hours" : null;   // weekly hours + one-day changes (Store Tools → Hours)
 const SEASONAL_URL = STOCK_URL ? "/api/seasonal" : null;   // Seasonal section (edited in Store Tools → Seasonal)
 const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edited in Store Tools → Sales)
 const REFRESH_SECONDS = 60;
@@ -541,7 +548,7 @@ const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIC
 // Hot Ham banner: shown across the top on this day, between these times.
 const HOT_HAM = { day: 0, from: "09:00", until: "15:00" };   // Sunday 9 AM to 3 PM
 // Hours by day (0 = Sunday). Times are 24-hour "HH:MM"; null = closed all day.
-const HOURS = [
+let HOURS = [
   ["Sunday",    "09:00", "16:00"],
   ["Monday",    "09:00", "20:00"],
   ["Tuesday",   "09:00", "20:00"],
@@ -698,6 +705,7 @@ const toppingList = () => swToppings || PIZZA_TOPPINGS;
 const SAMPLE = null;
 const SAMPLE_SALES = [];
 const SAMPLE_SEASONAL = null;
+
 const FOOD_PHOTOS = {};
 const PREVIEW_ALL_IN = false;
 
@@ -1002,27 +1010,49 @@ function chicagoNow(){
 }
 const toMins = t => { const [h,m]=t.split(":").map(Number); return h*60+m; };
 function fmtTime(t){ let [h,m]=t.split(":").map(Number); const ap = h>=12?"PM":"AM"; h = h%12||12; return m ? `${h}:${String(m).padStart(2,"0")} ${ap}` : `${h} ${ap}`; }
+// One-day changes from Store Tools: [{date:"YYYY-MM-DD", closed, open, close, note}]. They only apply on their own date.
+let OVERRIDES = [];
+function chicagoDate(offset){
+  const d = new Date(new Date().toLocaleString("en-US",{timeZone:"America/Chicago"})); d.setHours(12,0,0,0); d.setDate(d.getDate()+(offset||0));
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+// Hours for the day `offset` days from today: [dayName, open, close, override or null]
+function hoursFor(offset){
+  const d = (chicagoNow().day + offset) % 7, w = HOURS[d], date = chicagoDate(offset), o = OVERRIDES.find(x=>x.date===date);
+  if(o) return [w[0], o.closed ? null : o.open, o.closed ? null : o.close, o];
+  return [w[0], w[1], w[2], null];
+}
 function openStatus(){
-  const {day, mins} = chicagoNow(), [ , o, c] = HOURS[day];
+  const {mins} = chicagoNow(), [ , o, c] = hoursFor(0);
   if(o && mins >= toMins(o) && mins < toMins(c)) return { open:true, text:`Open Now · Until ${fmtTime(c)}` };
   if(o && mins < toMins(o)) return { open:false, text:`Closed · Opens ${fmtTime(o)} Today` };
-  for(let i=1;i<=7;i++){ const d=(day+i)%7; if(HOURS[d][1]) return { open:false, text:`Closed · Opens ${fmtTime(HOURS[d][1])} ${i===1?"Tomorrow":HOURS[d][0]}` }; }
+  for(let i=1;i<=14;i++){ const h = hoursFor(i); if(h[1]) return { open:false, text:`Closed · Opens ${fmtTime(h[1])} ${i===1?"Tomorrow":h[0]}` }; }
   return { open:false, text:"Closed" };
 }
 function renderHours(){
-  const st = openStatus(), {day} = chicagoNow();
+  const st = openStatus(), {day, mins} = chicagoNow();
   const on = $("#open-now"); on.textContent = st.text; on.className = "open-now " + (st.open?"is-open":"is-closed");
-  const [ , to, tc] = HOURS[day];
+  const [ , to, tc] = hoursFor(0);
   $("#today-hours").textContent = "Today: " + (to ? `${fmtTime(to)} – ${fmtTime(tc)}` : "Closed");
   const order = [1,2,3,4,5,6,0];      // Monday first
-  $("#hours-list").innerHTML = order.map(d=>{ const [n,o,c]=HOURS[d];
-    return `<li class="${d===day?"today":""}"><span>${n}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("");
+  $("#hours-list").innerHTML = order.map(d=>{ const off = (d - day + 7) % 7, [n,o,c,ov] = hoursFor(off);
+    return `<li class="${d===day?"today":""}"><span>${n}${ov?" *":""}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("")
+    + (OVERRIDES.some(x=>x.date>=chicagoDate(0) && x.date<=chicagoDate(6)) ? '<li class="hrs-fn"><span>* Special hours this week</span></li>' : "");
   $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
-  const {mins} = chicagoNow();
-  $("#ham-banner").hidden = !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until));
+  $("#ham-banner").hidden = !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
+  // Notice bar for a one-day change today or in the next 14 days
+  const note = $("#hours-note"), lines = [];
+  for(let i=0;i<=14;i++){ const [n,o,c,ov] = hoursFor(i); if(!ov) continue;
+    const when = i===0 ? "Today" : i===1 ? "Tomorrow" : new Date(ov.date+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
+    lines.push(`<b>${when}:</b> ` + (ov.closed ? "Closed" : `Special Hours ${fmtTime(ov.open)} – ${fmtTime(ov.close)}`) + (ov.note ? ` · ${ov.note.replace(/[<>&]/g,"")}` : "")); }
+  note.hidden = !lines.length; note.innerHTML = lines.join("<br>");
 }
 try{ if(window.matchMedia("(min-width: 861px)").matches) $("#hours-det").open = true; }catch(e){}
 renderHours(); setInterval(renderHours, 60000);
+if(HOURS_URL) fetch(HOURS_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return;
+  if(Array.isArray(j.weekly) && j.weekly.length===7) HOURS = j.weekly.map((r,i)=>[HOURS[i][0], r[0]||null, r[1]||null]);
+  OVERRIDES = j.overrides || []; renderHours(); }).catch(()=>{});
+else if(typeof SAMPLE_HOURS!=="undefined"){ OVERRIDES = SAMPLE_HOURS; renderHours(); }
 
 function ago(d){
   const s = Math.max(0, Math.round((Date.now()-d.getTime())/1000));
