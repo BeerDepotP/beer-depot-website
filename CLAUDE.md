@@ -25,7 +25,7 @@
 
 ## Where things are (for a new chat)
 - Repo: github.com/BeerDepotP/beer-depot-website (public). Work branch `drafts`; `main` = live site.
-- Mock artifacts (2026-11-05, current drafts): website https://claude.ai/artifact/G1RquCXpVQX7a4VQZbnrKv (slug 798863d7-7093-48b8-91b9-642281ce1c15, from preview.html); Store Tools demo https://claude.ai/artifact/X6TBg3M2e4AVwUudksHK2M (slug f3b503df-385c-4892-86f0-f5ebb6f90056, built by `python3 tools/build_demo.py` -> demo-store-tools.html, fake backend, any PIN). Older ones (6cb03c2e…, a5c76502…) are stale; a session with network off can only create new artifacts, so republish when network is on.
+- Mock artifacts (latest 2026-11-05 11:30): website https://claude.ai/artifact/ExstQgtPL4qEaYvRJcjaNi (from preview.html); Store Tools demo https://claude.ai/artifact/PDLHzAzi4GPa18dzNZ8RkC (built by `python3 tools/build_demo.py` -> demo-store-tools.html, fake backend, any PIN). Older mock artifacts are stale; with network off a session can only create new artifacts, so make new ones after changes.
 - Unpublished on `drafts` as of 2026-11-05: compare `git log main..drafts` before publishing and summarize it for the owner.
 
 ## Owner to-dos and setup notes (published 2026-11-03 evening)
