@@ -76,6 +76,17 @@
   .sp-btns{display:flex;gap:10px}
   .sp-btns .btn{margin-top:4px}
   .btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .jump{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+  .jump a{font:700 15px var(--body);padding:8px 13px;border-radius:999px;border:2px solid var(--orange);color:var(--ink);background:#fff;text-decoration:none;white-space:nowrap}
+  .jump a:hover{background:var(--orange);color:#fff}
+  .gear-card{padding:0;margin-bottom:12px;overflow:hidden}
+  .gear-card ul.sw-list{border-radius:0}
+  .gear-prices{padding:10px 14px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .gp-row{display:flex;align-items:center;gap:6px}
+  .gp-row input{font:600 16px var(--body);padding:9px 10px;border:2px solid var(--line);border-radius:10px;min-width:0}
+  .gp-row input:focus{border-color:var(--orange);outline:none}
+  .gp-l{flex:1.4} .gp-p{flex:1} .gp-row span{font-weight:700;color:var(--muted)}
+  .gp-btns{display:flex;gap:8px} .gp-btns .btn{margin-top:2px;padding:10px 12px;font-size:16px}
   .sl-item{display:grid;grid-template-columns:120px 1fr;gap:12px;margin-bottom:12px}
   .sl-ph{position:relative;aspect-ratio:4/3;border-radius:10px;background:#EFE6DD;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;border:2px dashed var(--line)}
   .sl-ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -125,11 +136,15 @@
   </form>
 
   <section id="p-food" hidden>
+    <nav class="jump" id="jump" aria-label="Jump to"></nav>
     <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it.</p>
     <h2 class="sec">Made Here</h2>
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
     <div id="local"></div>
+    <h2 class="sec more" id="j-gear">Grilling &amp; Outdoor</h2>
+    <p class="help">Switch an item off to show Out of Stock. Change a price and tap Save Prices.</p>
+    <div id="gear"></div>
   </section>
 
   <section id="p-specials" hidden>
@@ -201,6 +216,7 @@ const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
 const TABS = ["food","specials","sales","nofind","top","requests","club"];
 let toppingsOpen = false;
+let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
 
 function toast(text, err){ const t=$("#toast"); t.textContent=text; t.className="toast show"+(err?" err":""); clearTimeout(toast.t); toast.t=setTimeout(()=>t.className="toast",2200); }
@@ -236,13 +252,47 @@ function swRow(item, section){
   return `<li><span><span class="nm">${esc(item.label||item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(item.label||item.name)}"></button></li>`;
 }
+const jid = s => "j-" + String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
+function renderJump(){
+  const makers = [...new Set(LOCAL.map(l=>l.maker))];
+  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), m]), ["j-gear","Grilling & Outdoor"]]
+    .map(([id,label])=>`<a href="#${id}" data-jump="${id}">${esc(label)}</a>`).join("");
+}
+document.addEventListener("click", e=>{
+  const a = e.target.closest("#jump a"); if(!a) return;
+  e.preventDefault();
+  const el = document.getElementById(a.dataset.jump); if(!el) return;
+  const top = el.getBoundingClientRect().top + scrollY - ($(".top").offsetHeight || 0) - 12;
+  window.scrollTo({top, behavior:"smooth"});
+});
 function renderFood(){
-  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp">${esc(g)}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`
+  renderJump();
+  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp" id="${jid(g)}">${esc(g)}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`
     + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
         <ul class="sw-list">${PIZZA_TOPPINGS.map(tp=>swRow({name:toppingKey(tp), label:tp},"food")).join("")}</ul></details>` : "")).join("");
   const det = document.querySelector("details.toppings"); if(det) det.addEventListener("toggle", ()=>{ toppingsOpen = det.open; });
-  $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
+  $("#gear").innerHTML = OUTDOOR.map(g=>{
+    const key = outdoorKey(g.name), on = switches[key] !== false, rows = swPrices[key] || g.prices;
+    return `<div class="card gear-card"><ul class="sw-list"><li><span><span class="nm">${esc(g.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+      <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(g.name)}"></button></li></ul>
+      <div class="gear-prices" data-key="${esc(key)}">${(rows.length?rows:[["Each",""]]).map(r=>`<div class="gp-row"><input class="gp-l" value="${esc(r[0])}" aria-label="Price label" maxlength="30"><span>$</span><input class="gp-p" inputmode="decimal" value="${esc(r[1]||"")}" aria-label="Price" placeholder="0.00"></div>`).join("")}
+      <div class="gp-btns"><button class="btn ghost gp-add" type="button">+ Add Price</button><button class="btn gp-save" type="button">Save Prices</button></div></div></div>`;
+  }).join("");
+  $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp" id="${jid(m)}">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
 }
+
+document.addEventListener("click", async e=>{
+  const add = e.target.closest(".gp-add");
+  if(add){ const box = add.closest(".gear-prices"); const row = document.createElement("div"); row.className="gp-row";
+    row.innerHTML = '<input class="gp-l" value="" placeholder="e.g. 20 lb Bag" aria-label="Price label" maxlength="30"><span>$</span><input class="gp-p" inputmode="decimal" aria-label="Price" placeholder="0.00">';
+    box.insertBefore(row, box.querySelector(".gp-btns")); row.querySelector(".gp-l").focus(); return; }
+  const sv = e.target.closest(".gp-save"); if(!sv) return;
+  const box = sv.closest(".gear-prices"), key = box.dataset.key;
+  const prices = [...box.querySelectorAll(".gp-row")].map(r=>[r.querySelector(".gp-l").value, r.querySelector(".gp-p").value]).filter(r=>r[0].trim());
+  sv.disabled = true;
+  try{ const j = await api("/api/food-stock",{ name:key, prices }); swPrices = j.prices || swPrices; renderFood(); toast(key.replace(/^Outdoor: /,"") + ": Prices Saved"); }
+  catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); sv.disabled = false; }
+});
 
 /* ---------- searches & requests ---------- */
 function weeksHtml(){
@@ -402,7 +452,7 @@ document.addEventListener("click", async e=>{
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
-    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
+    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; swPrices = j.prices || swPrices; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
     catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
@@ -462,7 +512,7 @@ async function unlock(p){
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
   ]);
-  switches = sw.items || {}; stock = st.items || [];
+  switches = sw.items || {}; swPrices = sw.prices || {}; stock = st.items || [];
   renderFood();
   $("#pin-form").hidden = true; $("#tabs").hidden = false; $("#lock").hidden = false;
   refreshBadges();

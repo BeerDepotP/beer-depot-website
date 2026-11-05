@@ -648,11 +648,7 @@ const LOCAL = [
   { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Crullers", match:"grebe cruller", photo:"", prices:[] },
   { maker:"Grebe's", where:"West Allis, WI", name:"Grebe's Mini Chocolate Covered Crullers", match:"grebe chocolate cruller", photo:"", prices:[] },
 ];
-const MAKER_NOTES = {
-  "Grebe's":"Fresh bakery rolls, buns, bread and crullers.", "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
-
-
-// Grilling & Outdoor: shown to everyone (not behind the 21+ check).
+// Grilling & Outdoor (fixed list). Prices here are the defaults; Store Tools can change them and switch items off.
 const OUTDOOR = [
   { name:"Charcoal", match:"charcoal", prices:[["Each","12.99"]] },
   { name:"Cookin' Pellets, 40 lb Bag", desc:"Perfect Mix, Cherry, Apple, Hickory or Longhorn Blend", match:"pellet", prices:[["Per Bag","22.99"]] },
@@ -661,6 +657,14 @@ const OUTDOOR = [
   { name:"Ice", match:"ice", prices:[["7 lb Bag","2.86"],["20 lb Bag","5.71"]] },
   { name:"Propane", match:"propane", prices:[["Tank Exchange","24.99"],["New Tank","79.99"]] },
 ];
+const outdoorKey = n => "Outdoor: " + n;
+
+const MAKER_NOTES = {
+  "Grebe's":"Fresh bakery rolls, buns, bread and crullers.", "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
+
+
+// Grilling & Outdoor: shown to everyone (not behind the 21+ check).
+// OUTDOOR (Grilling & Outdoor list) lives in tools/menu.js; prices and switches can be changed in Store Tools.
 /* =========================================================== */
 
 const SAMPLE = null;
@@ -671,7 +675,7 @@ const PREVIEW_ALL_IN = false;
 const $ = s => document.querySelector(s);
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {}, lastFound = 0;
+let stock = null, updatedAt = null, foodOnly = false, loadError = false, switches = {}, swPrices = {}, lastFound = 0;
 const showing = new Map();   // section id -> how many products are showing
 
 function store(k,v){ try{ v===undefined ? null : localStorage.setItem(k,v); return localStorage.getItem(k);}catch(e){return null} }
@@ -712,10 +716,10 @@ function renderSales(list){
 }
 function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
 let specials = null;
-function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, sp: specials })); }catch(e){} }
+function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, swp: swPrices, sp: specials })); }catch(e){} }
 if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]")); }catch(e){} }
 else renderSales(SAMPLE_SALES);
-if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; } if(c && c.sp) renderSpecials(c.sp); }
+if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; } if(c && c.sp) renderSpecials(c.sp); }
 
 async function load(){
   if(SALES_URL) fetch(SALES_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSales(j.on ? j.items : []); try{ localStorage.setItem("bd-sales", JSON.stringify(j.on ? j.items : [])); }catch(e){} render(); } }).catch(()=>{});
@@ -727,7 +731,7 @@ async function load(){
     else { data = SAMPLE; }
     stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
   }catch(e){ loadError = !stock; }
-  const sw = await swJob; if(sw) switches = sw.items || {};
+  const sw = await swJob; if(sw){ switches = sw.items || {}; swPrices = sw.prices || {}; }
   if(data && STOCK_URL) saveCache(data, switches);
   render();
 }
@@ -832,15 +836,16 @@ function render(){
   $("#local-count").textContent = localShown + (localShown===1?" Item":" Items");
 
   // grilling & outdoor
+  const gearPrices = g => (swPrices[outdoorKey(g.name)] || g.prices).filter(r=>r[1]);
   let gearShown=0;
   $("#gear").innerHTML = OUTDOOR.map(g=>{
-    const st = true;   // Grilling & Outdoor always shows In Stock
+    const st = switches[outdoorKey(g.name)] !== false;   // In Stock unless switched off in Store Tools
     if(!matches(g.name+" "+(g.desc||""), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
     const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
     return `<li class="${st===false?"is-out":""}"><div class="g-main"><span class="name">${highlight(g.name,qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
-      ${g.prices.length?`<div class="prices">${priceRows(g.prices)}</div>`:""}</div>${status}</li>`;
+      ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div>${status}</li>`;
   }).join("");
   // Only the rows in OUTDOOR show here (no extra KORONA products).
   $("#grilling-outdoor").hidden = !gearShown;
