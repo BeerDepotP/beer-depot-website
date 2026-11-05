@@ -296,7 +296,7 @@ function draftPhotoSrc(key){
   if(d.preview) return d.preview;
   if(d.photo === "none") return "";
   if(d.photo) return "/api/food-stock?photo=" + encodeURIComponent(d.photo);
-  return it.photo ? "/img/food/" + it.photo : "";
+  return it.photo ? ((typeof FOOD_PHOTOS!=="undefined" && FOOD_PHOTOS[it.photo]) || "/img/food/" + it.photo) : "";
 }
 function editPanel(key){
   const d = drafts[key]; if(!d) return "";

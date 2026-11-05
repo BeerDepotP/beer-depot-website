@@ -3,3 +3,4 @@ node_modules/
 .env
 preview.html
 package-lock.json
+demo-store-tools.html
