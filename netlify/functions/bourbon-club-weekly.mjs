@@ -21,7 +21,7 @@ export async function sendWeekly(store, { force = false } = {}) {
   if (!bottles.length) return { skipped: "no allocated bourbon in stock" };
   const members = Object.entries((await store.get("bourbon-club", { type: "json" })) || {});
   if (!members.length) return { skipped: "no members yet" };
-  const sent = await sendClub(members, bottles);
+  const sent = await sendClub(members, bottles, await store.get("bourbon-club-email", { type: "json" }));
   await store.setJSON("bourbon-club-sent", { date, at: new Date().toISOString(), sent, bottles });
   return { sent, bottles: bottles.length };
 }

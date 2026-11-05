@@ -6,7 +6,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin } from "../lib/pin.mjs";
-import { sendTest } from "../lib/club-email.mjs";
+import { sendTest, clubEmail, cleanContent, DEFAULTS, LIMITS } from "../lib/club-email.mjs";
 
 const KEY = "bourbon-club";
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "no-store" } });
@@ -55,7 +55,15 @@ async function storeTools(b) {
     if (list[e]) { delete list[e]; await store.setJSON(KEY, list); }
   }
   if (b.action === "sending") {
-    await store.setJSON("bourbon-club-settings", { sending: !!b.on, changed: new Date().toISOString() });
+    const cur = (await store.get("bourbon-club-settings", { type: "json" })) || {};
+    await store.setJSON("bourbon-club-settings", { ...cur, sending: !!b.on, changed: new Date().toISOString() });
+  }
+  if (b.action === "saveEmail") {      // the words in the weekly email (blank = standard wording)
+    await store.setJSON("bourbon-club-email", cleanContent(b.content));
+  }
+  if (b.action === "previewEmail") {   // what the email would look like with these words
+    const bottles = ["(Sample) Blanton's Single Barrel 750ml", "(Sample) Weller Special Reserve 750ml", "(Sample) Eagle Rare 10 Year 750ml"];
+    return json({ html: clubEmail(bottles, "preview", b.content).html, subject: cleanContent(b.content).subject });
   }
   if (b.action === "test") {
     const to = String(b.to || "").trim();
@@ -63,13 +71,14 @@ async function storeTools(b) {
     const stock = await store.get("stock-latest", { type: "json" });
     let bottles = [...new Set((stock?.items || []).filter(it => it.allocated && it.inStock).map(it => it.name))].sort((x, y) => x.localeCompare(y));
     if (!bottles.length) bottles = ["(Sample) Blanton's Single Barrel 750ml", "(Sample) Weller Special Reserve 750ml"];
-    try { await sendTest(to, bottles); } catch (e) { return json({ error: e.message }, 502); }
+    try { await sendTest(to, bottles, b.content ? cleanContent(b.content) : await store.get("bourbon-club-email", { type: "json" })); } catch (e) { return json({ error: e.message }, 502); }
     return json({ ok: true, bottles: bottles.length });
   }
   const members = Object.entries(list).map(([email, m]) => ({ email, joined: m.joined, source: m.source || "website" })).sort((x, y) => y.joined.localeCompare(x.joined));
   const last = await store.get("bourbon-club-sent", { type: "json" });
   const settings = (await store.get("bourbon-club-settings", { type: "json" })) || {};
-  return json({ sending: settings.sending !== false, count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
+  const email = cleanContent(await store.get("bourbon-club-email", { type: "json" }));
+  return json({ email, defaults: DEFAULTS, limits: LIMITS, sending: settings.sending !== false, count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
 }
 
 export const config = { path: "/api/bourbon-club" };

@@ -65,8 +65,12 @@ function menuPhoto(f, key){
       const c = DB.club;
       if(b.action==="remove") c.members = c.members.filter(m=>m.email!==b.email);
       if(b.action==="sending") c.sending = !!b.on;
+      const DEF = {subject:"This Week's Allocated Bourbon at The Beer Depot",heading:"This Week's Allocated Bourbon",tagline:"Hard-to-Find Bottles. Once They're Gone, They're Gone.",top:"",info:"In stock as of Thursday 5 PM. First come, first served, in store only. No reservations.",bottom:""};
+      if(b.action==="saveEmail") c.email = Object.assign({},DEF,b.content);
+      if(b.action==="previewEmail"){ const x = Object.assign({},DEF,b.content), q = t=>String(t).replace(/</g,"&lt;").replace(/\n/g,"<br>");
+        return ok({subject:x.subject,html:`<body style="margin:0;background:#F3EBE2;font-family:Arial"><div style="max-width:560px;margin:0 auto;padding:20px"><div style="background:#2B1B12;border-radius:14px;padding:22px;color:#E8D9CC"><h1 style="margin:0 0 6px;color:#F26B1D;font-size:28px">${q(x.heading)}</h1><p style="color:#fff;font-weight:bold">${q(x.tagline)}</p><p style="color:#fff">${q(x.top)}</p><ul style="color:#fff"><li>(Sample) Blanton's Single Barrel 750ml</li><li>(Sample) Weller Special Reserve 750ml</li></ul><p>${q(x.info)}</p><p style="color:#fff">${q(x.bottom)}</p></div></div></body>`}); }
       if(b.action==="test") return ok({ok:true,bottles:4});
-      return ok({sending:c.sending,count:c.members.length,members:c.members,last:{date:"2026-11-05",sent:2,bottles:4},ready:true}); }
+      return ok({email:Object.assign({},DEF,c.email),defaults:DEF,sending:c.sending,count:c.members.length,members:c.members,last:{date:"2026-11-05",sent:2,bottles:4},ready:true}); }
     return realFetch(url,opt);
   };
   try{ sessionStorage.setItem("bd-pin","demo"); }catch(e){}

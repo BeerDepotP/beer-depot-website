@@ -103,6 +103,7 @@
   @media (max-width:480px){.sl-item{grid-template-columns:96px 1fr}}
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
+  #club-wording{margin-bottom:12px} #club-wording textarea{width:100%;font:inherit;font-size:17px;padding:10px;border:2px solid #CFC6BE;border-radius:12px;box-sizing:border-box}
   #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
   .hr-row{display:grid;grid-template-columns:104px 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
   .hr-row .nm{font-weight:700}
@@ -254,6 +255,21 @@
     <div class="card club-sum" id="club-sum"></div>
     <ul class="sw-list club-on-card"><li><span><span class="nm">Thursday Emails</span><span class="st" id="club-on-st"></span></span>
       <button class="club-sw sw" role="switch" aria-checked="true" aria-label="Thursday Bourbon Club emails" id="club-on"></button></li></ul>
+    <div class="card sp-card" id="club-wording">
+      <h3 class="grp" style="margin:0">Email Wording</h3>
+      <p class="help" style="margin:0">The look stays the same. Change the words, or add your own notes above and below the bottle list. The bottles fill in by themselves.</p>
+      <label class="help" for="cw-subject" style="margin:0">Subject Line</label><input id="cw-subject" data-cw="subject" autocomplete="off">
+      <label class="help" for="cw-heading" style="margin:0">Big Heading</label><input id="cw-heading" data-cw="heading" autocomplete="off">
+      <label class="help" for="cw-tagline" style="margin:0">Line Under the Heading</label><input id="cw-tagline" data-cw="tagline" autocomplete="off">
+      <label class="help" for="cw-top" style="margin:0">Note Above the Bottles (Optional)</label><textarea id="cw-top" data-cw="top" rows="3" placeholder="Example: Closed Christmas Day. Happy Holidays!"></textarea>
+      <label class="help" for="cw-info" style="margin:0">Info Under the Bottles</label><textarea id="cw-info" data-cw="info" rows="3"></textarea>
+      <label class="help" for="cw-bottom" style="margin:0">Extra Note at the Bottom (Optional)</label><textarea id="cw-bottom" data-cw="bottom" rows="3"></textarea>
+      <button class="btn" type="button" id="cw-save">Save Wording</button>
+      <button class="btn ghost" type="button" id="cw-preview">Preview Email</button>
+      <button class="btn ghost" type="button" id="cw-reset">Back to Standard Wording</button>
+      <p class="sp-status" id="cw-status" role="status"></p>
+      <iframe id="cw-frame" title="Email preview" hidden style="width:100%;height:520px;border:1px solid #CFC6BE;border-radius:12px;background:#fff"></iframe>
+    </div>
     <form class="card sp-card" id="club-test">
       <h3 class="grp" style="margin:0">Send Yourself a Test</h3>
       <input type="email" id="club-to" placeholder="Your Email" autocomplete="email" aria-label="Email for the test">
@@ -671,6 +687,15 @@ document.addEventListener("click", async e=>{
 
 /* ---------- Bourbon Club ---------- */
 let club = null;
+const cwGet = () => Object.fromEntries($$("[data-cw]").map(i=>[i.dataset.cw, i.value]));
+function fillWording(c){ $$("[data-cw]").forEach(i=>{ i.value = c[i.dataset.cw] || ""; }); }
+$("#cw-save").onclick = async ()=>{
+  try{ club = await api("/api/bourbon-club",{action:"saveEmail", content: cwGet()}); fillWording(club.email); $("#cw-status").textContent = "Saved. The next Thursday email uses this wording."; }catch(err){ toast(err.message,true); }
+};
+$("#cw-reset").onclick = ()=>{ if(!confirm("Put all the email wording back to the standard text? Tap Save Wording afterward to keep it.")) return; fillWording({...club.defaults}); $("#cw-status").textContent = "Standard wording is in the boxes. Tap Save Wording to keep it."; };
+$("#cw-preview").onclick = async ()=>{
+  try{ const j = await api("/api/bourbon-club",{action:"previewEmail", content: cwGet()}); const f = $("#cw-frame"); f.hidden = false; f.srcdoc = j.html; $("#cw-status").textContent = "Preview with sample bottles. Subject: " + j.subject; }catch(err){ toast(err.message,true); }
+};
 const fmtDate = s => { try{ return new Date(s.length===10 ? s+"T12:00:00" : s).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); }catch(e){ return s; } };
 async function loadClub(){
   try{ club = await api("/api/bourbon-club",{action:"list"}); }catch(err){ $("#club-sum").textContent = err.message; return; }
@@ -679,6 +704,7 @@ async function loadClub(){
     + (club.last ? `<p class="help">Last email: ${fmtDate(club.last.date)}, ${club.last.bottles} bottles, sent to ${club.last.sent}.</p>` : `<p class="help">No weekly email sent yet.</p>`)
     + (club.ready ? "" : `<p class="help" style="color:var(--red)">Email sending isn't connected yet (BREVO_API_KEY in Netlify). Sign-ups are still being saved.</p>`);
   setClubSwitch(club.sending);
+  if(!$("#club-wording").dataset.loaded){ $("#club-wording").dataset.loaded = "1"; fillWording(club.email); }
   $("#club-list").innerHTML = club.members.length
     ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}${m.source==="sign"?" · QR Sign":""}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
     : `<p class="help">No members yet.</p>`;
@@ -699,7 +725,7 @@ $("#club-on").addEventListener("click", async ()=>{
 $("#club-test").addEventListener("submit", async e=>{
   e.preventDefault();
   const btn = $("#club-test-btn"), msg = $("#club-test-msg"); btn.disabled = true; msg.textContent = "Sending…";
-  try{ const j = await api("/api/bourbon-club",{action:"test", to:$("#club-to").value}); msg.textContent = `Sent! Check your inbox (and spam) for the test with ${j.bottles} bottles.`; }
+  try{ const j = await api("/api/bourbon-club",{action:"test", to:$("#club-to").value, content: cwGet()}); msg.textContent = `Sent! Check your inbox (and spam) for the test with ${j.bottles} bottles.`; }
   catch(err){ msg.textContent = err.message; }
   btn.disabled = false;
 });
