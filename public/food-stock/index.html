@@ -105,6 +105,30 @@
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
   #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
+  ul.sw-list li{flex-wrap:wrap}
+  .ebtn{flex:none;margin-left:auto;font:700 14px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+  .ebtn[aria-expanded="true"]{background:var(--glass);border-color:var(--glass);color:#fff}
+  .edit-panel{flex-basis:100%;display:flex;flex-direction:column;gap:10px;background:#FBF7F3;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:4px}
+  .edit-panel label.ep-l{font-size:13px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+  .edit-panel input[type=text],.edit-panel input.ep-in{font:600 16px var(--body);padding:9px 10px;border:2px solid var(--line);border-radius:10px;min-width:0;width:100%}
+  .edit-panel input:focus{border-color:var(--orange);outline:none}
+  .ep-prices{display:flex;flex-direction:column;gap:6px}
+  .ep-prices .gp-row{width:100%}
+  .ep-prices .gp-row input{width:0;min-width:0}
+  .edit-panel{min-width:0;max-width:100%}
+  .ep-rm{flex:none;font:700 18px var(--body);width:34px;height:34px;border-radius:50%;border:2px solid var(--line);background:#fff;color:var(--red);cursor:pointer;line-height:1}
+  .ep-pic{display:flex;gap:12px;align-items:center}
+  .ep-thumb{flex:none;width:96px;aspect-ratio:4/3;border-radius:10px;background:#EFE6DD;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;font-size:13px;font-weight:700;color:var(--muted)}
+  .ep-thumb img{width:100%;height:100%;object-fit:cover}
+  .ep-pbtns{display:flex;flex-wrap:wrap;gap:6px}
+  .ep-btn{font:700 14px var(--body);padding:7px 12px;border-radius:999px;border:2px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  .ep-btn input{display:none}
+  .ep-act{display:flex;gap:8px}
+  .ep-act .btn{margin:0;padding:11px 14px;font-size:16px}
+  .top-add{display:flex;gap:8px;padding:12px 14px;background:#fff;border-top:1px solid var(--line)}
+  .top-add input{flex:1;font:600 16px var(--body);padding:9px 10px;border:2px solid var(--line);border-radius:10px;min-width:0}
+  .top-add .btn{width:auto;margin:0;padding:9px 16px;font-size:16px}
+  .top-rm{flex:none;font:700 14px var(--body);color:var(--red);background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;margin-left:auto}
   details.toppings{margin-top:10px}
   details.toppings summary{cursor:pointer;display:inline-block;font:700 15px var(--body);color:var(--glass);background:#fff;border:2px solid var(--orange);border-radius:999px;padding:7px 14px;list-style:none}
   details.toppings summary::-webkit-details-marker{display:none}
@@ -140,13 +164,13 @@
 
   <section id="p-food" hidden>
     <nav class="jump" id="jump" aria-label="Jump to"></nav>
-    <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it.</p>
+    <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it. Tap Edit on any item to change its name, price or picture.</p>
     <h2 class="sec">Made Here</h2>
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
     <div id="local"></div>
     <h2 class="sec more" id="j-gear">Grilling &amp; Outdoor</h2>
-    <p class="help">Switch an item off to show Out of Stock. Change a price and tap Save Prices.</p>
+    <p class="help">Switch an item off to show Out of Stock. Tap Edit on any item to change its name, price or picture.</p>
     <div id="gear"></div>
   </section>
 
@@ -263,10 +287,51 @@ function current(item, section){
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
+/* ----- Edit drop-down (name, price, picture) ----- */
+let drafts = {};                    // key -> unsaved edit in progress { label, prices, photo, preview }
+const ITEMS = {};                   // key -> { item, base:{label, prices, photo} }
+const editBtn = key => `<button class="ebtn" type="button" data-edit="${esc(key)}" aria-expanded="${key in drafts}">Edit</button>`;
+function draftPhotoSrc(key){
+  const d = drafts[key], it = ITEMS[key].item;
+  if(d.preview) return d.preview;
+  if(d.photo === "none") return "";
+  if(d.photo) return "/api/food-stock?photo=" + encodeURIComponent(d.photo);
+  return it.photo ? "/img/food/" + it.photo : "";
+}
+function editPanel(key){
+  const d = drafts[key]; if(!d) return "";
+  const src = draftPhotoSrc(key);
+  return `<div class="edit-panel" data-key="${esc(key)}">
+    <label class="ep-l">Name<input type="text" class="ep-in" data-f="label" maxlength="60" value="${esc(d.label)}"></label>
+    <div><div class="help" style="margin:0 0 6px;font-weight:700">Prices</div><div class="ep-prices">${d.prices.map((r,i)=>`<div class="gp-row" data-i="${i}"><input class="gp-l" data-f="pl" value="${esc(r[0])}" aria-label="Price label" placeholder="e.g. Each" maxlength="30"><span>$</span><input class="gp-p" data-f="pp" inputmode="decimal" value="${esc(r[1]||"")}" aria-label="Price" placeholder="0.00"><button class="ep-rm" type="button" data-act="rmprice" aria-label="Remove this price">×</button></div>`).join("")}
+      <button class="ep-btn" type="button" data-act="addprice" style="align-self:flex-start">+ Add Price</button></div></div>
+    <div><div class="help" style="margin:0 0 6px;font-weight:700">Picture</div><div class="ep-pic"><div class="ep-thumb">${src?`<img src="${esc(src)}" alt="">`:"No Picture"}</div>
+      <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
+        ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
+        ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
+    <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
+}
+function openDraft(key){
+  const b = ITEMS[key].base;
+  drafts[key] = { label: (swEdits[key]||{}).label || b.label, prices: (swPrices[key] || b.prices).map(r=>[r[0], r[1]||""]) };
+  if(!drafts[key].prices.length) drafts[key].prices = [["Each",""]];
+}
 function swRow(item, section){
   const on = current(item, section);
-  return `<li><span><span class="nm">${esc(item.label||item.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
-    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(item.label||item.name)}"></button></li>`;
+  ITEMS[item.name] = { item, base:{ label: item.label||item.name, prices: item.prices||[] } };
+  return `<li><span><span class="nm">${esc(menuLabel(item))}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+    ${editBtn(item.name)}
+    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(menuLabel(item))}"></button>${editPanel(item.name)}</li>`;
+}
+function topRow(tp){
+  const on = switches[toppingKey(tp)] !== false;
+  return `<li><span><span class="nm">${esc(tp)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+    <button class="top-rm" type="button" data-top="${esc(tp)}" aria-label="Remove ${esc(tp)}">Remove</button>
+    <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(tp)} in stock" data-name="${esc(toppingKey(tp))}" data-label="${esc(tp)}"></button></li>`;
+}
+async function saveToppings(list, msg){
+  try{ const j = await api("/api/food-stock",{ action:"toppings", list }); swToppings = j.toppings || list; renderFood(); toast(msg); }
+  catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
 }
 const jid = s => "j-" + String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
 function renderJump(){
@@ -285,33 +350,69 @@ function renderFood(){
   renderJump();
   $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp" id="${jid(g)}">${esc(g)}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`
     + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
-        <ul class="sw-list">${PIZZA_TOPPINGS.map(tp=>swRow({name:toppingKey(tp), label:tp},"food")).join("")}</ul></details>` : "")).join("");
+        <ul class="sw-list">${toppingList().map(topRow).join("")}<li class="top-add"><input id="top-new" maxlength="30" placeholder="New Topping (e.g. Pineapple)" aria-label="New topping name" autocomplete="off"><button class="btn" type="button" id="top-add">Add</button></li></ul></details>` : "")).join("");
   const det = document.querySelector("details.toppings"); if(det) det.addEventListener("toggle", ()=>{ toppingsOpen = det.open; });
   $("#gear").innerHTML = OUTDOOR.map(g=>{
-    const key = outdoorKey(g.name), on = switches[key] !== false, rows = swPrices[key] || g.prices;
-    return `<div class="card gear-card"><ul class="sw-list"><li><span><span class="nm">${esc(g.name)}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
-      <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(g.name)}"></button></li>
+    const key = outdoorKey(g.name), on = switches[key] !== false;
+    ITEMS[key] = { item:{ ...g, photo:"" }, base:{ label:g.name, prices:g.prices } };
+    return `<div class="card gear-card"><ul class="sw-list"><li><span><span class="nm">${esc(menuLabel(g,key))}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+      ${editBtn(key)}
+      <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(menuLabel(g,key))}"></button>${editPanel(key)}</li>
       ${(g.variants||[]).map(v=>{ const vk = variantKey(g.name, v), von = switches[vk] !== false;
         return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span></span>
-        <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul>
-      <div class="gear-prices" data-key="${esc(key)}">${(rows.length?rows:[["Each",""]]).map(r=>`<div class="gp-row"><input class="gp-l" value="${esc(r[0])}" aria-label="Price label" maxlength="30"><span>$</span><input class="gp-p" inputmode="decimal" value="${esc(r[1]||"")}" aria-label="Price" placeholder="0.00"></div>`).join("")}
-      <div class="gp-btns"><button class="btn ghost gp-add" type="button">+ Add Price</button><button class="btn gp-save" type="button">Save Prices</button></div></div></div>`;
+        <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul></div>`;
   }).join("");
   $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp" id="${jid(m)}">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
 }
 
 document.addEventListener("click", async e=>{
-  const add = e.target.closest(".gp-add");
-  if(add){ const box = add.closest(".gear-prices"); const row = document.createElement("div"); row.className="gp-row";
-    row.innerHTML = '<input class="gp-l" value="" placeholder="e.g. 20 lb Bag" aria-label="Price label" maxlength="30"><span>$</span><input class="gp-p" inputmode="decimal" aria-label="Price" placeholder="0.00">';
-    box.insertBefore(row, box.querySelector(".gp-btns")); row.querySelector(".gp-l").focus(); return; }
-  const sv = e.target.closest(".gp-save"); if(!sv) return;
-  const box = sv.closest(".gear-prices"), key = box.dataset.key;
-  const prices = [...box.querySelectorAll(".gp-row")].map(r=>[r.querySelector(".gp-l").value, r.querySelector(".gp-p").value]).filter(r=>r[0].trim());
-  sv.disabled = true;
-  try{ const j = await api("/api/food-stock",{ name:key, prices }); swPrices = j.prices || swPrices; renderFood(); toast(key.replace(/^Outdoor: /,"") + ": Prices Saved"); }
-  catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); sv.disabled = false; }
+  const eb = e.target.closest(".ebtn");
+  if(eb){ const k = eb.dataset.edit; if(k in drafts) delete drafts[k]; else openDraft(k); renderFood(); return; }
+  const tr = e.target.closest(".top-rm");
+  if(tr){ const name = tr.dataset.top; if(!confirm("Remove " + name + " from the toppings?")) return;
+    saveToppings(toppingList().filter(x=>x!==name), name + ": Removed"); return; }
+  if(e.target.closest("#top-add")){ addTopping(); return; }
+  const a = e.target.closest("[data-act]"), panel = e.target.closest(".edit-panel");
+  if(!a || !panel || a.type==="file") return;
+  const key = panel.dataset.key, d = drafts[key], act = a.dataset.act; if(!d) return;
+  if(act==="addprice"){ d.prices.push(["",""]); renderFood(); const rows = $$(`.edit-panel[data-key="${CSS.escape(key)}"] .gp-row .gp-l`); if(rows.length) rows[rows.length-1].focus(); }
+  else if(act==="rmprice"){ d.prices.splice(+a.closest(".gp-row").dataset.i,1); renderFood(); }
+  else if(act==="nophoto"){ d.photo = "none"; d.preview = ""; renderFood(); }
+  else if(act==="origphoto"){ d.photo = ""; d.preview = ""; renderFood(); }
+  else if(act==="cancel"){ delete drafts[key]; renderFood(); }
+  else if(act==="save"){
+    const base = ITEMS[key].base, label = String(d.label||"").trim();
+    const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
+    if(d.photo !== undefined) body.photo = d.photo;
+    a.disabled = true;
+    try{ const j = await api("/api/food-stock", body); swEdits = j.edits || {}; swPrices = j.prices || swPrices; delete drafts[key]; renderFood(); toast((label||base.label) + ": Saved"); }
+    catch(err){ a.disabled = false; toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
+  }
 });
+document.addEventListener("input", e=>{
+  const panel = e.target.closest && e.target.closest(".edit-panel"); if(!panel || !drafts[panel.dataset.key]) return;
+  const d = drafts[panel.dataset.key], f = e.target.dataset.f; if(!f) return;
+  if(f==="label") d.label = e.target.value;
+  else { const i = +e.target.closest(".gp-row").dataset.i; d.prices[i][f==="pl"?0:1] = e.target.value; }
+});
+document.addEventListener("change", async e=>{
+  const inp = e.target; if(!inp.matches || !inp.matches('.edit-panel input[type=file]') || !inp.files[0]) return;
+  const key = inp.closest(".edit-panel").dataset.key, d = drafts[key];
+  try{
+    toast("Uploading picture…");
+    const data = await shrinkPhoto(inp.files[0]);
+    d.preview = data; renderFood();
+    const j = await api("/api/food-stock",{ action:"photo", id: key.toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,16) || "item", data });
+    d.photo = j.photo; renderFood(); toast("Picture added. Tap Save.");
+  }catch(err){ d.preview = ""; renderFood(); toast(err.message,true); }
+});
+function addTopping(){
+  const inp = $("#top-new"), name = inp.value.replace(/\s+/g," ").trim().replace(/(^|[\s(\-/])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+  if(!name) { inp.focus(); return; }
+  if(toppingList().some(x=>x.toLowerCase()===name.toLowerCase())){ toast(name + " is already on the list.", true); return; }
+  saveToppings([...toppingList(), name], name + ": Added");
+}
+document.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id==="top-new"){ e.preventDefault(); addTopping(); } });
 
 /* ---------- searches & requests ---------- */
 function weeksHtml(){
@@ -532,7 +633,7 @@ document.addEventListener("click", async e=>{
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
-    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; swPrices = j.prices || swPrices; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
+    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; swPrices = j.prices || swPrices; swEdits = j.edits || swEdits; swToppings = j.toppings || swToppings; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
     catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
@@ -592,7 +693,7 @@ async function unlock(p){
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
   ]);
-  switches = sw.items || {}; swPrices = sw.prices || {}; stock = st.items || [];
+  switches = sw.items || {}; swPrices = sw.prices || {}; swEdits = sw.edits || {}; swToppings = sw.toppings || null; stock = st.items || [];
   renderFood();
   $("#pin-form").hidden = true; $("#tabs").hidden = false; $("#lock").hidden = false;
   refreshBadges();

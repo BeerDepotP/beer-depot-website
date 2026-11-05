@@ -97,3 +97,17 @@ const variantKey = (n, v) => "Outdoor: " + n + " – " + v;   // one switch per 
 
 const MAKER_NOTES = {
   "Grebe's":"Fresh bakery rolls, buns, bread and crullers.", "Sausage Haus":"Fresh Thursday through Sunday, Memorial Day to Labor Day." };
+
+// Edits made in Store Tools (saved in Netlify Blobs, no deploy needed). The built-in values above are the starting
+// point; an edit wins. swEdits[key] = { label, photo } where photo is an uploaded photo id, "none" (picture removed)
+// or empty (built-in photo). swPrices[key] = price rows. swToppings = the pizza topping list (null = the built-in list).
+let swEdits = {}, swToppings = null;
+const menuLabel  = (f, key) => ((swEdits[key||f.name]||{}).label) || f.label || f.name;
+const menuPrices = (f, key) => (typeof swPrices!=="undefined" && swPrices[key||f.name]) || f.prices || [];
+function menuPhoto(f, key){
+  const e = swEdits[key||f.name] || {};
+  if(e.photo === "none") return "";
+  if(e.photo) return "/api/food-stock?photo=" + encodeURIComponent(e.photo);
+  return f.photo ? ((typeof FOOD_PHOTOS!=="undefined" && FOOD_PHOTOS[f.photo]) || "/img/food/" + f.photo) : "";
+}
+const toppingList = () => swToppings || PIZZA_TOPPINGS;
