@@ -31,7 +31,7 @@ const FOOD = [
   { group:"Meats", name:"Buffalo Chicken Wings", match:"wings", photo:"buffalo-wings.jpg", prices:[["6 Wings","7.00"]] },
   { group:"Meats", name:"Gyro Meat", label:"Gyro", match:"gyro", photo:"", prices:[["Per lb","9.99"]],
     extras:[["Pita","0.75"],["Onion & Tomato","1.75"],["Feta Cheese, Small","3.29"],["Tzatziki, Single Serving","0.75"],["Tzatziki, Small","2.99"],["Tzatziki, Large","4.99"]] },
-  { group:"Meats", name:"Smoked Lasagna", match:"lasagna", photo:"", prices:[["Each","8.49"]] },
+  { group:"Meats", name:"Smoked Lasagna", match:"lasagna", photo:"smoked-lasagna.jpg", prices:[["Each","8.49"]] },
   { group:"Meats", name:"Smoked Stuffed Meatloaf", desc:"Stuffed with Cheesy Potatoes", match:"meatloaf", photo:"", prices:[["Each","9.99"]] },
   { group:"Meats", name:"Smoked Ham", desc:"Hot Ham on Sundays, 9 AM–3 PM. Daily Deal: 1 lb of Ham with 6 Grebe's Buns.", tag:"Hot on Sundays 9 AM–3 PM", match:"ham", photo:"",
     prices:[["Per lb","7.99"],["Deal: 1 lb + 6 Buns","9.49"]] },
