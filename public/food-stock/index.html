@@ -132,6 +132,13 @@
   .fl-row .btn,.fl-panel>.btn{width:auto;margin:0;justify-self:start;padding:6px 12px;font-size:14px}
   .rx{border:0;background:#EFE7DF;color:#6B5A4E;width:30px;height:30px;border-radius:999px;font-size:20px;line-height:1;cursor:pointer;padding:0}
   .rx:hover{background:#C8102E;color:#fff}
+  .until-in{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
+  .grp-panel{margin-bottom:12px} .grp-panel input[data-gf=name]{flex:1} h2.sec .mk-edit{vertical-align:middle;margin-left:8px}
+  select.ep-in{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px}
+  .bt-card{display:grid;gap:8px;margin-bottom:12px} .bt-card label.help{margin:0}
+  .bt-card input:not([type=checkbox]),.bt-card select,.bt-card textarea{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0;width:100%;box-sizing:border-box}
+  .bt-card .hr-times input{width:auto}
+  .an-prev{display:block;text-align:center;font-weight:800;font-size:17px;padding:10px;border-radius:10px;color:#fff;background:#C8102E} .an-prev.orange{background:var(--orange)} .an-prev.dark{background:#2B1B12}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -205,6 +212,7 @@
     <button class="tab" role="tab" data-tab="hours" aria-selected="false">Hours</button>
     <button class="tab" role="tab" data-tab="notify" aria-selected="false">Back in Stock</button>
     <button class="tab" role="tab" data-tab="layout" aria-selected="false">Layout</button>
+    <button class="tab" role="tab" data-tab="banners" aria-selected="false">Banners &amp; Text</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -224,7 +232,8 @@
   <section id="p-food" hidden>
     <nav class="jump" id="jump" aria-label="Jump to"></nav>
     <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it. Tap Edit on any item to change its name, price or picture.</p>
-    <h2 class="sec">Made Here</h2>
+    <h2 class="sec">Made Here <button class="mk-edit" type="button" id="grp-edit" aria-expanded="false">Edit Groups</button></h2>
+    <div id="groups-panel"></div>
     <p class="help">Use the arrows to change the order. Tap Edit to change the name, price or picture, put an item On Special, or remove it from the website.</p>
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
@@ -244,6 +253,8 @@
     <p class="help">Shows as an "On Sale" section at the top of the website, with an On Sale tab in the menu. Turn it off to hide it; your items stay saved for next time.</p>
     <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show On Sale on the Website</span><span class="st" id="sl-on-st"></span></span>
       <button class="sw sl-sw" role="switch" aria-checked="false" aria-label="Show On Sale on the website" id="sl-on"></button></li></ul>
+    <div class="card sp-card" style="margin-bottom:12px"><label class="help" for="sl-until" style="margin:0">Turn Off By Itself On (Optional, Store Time)</label>
+      <input id="sl-until" type="datetime-local" class="until-in"><p class="help" style="margin:0">On Sale hides itself at this day and time. Leave blank to keep it on until you switch it off. Tap Save to keep the change.</p></div>
     <div id="sl-list"></div>
     <button class="btn ghost" type="button" id="sl-add">+ Add Sale Item</button>
     <button class="btn" type="button" id="sl-save">Save Sales</button>
@@ -255,6 +266,8 @@
     <p class="help">A section for the season (Christmas, Fourth of July, Packers Season…). Its name shows in the website's menu bar, the 3-line Browse menu and the section heading. Turn it off and it disappears completely; your items stay saved for next time.</p>
     <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show Seasonal on the Website</span><span class="st" id="se-on-st"></span></span>
       <button class="sw" role="switch" aria-checked="false" aria-label="Show Seasonal on the website" id="se-on"></button></li></ul>
+    <div class="card sp-card" style="margin-bottom:12px"><label class="help" for="se-until" style="margin:0">Turn Off By Itself On (Optional, Store Time)</label>
+      <input id="se-until" type="datetime-local" class="until-in"><p class="help" style="margin:0">Seasonal hides itself at this day and time. Leave blank to keep it on until you switch it off. Tap Save to keep the change.</p></div>
     <div class="card sp-card" style="margin-bottom:12px"><label class="help" for="se-title" style="margin:0">Section Name (Menu Bar, Browse Menu and Heading)</label>
       <input id="se-title" maxlength="30" placeholder="Seasonal" autocomplete="off"></div>
     <div id="se-list"></div>
@@ -339,6 +352,51 @@
     <datalist id="ly-groups"></datalist>
   </section>
 
+  <section id="p-banners" hidden>
+    <h2 class="sec">Announcement Bar</h2>
+    <p class="help">A colored bar across the very top of the website for anything you want people to see, like "Now Taking Thanksgiving Orders".</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show the Announcement</span><span class="st" id="an-st"></span></span>
+      <button class="sw bt-sw" role="switch" aria-checked="false" aria-label="Show the announcement" id="an-on"></button></li></ul>
+    <div class="card sp-card bt-card">
+      <label class="help" for="an-text">Announcement</label><textarea id="an-text" rows="2" maxlength="200" placeholder="Now Taking Thanksgiving Orders: Smoked Turkeys and Hams"></textarea>
+      <label class="help" for="an-link">When Tapped, Go To (Optional)</label>
+      <select id="an-link"></select>
+      <input id="an-url" maxlength="200" placeholder="https://… (a web page)" hidden>
+      <label class="help" for="an-color">Color</label>
+      <select id="an-color"><option value="red">Red</option><option value="orange">Orange</option><option value="dark">Dark Brown</option></select>
+      <label class="help" for="an-until">Turn Off By Itself On (Optional, Store Time)</label><input id="an-until" type="datetime-local" class="until-in">
+      <button class="btn" type="button" id="an-save">Save Announcement</button>
+      <p class="sp-status" id="an-status" role="status"></p>
+      <div id="an-preview"></div>
+    </div>
+
+    <h2 class="sec" style="margin-top:28px">Hot Ham Banner</h2>
+    <p class="help">The red banner across the top of the website while Hot Ham is ready. In the wording, <b>{until}</b> becomes the end time.</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show the Hot Ham Banner</span><span class="st" id="hh-st"></span></span>
+      <button class="sw bt-sw" role="switch" aria-checked="true" aria-label="Show the Hot Ham banner" id="hh-on"></button></li></ul>
+    <div class="card sp-card bt-card">
+      <label class="help" for="hh-day">Day</label>
+      <select id="hh-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select>
+      <div class="hr-times"><label>From <input id="hh-from" type="time"></label><label>Until <input id="hh-until" type="time"></label></div>
+      <label class="help" for="hh-text">Wording</label><input id="hh-text" maxlength="80">
+      <button class="btn" type="button" id="hh-save">Save Hot Ham Banner</button>
+      <p class="sp-status" id="hh-status" role="status"></p>
+    </div>
+
+    <h2 class="sec" style="margin-top:28px">Page Wording</h2>
+    <p class="help">Leave a box empty to go back to the standard wording.</p>
+    <div class="card sp-card bt-card">
+      <label class="help" for="tx-heroTitle">Big Heading at the Top</label><input id="tx-heroTitle" data-tx="heroTitle" maxlength="60">
+      <label class="help" for="tx-searchHint">Search Box Hint</label><input id="tx-searchHint" data-tx="searchHint" maxlength="60">
+      <label class="help" for="tx-madeHereIntro">Made Here Intro</label><textarea id="tx-madeHereIntro" data-tx="madeHereIntro" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-cateringTitle">Party &amp; Catering Heading</label><input id="tx-cateringTitle" data-tx="cateringTitle" maxlength="60">
+      <label class="help" for="tx-cateringText">Party &amp; Catering Text</label><textarea id="tx-cateringText" data-tx="cateringText" rows="4" maxlength="500"></textarea>
+      <label class="help" for="tx-cateringButton">Party &amp; Catering Button Words (Above the Phone Number)</label><input id="tx-cateringButton" data-tx="cateringButton" maxlength="30">
+      <button class="btn" type="button" id="tx-save">Save Wording</button>
+      <p class="sp-status" id="tx-status" role="status"></p>
+    </div>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -418,7 +476,7 @@ function askYes(msg, yes, red){
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","hours","notify","layout","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -451,8 +509,32 @@ function current(item, section){
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
-let makerOpen = null, flDrafts = {};
-document.addEventListener("input", e=>{ const r = e.target.closest && e.target.closest(".fl-row"); if(!r) return;
+let makerOpen = null, flDrafts = {}, grpDraft = null;
+function grpPanel(){
+  return `<div class="card mk-panel grp-panel"><p class="help" style="margin:0">Rename, reorder, add or remove Made Here groups. A note shows under the group's name on the website. A group can be removed once it has no items (move them with Edit → Group first).</p>
+    ${grpDraft.map((g,i)=>{ const n = foodItems(g.key,true).length;
+      return `<div class="fl-row grp-row" data-gi="${i}"><div style="display:flex;gap:8px;align-items:center"><span class="mv"><button type="button" data-gmv="-1" data-gi="${i}" aria-label="Move up">▲</button><button type="button" data-gmv="1" data-gi="${i}" aria-label="Move down">▼</button></span>
+        <input data-gf="name" value="${esc(g.name)}" maxlength="40" placeholder="Group Name" aria-label="Group name"></div>
+        <textarea data-gf="note" rows="2" maxlength="200" placeholder="Note Under the Group Name (Optional)" aria-label="Group note">${esc(g.note||"")}</textarea>
+        ${n ? `<span class="help" style="margin:0">${n} ${n===1?"Item":"Items"}</span>` : `<button class="btn ghost rm-site" type="button" data-grm="${i}" style="width:auto;justify-self:start;padding:6px 12px;font-size:14px">Remove Group</button>`}</div>`; }).join("")}
+    <button class="btn ghost" type="button" id="grp-add" style="width:auto;justify-self:start;margin:0">+ Add Group</button>
+    <div class="ep-act"><button class="btn" type="button" id="grp-save">Save Groups</button><button class="btn ghost" type="button" id="grp-cancel">Cancel</button></div></div>`;
+}
+document.addEventListener("input", e=>{ const r = e.target.closest && e.target.closest("[data-gi]"); if(!r || !grpDraft || !e.target.dataset.gf) return; grpDraft[+r.dataset.gi][e.target.dataset.gf] = e.target.value; });
+document.addEventListener("click", async e=>{
+  if(e.target.closest("#grp-edit")){ grpDraft = grpDraft ? null : foodGroups().map(g=>({...g})); renderFood(); return; }
+  if(!grpDraft) return;
+  const mv = e.target.closest("[data-gmv]");
+  if(mv){ const i = +mv.dataset.gi, j = i + +mv.dataset.gmv; if(j<0 || j>=grpDraft.length) return; [grpDraft[i],grpDraft[j]] = [grpDraft[j],grpDraft[i]]; renderFood(); return; }
+  const rm = e.target.closest("[data-grm]"); if(rm){ grpDraft.splice(+rm.dataset.grm,1); renderFood(); return; }
+  if(e.target.closest("#grp-add")){ grpDraft.push({key:"", name:"", note:""}); renderFood(); const ins = $$('.grp-panel input[data-gf=name]'); if(ins.length) ins[ins.length-1].focus(); return; }
+  if(e.target.closest("#grp-cancel")){ grpDraft = null; renderFood(); return; }
+  if(e.target.closest("#grp-save")){
+    if(grpDraft.some(g=>!g.name.trim())){ toast("Each group needs a name.",true); return; }
+    try{ applyFood(await api("/api/food-stock",{ action:"groups", list: grpDraft })); grpDraft = null; renderFood(); toast("Groups Saved"); }catch(err){ toast(err.message,true); }
+  }
+});
+document.addEventListener("input", e=>{ const r = e.target.closest && e.target.closest(".fl-row:not(.grp-row)"); if(!r) return;
   const key = r.closest(".gear-card").querySelector("[data-fl]").dataset.fl; flDrafts[key][+r.dataset.i][e.target.dataset.flf] = e.target.value; });
 function applyFood(j){
   if(!j) return;
@@ -462,8 +544,8 @@ function applyFood(j){
 }
 document.addEventListener("click", async e=>{
   const m = e.target.closest("[data-mv]");
-  if(m){ const key = m.dataset.key, f = ITEMS[key].item, od = ITEMS[key].section==="outdoor", g = od ? "outdoor" : f.maker ? "local:"+f.maker : f.group,
-    list = (od ? outdoorItems() : f.maker ? localItems(f.maker) : foodItems(f.group)).map(x=>x.name), cur = od ? f.name : key, i = list.indexOf(cur), j = i + +m.dataset.mv;
+  if(m){ const key = m.dataset.key, f = ITEMS[key].item, od = ITEMS[key].section==="outdoor", g = od ? "outdoor" : f.maker ? "local:"+f.maker : groupOf(f),
+    list = (od ? outdoorItems() : f.maker ? localItems(f.maker) : foodItems(groupOf(f))).map(x=>x.name), cur = od ? f.name : key, i = list.indexOf(cur), j = i + +m.dataset.mv;
     if(j<0 || j>=list.length) return; [list[i], list[j]] = [list[j], list[i]];
     swMenu.order[g] = list; renderFood();
     const again = document.querySelector(`[data-mv="${m.dataset.mv}"][data-key="${CSS.escape(key)}"]`); if(again) again.focus();
@@ -533,7 +615,8 @@ const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",mon
 // Made Here only: description (added items), On Special, Remove From Website
 function foodExtras(key, d){
   const sp = d.sp;
-  return `${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}
+  return `<label class="ep-l">Group<select class="ep-in" data-f="group">${foodGroups().map(g=>`<option value="${esc(g.key)}"${g.key===d.group?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>
+    ${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}
     <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows First in Its List)</label>
     ${sp.on ? d.prices.filter(r=>String(r[0]).trim()).map((r,i)=>`<div class="sp-row"><span>${esc(r[0])}</span><span class="help" style="margin:0">Regular ${r[1]?"$"+esc(r[1]):"–"}</span><input type="text" inputmode="decimal" data-f="spp" data-l="${esc(r[0])}" value="${esc(sp.prices[r[0]]||"")}" placeholder="Special $" aria-label="Special price for ${esc(r[0])}"></div>`).join("")
       + `<label class="help" style="margin:0">Special Ends (Optional, Store Time)<input type="datetime-local" data-f="spuntil" value="${esc(sp.until||"")}"></label><p class="help" style="margin:0">It turns itself off then. Leave blank to keep it on until you turn it off.</p>` : ""}</div>
@@ -545,6 +628,7 @@ function openDraft(key){
   const cur = specialOf(key);
   drafts[key].sp = { on: !!cur, was: !!cur, until: cur ? cur.until : "", prices: Object.fromEntries(cur ? cur.prices : []) };
   drafts[key].desc = ITEMS[key].item.desc || "";
+  if(ITEMS[key].section==="food") drafts[key].group = groupOf(ITEMS[key].item);
   if(!drafts[key].prices.length) drafts[key].prices = [["Each",""]];
 }
 function swRow(item, section){
@@ -569,7 +653,7 @@ async function saveToppings(list, msg){
 const jid = s => "j-" + String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
 function renderJump(){
   const makers = makerKeys();
-  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), makerInfo(m).name]), ["j-gear","Grilling & Outdoor"], ["j-removed","Removed"]]
+  $("#jump").innerHTML = [...foodGroups().map(g=>[jid(g.key), g.name]), ...makers.map(m=>[jid(m), makerInfo(m).name]), ["j-gear","Grilling & Outdoor"], ["j-removed","Removed"]]
     .map(([id,label])=>`<a href="#${id}" data-jump="${id}">${esc(label)}</a>`).join("");
 }
 document.addEventListener("click", e=>{
@@ -581,8 +665,10 @@ document.addEventListener("click", e=>{
 });
 function renderFood(){
   renderJump();
-  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp" id="${jid(g)}">${esc(g)}</h3><ul class="sw-list">${foodItems(g).map(f=>swRow(f,"food")).join("")}</ul>`
-    + `<details class="add-item" data-group="${esc(g)}"><summary>+ Add an Item to ${esc(g)}</summary><div class="ai">
+  $("#groups-panel").innerHTML = grpDraft ? grpPanel() : "";
+  $("#grp-edit").setAttribute("aria-expanded", !!grpDraft);
+  $("#food").innerHTML = foodGroups().map(({key:g, name:gn})=>`<h3 class="grp" id="${jid(g)}">${esc(gn)}</h3><ul class="sw-list">${foodItems(g).map(f=>swRow(f,"food")).join("") || '<li><span class="help" style="margin:0">No items yet.</span></li>'}</ul>`
+    + `<details class="add-item" data-group="${esc(g)}"><summary>+ Add an Item to ${esc(gn)}</summary><div class="ai">
         <input data-ai="label" maxlength="60" placeholder="Name (Example: Smoked Brisket)" aria-label="New item name">
         <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
         <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price" aria-label="Price"></div>
@@ -611,7 +697,7 @@ function renderFood(){
       <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
       <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price (Optional)" aria-label="Price"></div>
       <button class="btn" type="button" data-additem="" data-outdoor="1">Add Item</button></div></details>`;
-  const gone = [...FOOD_GROUPS.flatMap(g=>foodItems(g,true)).map(f=>[f,f.name,f.group]), ...makerKeys().flatMap(m=>localItems(m,true)).map(f=>[f,f.name,"Local Favorites · " + makerInfo(f.maker).name]),
+  const gone = [...foodGroups().flatMap(g=>foodItems(g.key,true).map(f=>[f,f.name,g.name])), ...makerKeys().flatMap(m=>localItems(m,true)).map(f=>[f,f.name,"Local Favorites · " + makerInfo(f.maker).name]),
     ...outdoorItems(true).map(g=>[g,outdoorKey(g.name),"Grilling & Outdoor"])].filter(([f,k])=>isRemoved(k) && !isDeleted(k));
   $("#removed").innerHTML = gone.length ? gone.map(([f,k,where])=>`<div class="rm-row"><span><b>${esc(menuLabel(f,k))}</b><br><span class="help">${esc(where)}</span></span><span>
     <button class="btn" type="button" data-restore="${esc(k)}">Put Back</button><button class="btn ghost rm-site" type="button" data-delete="${esc(k)}" data-label="${esc(menuLabel(f,k))}">Delete Forever</button></span></div>`).join("") : '<p class="help">Nothing removed.</p>';
@@ -655,6 +741,7 @@ document.addEventListener("click", async e=>{
     const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
     if(d.photo !== undefined) body.photo = d.photo;
     if(key.startsWith("c-") || key.startsWith("Outdoor: c-")) body.desc = d.desc || "";
+    if(d.group) body.group = d.group === ITEMS[key].item.group ? "" : d.group;
     a.disabled = true;
     try{ let j = await api("/api/food-stock", body);
       if(ITEMS[key].section==="food" && d.sp && (d.sp.on || d.sp.was)){
@@ -671,6 +758,7 @@ document.addEventListener("input", e=>{
   const d = drafts[panel.dataset.key], f = e.target.dataset.f; if(!f) return;
   if(f==="label") d.label = e.target.value;
   else if(f==="desc") d.desc = e.target.value;
+  else if(f==="group") d.group = e.target.value;
   else if(f==="spp") d.sp.prices[e.target.dataset.l] = e.target.value;
   else if(f==="spuntil") d.sp.until = e.target.value;
   else if(f==="spon"){ d.sp.on = e.target.checked; renderFood(); }
@@ -752,15 +840,15 @@ function renderSales(){
     </div></div>`).join("") : '<p class="help">No sale items yet. Tap "+ Add Sale Item".</p>';
 }
 async function loadSales(){
-  try{ const j = await api("/api/sales",{action:"list"}); sales = { on: !!j.on, items: j.items || [] }; renderSales();
+  try{ const j = await api("/api/sales",{action:"list"}); sales = { on: !!j.on, items: j.items || [] }; $("#sl-until").value = j.until || ""; renderSales();
        $("#sl-status").textContent = j.updated ? `Last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : ""; }
   catch(err){ $("#sl-status").textContent = err.message; }
 }
 async function saveSales(msg){
   $("#sl-save").disabled = true;
   try{
-    const j = await api("/api/sales",{action:"save", on: sales.on, items: sales.items.map(({_preview,...x})=>x)});
-    sales = { on: !!j.on, items: j.items || [] }; renderSales();
+    const j = await api("/api/sales",{action:"save", on: sales.on, until: $("#sl-until").value, items: sales.items.map(({_preview,...x})=>x)});
+    sales = { on: !!j.on, items: j.items || [] }; $("#sl-until").value = j.until || ""; renderSales();
     $("#sl-status").textContent = msg || (sales.on ? "Saved. Showing on the website within a minute." : "Saved. On Sale is turned off, so it's hidden.");
     toast("Sales saved");
   }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
@@ -824,15 +912,15 @@ function renderSeasonal(){
   if(document.activeElement !== $("#se-title")) $("#se-title").value = seasonal.title || "";
 }
 async function loadSeasonal(){
-  try{ const j = await api("/api/seasonal",{action:"list"}); seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; renderSeasonal();
+  try{ const j = await api("/api/seasonal",{action:"list"}); seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; $("#se-until").value = j.until || ""; renderSeasonal();
        $("#se-status").textContent = j.updated ? `Last saved ${new Date(j.updated).toLocaleString([], {month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})}` : ""; }
   catch(err){ $("#se-status").textContent = err.message; }
 }
 async function saveSeasonal(msg){
   $("#se-save").disabled = true;
   try{
-    const j = await api("/api/seasonal",{action:"save", on: seasonal.on, title: $("#se-title").value, items: seasonal.items.map(({_preview,...x})=>x)});
-    seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; renderSeasonal();
+    const j = await api("/api/seasonal",{action:"save", on: seasonal.on, until: $("#se-until").value, title: $("#se-title").value, items: seasonal.items.map(({_preview,...x})=>x)});
+    seasonal = { on: !!j.on, title: j.title || "Seasonal", items: j.items || [] }; $("#se-until").value = j.until || ""; renderSeasonal();
     $("#se-status").textContent = msg || (seasonal.on ? "Saved. Showing on the website within a minute." : "Saved. Seasonal is turned off, so it's hidden.");
     toast("Seasonal saved");
   }catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
@@ -999,6 +1087,34 @@ $("#ly-save").onclick = async ()=>{
 $("#ly-reset").onclick = async ()=>{ if(!(await askYes("Put all the buttons back to the standard order and names? New buttons and group links are removed."))) return;
   try{ lyBuild(await api("/api/layout",{action:"reset"})); lyRender(); $("#ly-status").textContent = "Back to the standard layout."; }catch(err){ toast(err.message,true); } };
 
+/* ---------- banners & text ---------- */
+let site = null;
+const LINKS = [["","Nowhere (Just Show It)"],["#made-here","Made Here"],["#catering","Party & Catering"],["#on-sale","On Sale"],["#seasonal","Seasonal"],["#local-favorites","Local Favorites"],["#grilling-outdoor","Grilling & Outdoor"],["#request","Request an Item"],["tel:+12626964602","Call the Store"],["url","A Web Page…"]];
+function renderSite(){
+  const a = site.announce, h = site.hotHam;
+  $("#an-on").setAttribute("aria-checked", !!a.on); $("#an-st").className = "st" + (a.on?" on":""); $("#an-st").textContent = a.on ? "On · Showing on the website" : "Off";
+  $("#an-text").value = a.text||""; $("#an-color").value = a.color||"red"; $("#an-until").value = a.until||"";
+  const known = LINKS.some(l=>l[0]===a.link && l[0]!=="url");
+  $("#an-link").innerHTML = LINKS.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
+  $("#an-link").value = known ? (a.link||"") : "url"; $("#an-url").hidden = known; $("#an-url").value = known ? "" : (a.link||"");
+  anPreview();
+  $("#hh-on").setAttribute("aria-checked", !!h.on); $("#hh-st").className = "st" + (h.on?" on":""); $("#hh-st").textContent = h.on ? "On · Shows " + DAYN[h.day] + "s " + hrT(h.from) + " – " + hrT(h.until) : "Off";
+  $("#hh-day").value = h.day; $("#hh-from").value = h.from; $("#hh-until").value = h.until; $("#hh-text").value = h.text;
+  $$("[data-tx]").forEach(i=>{ i.value = site.text[i.dataset.tx] || ""; });
+}
+function anPreview(){ const t = $("#an-text").value.trim(); $("#an-preview").innerHTML = t ? `<p class="help" style="margin:4px 0">Preview:</p><span class="an-prev ${esc($("#an-color").value)}">${esc(t)}</span>` : ""; }
+["input","change"].forEach(ev=>{ $("#an-text").addEventListener(ev, anPreview); $("#an-color").addEventListener(ev, anPreview); });
+$("#an-link").onchange = ()=>{ $("#an-url").hidden = $("#an-link").value !== "url"; };
+async function siteSave(body, st, msg){ try{ site = await api("/api/site",{action:"save", ...body}); renderSite(); $(st).textContent = msg; }catch(err){ toast(err.message,true); } }
+const anBody = on => ({ announce:{ on, text:$("#an-text").value, link: $("#an-link").value==="url" ? $("#an-url").value.trim() : $("#an-link").value, color:$("#an-color").value, until:$("#an-until").value } });
+$("#an-save").onclick = ()=>siteSave(anBody(site.announce.on), "#an-status", "Saved. It shows on the website within a minute.");
+$("#an-on").onclick = ()=>siteSave(anBody(!site.announce.on), "#an-status", site.announce.on ? "Announcement turned off." : "Announcement is on.");
+const hhBody = on => ({ hotHam:{ on, day:$("#hh-day").value, from:$("#hh-from").value, until:$("#hh-until").value, text:$("#hh-text").value } });
+$("#hh-save").onclick = ()=>siteSave(hhBody(site.hotHam.on), "#hh-status", "Saved.");
+$("#hh-on").onclick = ()=>siteSave(hhBody(!site.hotHam.on), "#hh-status", site.hotHam.on ? "Hot Ham banner turned off." : "Hot Ham banner is on.");
+$("#tx-save").onclick = ()=>siteSave({ text: Object.fromEntries($$("[data-tx]").map(i=>[i.dataset.tx, i.value])) }, "#tx-status", "Saved. The website shows it within a minute.");
+async function loadSite(){ try{ site = await api("/api/site",{action:"list"}); renderSite(); }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); } }
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -1013,6 +1129,7 @@ async function openTab(name){
   if(name==="hours"){ loadHours(); return; }
   if(name==="notify"){ loadNotify(); return; }
   if(name==="layout"){ loadLayout(); return; }
+  if(name==="banners"){ loadSite(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -1027,7 +1144,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw):not(.bt-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;

@@ -374,6 +374,9 @@
   .ham-banner{display:flex;align-items:center;justify-content:center;gap:10px;background:#C8102E;color:#fff;text-decoration:none;
     font-family:var(--display);font-weight:900;font-size:clamp(22px,4.5vw,30px);line-height:1.05;padding:10px 16px;text-align:center}
   .ham-banner[hidden]{display:none}
+  .announce{display:block;text-align:center;font-weight:800;font-size:18px;line-height:1.3;padding:10px 16px;color:#fff;text-decoration:none;background:#C8102E}
+  .announce[hidden]{display:none} .announce.orange{background:var(--orange)} .announce.dark{background:#2B1B12}
+  a.announce[href]:hover{filter:brightness(.92)} .announce .go{text-decoration:underline;margin-left:6px;white-space:nowrap}
   .hours-note{background:#1F1A17;color:#fff;font-weight:700;font-size:18px;line-height:1.3;padding:10px 16px;text-align:center}
   .hours-note[hidden]{display:none}
   .hours-note b{color:#FFD08A}
@@ -413,9 +416,10 @@
 __PREVIEW_FLAG__
 <a class="ham-banner" id="ham-banner" href="#made-here" hidden>
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7z"/></svg>
-  <span>Hot Ham Available Now Until 3 PM</span>
+  <span id="ham-text">Hot Ham Available Now Until 3 PM</span>
 </a>
 
+<a class="announce" id="announce" hidden></a>
 <div class="hours-note" id="hours-note" role="status" hidden></div>
 
 <header class="hero" id="top">
@@ -430,7 +434,7 @@ __PREVIEW_FLAG__
     </div>
     <div class="hero-grid">
     <div class="hero-main">
-    <h1>See what's on our shelves</h1>
+    <h1 id="hero-title">See what's on our shelves</h1>
     <div class="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
       <input id="q" type="search" placeholder="Search Tito's, Spotted Cow, ribs…" autocomplete="off" aria-label="Search our stock">
@@ -476,7 +480,7 @@ __PREVIEW_FLAG__
   <section class="made shelf" id="made-here">
     <div class="wrap">
       <div class="shelf-head"><h2>Made Here</h2><span class="count" id="food-count"></span></div>
-      <p class="lede">Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.</p>
+      <p class="lede" id="made-intro">Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.</p>
       <div id="menu"></div>
       <p class="notice food-only-note">You're seeing food and other items only. Beer and spirits are listed for customers 21 and older. <button class="btn no" id="regate" style="color:var(--glass);font-size:15px;padding:6px 12px;margin-left:6px">I'm 21+</button></p>
     </div>
@@ -484,12 +488,12 @@ __PREVIEW_FLAG__
   <section class="catering" id="catering">
     <div class="wrap catering-in">
       <div>
-        <h2>Party &amp; Catering Orders</h2>
-        <p>Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac &amp; cheese, sides and more for your party, game day or event.</p>
+        <h2 id="cat-title">Party &amp; Catering Orders</h2>
+        <p id="cat-text">Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac &amp; cheese, sides and more for your party, game day or event.</p>
       </div>
       <a class="cater-call" href="tel:+12626964602" aria-label="Call 262-696-4602 to place a party or catering order">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
-        <span><small>Call to Order</small>262-696-4602</span>
+        <span><small id="cat-btn">Call to Order</small>262-696-4602</span>
       </a>
     </div>
   </section>
@@ -581,7 +585,7 @@ const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon
 const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
 const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("The Beer Depot, " + ADDRESS);
 // Hot Ham banner: shown across the top on this day, between these times.
-const HOT_HAM = { day: 0, from: "09:00", until: "15:00" };   // Sunday 9 AM to 3 PM
+let HOT_HAM = { on: true, day: 0, from: "09:00", until: "15:00", text: "Hot Ham Available Now Until {until}" };   // Sunday 9 AM to 3 PM
 // Hours by day (0 = Sunday). Times are 24-hour "HH:MM"; null = closed all day.
 let HOURS = [
   ["Sunday",    "09:00", "16:00"],
@@ -631,6 +635,21 @@ function applyLayoutSections(){
 }
 // Puts the page's sections in the same order as the buttons, hides removed ones, applies new names.
 if(LAYOUT_URL){ try{ LAYOUT = JSON.parse(localStorage.getItem("bd-layout")||"null"); applyLayoutSections(); }catch(e){} }   // last-known layout, so the page doesn't jump on load
+// Banners and wording from Store Tools → Banners & Text
+const SITE_URL = STOCK_URL ? "/api/site" : null;
+function applySite(d){
+  if(!d) return;
+  if(d.hotHam) HOT_HAM = { ...HOT_HAM, ...d.hotHam };
+  const t = d.text || {}, set = (id, v) => { const el = document.getElementById(id); if(el && v) el.textContent = v; };
+  set("hero-title", t.heroTitle); set("made-intro", t.madeHereIntro); set("cat-title", t.cateringTitle); set("cat-text", t.cateringText); set("cat-btn", t.cateringButton);
+  if(t.searchHint) $("#q").placeholder = t.searchHint;
+  const a = d.announce || {}, el = $("#announce"), nowCT = new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
+  const live = a.on && a.text && !(a.until && a.until <= nowCT);
+  el.hidden = !live;
+  if(live){ el.className = "announce " + (a.color||"red"); el.textContent = a.text;
+    if(a.link){ el.href = a.link; if(/^https?:/.test(a.link)){ el.target = "_blank"; el.rel = "noopener"; } else el.removeAttribute("target"); el.insertAdjacentHTML("beforeend", '<span class="go">See More</span>'); } else el.removeAttribute("href"); }
+  if(typeof renderHours === "function") try{ renderHours(); }catch(e){}
+}
 function applyOrder(){
   const ids = layoutOrder(), at = id => ids.indexOf(id)*10;
   for(const [id,def] of STATIC_NAV){
@@ -660,6 +679,7 @@ __SAMPLE_SALES__
 __SAMPLE_SEASONAL__
 __SAMPLE_HOURS__
 __SAMPLE_MENU__
+__SAMPLE_SITE__
 __FOOD_PHOTOS__
 __PREVIEW_ALL_IN__
 
@@ -720,7 +740,10 @@ if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]
 else { renderSales(SAMPLE_SALES); renderSeasonal(SAMPLE_SEASONAL); }
 if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; swEdits = c.swe || {}; swToppings = c.swt || null; setMenu(c.swm); } }
 
+if(SITE_URL){ try{ applySite(JSON.parse(localStorage.getItem("bd-site")||"null")); }catch(e){} }
+else if(typeof SAMPLE_SITE!=="undefined") applySite(SAMPLE_SITE);
 async function load(){
+  if(SITE_URL) fetch(SITE_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return; try{ localStorage.setItem("bd-site", JSON.stringify(j)); }catch(e){} applySite(j); }).catch(()=>{});
   if(LAYOUT_URL) fetch(LAYOUT_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return; LAYOUT = (j.items && j.items.length) ? j.items : null; try{ localStorage.setItem("bd-layout", JSON.stringify(LAYOUT)); }catch(e){} applyLayoutSections(); render(); }).catch(()=>{});
   if(NOTIFY_URL) fetch(NOTIFY_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ notifyOn = !!(j && j.on); if(j && j.form) NFORM = j.form; render(); }).catch(()=>{});
   if(SEASONAL_URL) fetch(SEASONAL_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSeasonal(j); try{ localStorage.setItem("bd-seasonal", JSON.stringify(j.on ? j : null)); }catch(e){} render(); } }).catch(()=>{});
@@ -822,11 +845,10 @@ function render(){
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
         <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
-  for(const grp of FOOD_GROUPS){
+  for(const {key:grp, name:gname, note} of foodGroups()){
     // items on special go to the front of their own group
     const cards = foodItems(grp).map((f,i)=>[f,i]).sort((a,b)=>(!!specialOf(b[0].name) - !!specialOf(a[0].name)) || a[1]-b[1]).map(x=>card(x[0],"food")).join("");
-    const note = FOOD_GROUP_NOTES[grp] || "";
-    if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
+    if(cards) menuHtml += `<h3 class="grp">${esc(gname)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
   $("#menu").innerHTML = menuHtml;
   $("#made-here").hidden = (qRaw && !foodShown);
@@ -1021,7 +1043,8 @@ function renderHours(){
     return `<li class="${d===day?"today":""}"><span>${n}${ov?" *":""}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("")
     + (OVERRIDES.some(x=>x.date>=chicagoDate(0) && x.date<=chicagoDate(6)) ? '<li class="hrs-fn"><span>* Special hours this week</span></li>' : "");
   $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
-  $("#ham-banner").hidden = !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
+  $("#ham-text").textContent = HOT_HAM.text.replace(/\{until\}/gi, fmtTime(HOT_HAM.until));
+  $("#ham-banner").hidden = !HOT_HAM.on || !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
   // Notice bar for a one-day change today or in the next 14 days
   const note = $("#hours-note"), lines = [];
   for(let i=0;i<=14;i++){ const [n,o,c,ov] = hoursFor(i); if(!ov) continue;

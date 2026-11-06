@@ -43,7 +43,7 @@ function tidy(d) {      // drop specials that have ended
   return d;
 }
 const view = d => ({ ok: true, items: d.items || {}, prices: d.prices || {}, edits: d.edits || {}, toppings: d.toppings || null,
-  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, updated: d.updated });
+  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, groups: d.groups || [], updated: d.updated });
 async function saveData(store, d) { tidy(d); d.updated = new Date().toISOString(); await store.setJSON(KEY, d); return json(view(d)); }
 
 export default async (req) => {
@@ -131,6 +131,20 @@ export default async (req) => {
     return saveData(store, d);
   }
 
+  if (body.action === "groups") {          // Made Here groups: [{ key, name, note }] in order
+    const d = (await store.get(KEY, { type: "json" })) || { items: {} };
+    if (!Array.isArray(body.list)) return json({ error: "Bad request." }, 400);
+    const seen = new Set(), list = [];
+    for (const g of body.list.slice(0, 15)) {
+      const name = title(clean(g && g.name, 40)); if (!name) return json({ error: "Each group needs a name." }, 400);
+      let key = clean(g && g.key, 40); if (!key || seen.has(key)) key = "g-" + Date.now().toString(36) + list.length;
+      seen.add(key); list.push({ key, name, note: clean(g && g.note, 200) });
+    }
+    if (!list.length) return json({ error: "Keep at least one group." }, 400);
+    d.groups = list;
+    return saveData(store, d);
+  }
+
   if (body.action === "variants") {        // flavors of a Grilling & Outdoor item: [{ v, note }]
     const d = (await store.get(KEY, { type: "json" })) || { items: {} };
     const key = clean(body.name, 120);
@@ -195,6 +209,7 @@ export default async (req) => {
     if (typeof body.label === "string") { const l = title(clean(body.label, 60)); if (l) e.label = l; else delete e.label; }
     if (typeof body.photo === "string") { const ph = body.photo.replace(/[^a-z0-9]/gi, "").slice(0, 40); if (ph) e.photo = ph; else delete e.photo; }
     if (body.photo === "none") e.photo = "none";
+    if (typeof body.group === "string") { const g = clean(body.group, 40); if (g) e.group = g; else delete e.group; }
     if (Object.keys(e).length) data.edits[name] = e; else delete data.edits[name];
     if (Array.isArray(body.prices)) data.prices[name] = priceRows(body.prices);
     return saveData(store, data);

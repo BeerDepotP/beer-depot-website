@@ -15,6 +15,9 @@ const MAX_ITEMS = 30;
 const MAX_PHOTO = 600 * 1024;            // bytes, after decoding
 const DEFAULT_TITLE = "Seasonal";
 const money = v => { const n = Number(String(v ?? "").replace(/[^0-9.]/g, "")); return isFinite(n) && n > 0 ? n.toFixed(2) : ""; };
+// Optional end: "YYYY-MM-DDTHH:MM" store time. After it, the section is off by itself.
+const nowCT = () => new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).slice(0, 16).replace(" ", "T");
+const isOn = d => !!d.on && !(d.until && d.until <= nowCT());
 const clean = (s, n) => String(s || "").replace(/\s+/g, " ").trim().slice(0, n);
 
 export default async (req) => {
@@ -29,7 +32,7 @@ export default async (req) => {
       return new Response(buf, { headers: { "content-type": "image/jpeg", "cache-control": "public, max-age=31536000, immutable" } });
     }
     const d = (await store.get(KEY, { type: "json" })) || { on: false, items: [] };
-    return json(d.on ? { on: true, title: d.title || DEFAULT_TITLE, items: d.items || [], updated: d.updated } : { on: false, items: [] });
+    return json(isOn(d) ? { on: true, title: d.title || DEFAULT_TITLE, items: d.items || [], updated: d.updated } : { on: false, items: [] });
   }
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
 
@@ -59,12 +62,13 @@ export default async (req) => {
       note: clean(it.note, 80),
       photo: String(it.photo || "").replace(/[^a-z0-9]/gi, "").slice(0, 40),
     })).filter(it => it.name);
-    const data = { on: !!body.on, title: clean(body.title, 30) || DEFAULT_TITLE, items, updated: new Date().toISOString() };
+    const until = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(String(body.until || "")) && body.until > nowCT() ? body.until : "";
+    const data = { on: !!body.on, until, title: clean(body.title, 30) || DEFAULT_TITLE, items, updated: new Date().toISOString() };
     await store.setJSON(KEY, data);
     return json({ ok: true, ...data });
   }
 
-  return json({ ok: true, on: !!cur.on, title: cur.title || DEFAULT_TITLE, items: cur.items || [], updated: cur.updated });
+  return json({ ok: true, until: cur.until || "", on: isOn(cur), title: cur.title || DEFAULT_TITLE, items: cur.items || [], updated: cur.updated });
 };
 
 export const config = { path: "/api/seasonal" };

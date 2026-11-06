@@ -113,14 +113,14 @@ function menuPhoto(f, key){
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
 
 // Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
-let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[], variants:{}, deleted:{} };
-function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
+let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[], variants:{}, deleted:{}, groups:[] };
+function setMenu(d){ d = d || {}; swMenu = { groups: d.groups||[], custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
 const isRemoved = name => !!(swMenu.removed[name] || swMenu.deleted[name]);
 const isDeleted = name => !!swMenu.deleted[name];
 const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker && !c.outdoor)];
 // Items in one Made Here group, in the saved order (new items go to the bottom until moved).
 function foodItems(group, withRemoved){
-  return ordered(allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name))), swMenu.order[group]);
+  return ordered(allFood().filter(f=>groupOf(f)===group && (withRemoved || !isRemoved(f.name))), swMenu.order[group]);
 }
 function ordered(list, ord){
   ord = ord || [];
@@ -142,3 +142,8 @@ const localItems = (m, withRemoved) => ordered([...LOCAL.filter(l=>l.maker===m),
 const outdoorItems = withRemoved => ordered([...OUTDOOR, ...swMenu.custom.filter(c=>c.outdoor)].filter(g=>withRemoved ? !isDeleted(outdoorKey(g.name)) : !isRemoved(outdoorKey(g.name))), swMenu.order.outdoor);
 // Flavors (like the pellets): [{v, note}] — edited in Store Tools, else the built-in list.
 const flavorsOf = g => swMenu.variants[outdoorKey(g.name)] || (g.variants||[]).map(v=>({ v, note:"" }));
+
+// Made Here groups: [{key, name, note}] in order. key never changes (items point to it); name is what shows. Edited in Store Tools.
+const foodGroups = () => swMenu.groups.length ? swMenu.groups : FOOD_GROUPS.map(g=>({ key:g, name:g, note: FOOD_GROUP_NOTES[g] || "" }));
+// An item's group: moved in Store Tools (edits[name].group) or its own.
+const groupOf = f => ((typeof swEdits!=="undefined" && swEdits[f.name]) || {}).group || f.group;
