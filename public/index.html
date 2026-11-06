@@ -583,6 +583,7 @@ const SEASONAL_URL = STOCK_URL ? "/api/seasonal" : null;   // Seasonal section (
 const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edited in Store Tools → Sales)
 const REFRESH_SECONDS = 60;
 let SECTION_LIMIT = 20;               // changed in Store Tools → Banners & Text → Settings
+let THC_NOTE_ON = true;
 let ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
@@ -670,7 +671,7 @@ function applySite(d){
   if(d.images){ const src = id => SITE_URL + "?img=" + encodeURIComponent(id);
     if(d.images.logo) document.querySelectorAll("img.site-logo").forEach(i=>{ i.src = src(d.images.logo); });
     if(d.images.icon) document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(l=>{ l.href = src(d.images.icon); }); }
-  if(d.settings){ const n = +d.settings.showCount, a = +d.settings.allocCount; if(n >= 5) SECTION_LIMIT = n; if(a >= 3) ALLOCATED_LIMIT = a; }
+  if(d.settings){ THC_NOTE_ON = d.settings.thcNoteOn !== false; const n = +d.settings.showCount, a = +d.settings.allocCount; if(n >= 5) SECTION_LIMIT = n; if(a >= 3) ALLOCATED_LIMIT = a; }
   // social media links at the bottom (Store Tools → Banners & Text → Social Media, with its own on/off switch)
   if(d.social){ const so = d.social, names = { facebook:"Facebook", instagram:"Instagram", tiktok:"TikTok", x:"X", youtube:"YouTube" };
     const links = Object.keys(names).filter(k=>so[k] && /^https:\/\//.test(so[k]));
@@ -1156,7 +1157,8 @@ function render(){
         html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>${body}</section>`;
         continue;
       }
-      const note = s.id==="thc" ? `<p class="sec-note" role="note"><strong>Heads up:</strong> A new federal law takes effect December 11, 2026 that ends sales of most hemp-derived THC drinks. We'll carry them until then, while supplies last.</p>` : "";
+      // THC heads-up note: wording and on/off in Store Tools → Banners & Text → Settings
+      const note = s.id==="thc" && THC_NOTE_ON ? `<p class="sec-note" role="note"><strong>Heads up:</strong> ${esc(tx("thcNote","A new federal law takes effect December 11, 2026 that ends sales of most hemp-derived THC drinks. We'll carry them until then, while supplies last."))}</p>` : "";
       html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>${note}
         ${side ? `<div class="with-side"><div class="main-list">${items.length?list:""}</div>${side}</div>` : list}</section>`;
     }
