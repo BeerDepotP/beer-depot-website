@@ -23,7 +23,7 @@ const FOOD_GROUP_NOTES = {};
 const PIZZA_TOPPINGS = ["Pepperoni","Sausage","Ham","Bacon","Onion","Green Pepper","Mushroom","Black Olive","Banana Peppers","Jalapeño","Tomato"];
 const toppingKey = t => "Topping: " + t;
 const FOOD = [
-  { group:"Meats", name:"Ribeye", match:"ribeye", photo:"", prices:[["Per lb","18.99"]] },
+  { group:"Meats", name:"Ribeye", match:"ribeye", photo:"ribeye.jpg", prices:[["Per lb","18.99"]] },
   { group:"Meats", name:"Smoked Ribs", match:"ribs", photo:"smoked-ribs.jpg", prices:[["Per lb","9.99"]] },
   { group:"Meats", name:"Smoked Chicken Breast", desc:"Regular or Spicy", match:"chicken breast", photo:"chicken-breast.jpg", prices:[["Each","6.49"]] },
   { group:"Meats", name:"Smoked Pulled Pork", match:"pulled pork", photo:"pulled-pork.jpg", prices:[["Per lb","9.99"]] },
