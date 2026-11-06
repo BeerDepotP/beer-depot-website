@@ -38,7 +38,7 @@ export default async (req) => {
 
   let body;
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
-  const bad = await checkPin(store, body.pin, "seasonal");
+  const bad = await checkPin(store, body.pin, "seasonal", body);
   if (bad) return json({ error: bad.error }, bad.status);
   const cur = (await store.get(KEY, { type: "json" })) || { on: false, items: [] };
 

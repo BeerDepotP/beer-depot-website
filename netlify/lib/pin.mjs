@@ -4,6 +4,7 @@
 // the tabs the owner ticked for that person. No Netlify setting is needed for staff.
 // After MAX_FAILS wrong PINs, every PIN check is locked for LOCK_MINUTES.
 import { createHash } from "node:crypto";
+import { describe, logChange } from "./activity.mjs";
 
 const LOCK_KEY = "pin-lock";
 const MAX_FAILS = 8;
@@ -31,7 +32,8 @@ export async function pinUser(store, pin) {
 
 // Returns null when the PIN is good (and may use `area`), or { error, status } when it isn't.
 // area: one of AREAS, "owner" (owner only), an array (any of them), or empty (any good PIN).
-export async function checkPin(store, pin, area) {
+// body (optional): the request, so changes can be written to the activity log shown in the Staff tab.
+export async function checkPin(store, pin, area, body, logArea) {
   if (!process.env.FOOD_PIN) return { error: "The PIN isn't set up yet in Netlify (FOOD_PIN).", status: 503 };
   const lock = (await store.get(LOCK_KEY, { type: "json" })) || { fails: 0, until: 0 };
   if (lock.until && Date.now() < lock.until) {
@@ -44,9 +46,11 @@ export async function checkPin(store, pin, area) {
     return { error: "Wrong PIN.", status: 401 };
   }
   if (lock.fails || lock.until) await store.setJSON(LOCK_KEY, { fails: 0, until: 0 });
-  if (!area || who.owner) return null;
-  const need = Array.isArray(area) ? area : [area];
-  if (need.includes("owner") || !need.some(a => who.tabs.includes(a))) return { error: "Your PIN doesn't have access to that. Ask the owner.", status: 403 };
+  if (area && !who.owner) {
+    const need = Array.isArray(area) ? area : [area];
+    if (need.includes("owner") || !need.some(a => who.tabs.includes(a))) return { error: "Your PIN doesn't have access to that. Ask the owner.", status: 403 };
+  }
+  if (body) await logChange(store, who, describe(logArea || (Array.isArray(area) ? "insights" : area), body));
   return null;
 }
 

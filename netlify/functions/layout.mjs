@@ -14,7 +14,7 @@ export default async (req, context) => {
   if (req.method === "GET") return json({ items: cur.items.map(({ groups, ...rest }) => rest) });
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
-  const bad = await checkPin(store, b.pin, "layout");
+  const bad = await checkPin(store, b.pin, "layout", b);
   if (bad) return json({ error: bad.error }, bad.status);
 
   let next = cur;

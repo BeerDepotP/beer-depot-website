@@ -29,7 +29,7 @@ export default async (req) => {
 
   let body;
   try { body = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
-  const bad = await checkPin(store, body.pin, "hours");
+  const bad = await checkPin(store, body.pin, "hours", body);
   if (bad) return json({ error: bad.error }, bad.status);
   if (body.action !== "save") return json({ ok: true, ...view(cur) });
 

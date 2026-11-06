@@ -84,7 +84,7 @@ export default async (req) => {
 
   if (["report", "seen", "badges", "remove"].includes(body.type)) {
     const area = body.type === "badges" ? null : body.type === "report" ? ["nofind", "top", "requests"] : [body.tab];
-    const bad = await checkPin(store, body.pin, area);
+    const bad = await checkPin(store, body.pin, area, body, "insights");
     if (bad) return json({ error: bad.error }, bad.status);
   }
 

@@ -23,7 +23,7 @@ export default async (req) => {
     return json({ owner: !!who.owner, name: who.name, tabs: who.tabs });
   }
 
-  const bad = await checkPin(store, b.pin, "owner");
+  const bad = await checkPin(store, b.pin, "owner", b, "staff");
   if (bad) return json({ error: bad.error }, bad.status);
   const d = (await store.get("staff", { type: "json" })) || { members: [] };
   const tabs = t => [...new Set((Array.isArray(t) ? t : []).filter(x => AREAS.includes(x)))];
@@ -50,7 +50,8 @@ export default async (req) => {
     d.members = d.members.filter(x => x.id !== b.id);
   }
   if (b.action !== "list") await store.setJSON("staff", d);
-  return json({ ok: true, areas: AREAS, members: d.members.map(({ salt, hash, ...m }) => m) });
+  const activity = ((await store.get("activity", { type: "json" })) || []).slice(0, 300);
+  return json({ ok: true, areas: AREAS, members: d.members.map(({ salt, hash, ...m }) => m), activity });
 };
 
 export const config = { path: "/api/staff" };

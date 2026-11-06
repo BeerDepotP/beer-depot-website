@@ -60,7 +60,7 @@ export default async (req) => {
     return json({ ok: true });
   }
 
-  const bad = await checkPin(store, b.pin, "notify");
+  const bad = await checkPin(store, b.pin, "notify", b);
   if (bad) return json({ error: bad.error }, bad.status);
   const d = await loadWants(store), state = await loadState(store);
   if (b.action === "settings") {

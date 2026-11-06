@@ -47,7 +47,7 @@ export default async (req) => {
 
 async function storeTools(b) {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
-  const bad = await checkPin(store, b.pin, "club");
+  const bad = await checkPin(store, b.pin, "club", b);
   if (bad) return json({ error: bad.error }, bad.status);
   const list = (await store.get(KEY, { type: "json" })) || {};
   if (b.action === "remove") {

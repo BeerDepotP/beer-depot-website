@@ -25,6 +25,7 @@ function menuPhoto(f, key){
     layout:{items:[],groups:["Beer - Domestic","Beer - Craft","Hard Seltzer","Whiskey","Bourbon","Vodka","Wine - Red","Wine - White","Tequila","Cigars (Not Shown)","Craft Cans","Kombucha"]},
     site:{hotHam:{on:true,day:0,from:"09:00",until:"15:00",text:"Hot Ham Available Now Until {until}"},announce:{on:true,text:"Now Taking Thanksgiving Orders: Smoked Turkeys and Hams",link:"#catering",color:"red",until:""},
       text:{heroTitle:"See what's on our shelves",searchHint:"Search Tito's, Spotted Cow, ribs…",madeHereIntro:"Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.",cateringTitle:"Party & Catering Orders",cateringText:"Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.",cateringButton:"Call to Order"}},
+    activity:[{at:"2026-11-05T22:10:00Z",who:"Jake",staff:"s1",text:"Smoked Ribs: Out of Stock"},{at:"2026-11-05T20:02:00Z",who:"Jake",staff:"s1",text:"Changed a one-day hours change"},{at:"2026-11-05T18:30:00Z",who:"Owner",staff:"",text:"Put Smoked Pulled Pork on special"}],
     staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true}],
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
@@ -95,7 +96,7 @@ function menuPhoto(f, key){
       if(b.action==="add") S.push({id:"s"+Date.now().toString(36),name:b.name,pin:String(b.newPin),tabs:b.tabs,on:true});
       if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); }
       if(b.action==="remove") DB.staff = S.filter(x=>x.id!==b.id);
-      return ok({ok:true,members:DB.staff.map(({pin,...x})=>x)}); }
+      return ok({ok:true,members:DB.staff.map(({pin,...x})=>x),activity:DB.activity}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});

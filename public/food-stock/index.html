@@ -406,7 +406,10 @@
   <section id="p-staff" hidden>
     <h2 class="sec">Staff PINs</h2>
     <p class="help">Only you see this tab. Give each employee their own PIN and pick which tabs they can use. Their PIN only opens those tabs, and you can turn a PIN off or remove it any time. Nothing needs to be set in Netlify; your own PIN stays the one in Netlify and still opens everything.</p>
+    <h3 class="grp">Staff Members</h3>
     <div id="stf-list"></div>
+    <h3 class="grp">Changes</h3>
+    <div class="card sp-card bt-card"><label class="help" for="act-who">Show Changes By</label><select id="act-who"></select><div id="act-list"></div></div>
     <div class="card sp-card bt-card">
       <h3 class="grp" style="margin:0">Add a Staff Member</h3>
       <label class="help" for="stf-name">Name</label><input id="stf-name" maxlength="40" autocomplete="off" placeholder="Example: Jake">
@@ -1143,9 +1146,20 @@ function renderStaff(){
     <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"}</span></span>
       <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
     <div class="stf-tabs">${tabBoxes(m.tabs, 'data-stftab')}</div>
-    <div class="stf-btns"><button class="btn" type="button" data-stfsave>Save Tabs</button><button class="btn ghost" type="button" data-stfpin>Change PIN</button><button class="btn ghost rm-site" type="button" data-stfrm>Remove</button></div></div>`).join("")
+    <span class="help" style="margin:0">${(()=>{ const last = (staff.activity||[]).find(a=>a.staff===m.id); return last ? "Last Change: " + esc(last.text) + " · " + esc(actWhen(last.at)) : "No changes yet."; })()}</span>
+    <div class="stf-btns"><button class="btn" type="button" data-stfsave>Save Tabs</button><button class="btn ghost" type="button" data-stfact>See Their Changes</button><button class="btn ghost" type="button" data-stfpin>Change PIN</button><button class="btn ghost rm-site" type="button" data-stfrm>Remove</button></div></div>`).join("")
     : '<p class="help">No staff PINs yet.</p>';
+  const cur = $("#act-who").value || "";
+  $("#act-who").innerHTML = `<option value="">Everyone</option><option value="owner">Owner (You)</option>` + staff.members.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");
+  $("#act-who").value = [...$("#act-who").options].some(o=>o.value===cur) ? cur : "";
+  renderActivity();
 }
+const actWhen = d => new Date(d).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+function renderActivity(){
+  const f = $("#act-who").value, list = (staff.activity||[]).filter(a=> !f || (f==="owner" ? !a.staff : a.staff===f)).slice(0,150);
+  $("#act-list").innerHTML = list.length ? `<table>${list.map(a=>`<tr><td>${esc(a.text)}<br><span class="help">${esc(a.who)} · ${esc(actWhen(a.at))}</span></td></tr>`).join("")}</table>` : '<p class="help" style="margin:0">No changes yet.</p>';
+}
+$("#act-who").onchange = renderActivity;
 async function staffCall(body, msg){ try{ staff = await api("/api/staff", body); renderStaff(); if(msg) toast(msg); }catch(err){ toast(err.message,true); } }
 const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-newtab'); staffCall({action:"list"}); };
 $("#stf-add").onclick = async ()=>{
@@ -1158,6 +1172,7 @@ $("#stf-add").onclick = async ()=>{
 };
 $("#stf-list").addEventListener("click", async e=>{
   const card = e.target.closest(".stf-card"); if(!card) return; const id = card.dataset.id, m = staff.members.find(x=>x.id===id);
+  if(e.target.closest("[data-stfact]")){ $("#act-who").value = id; renderActivity(); $("#act-who").scrollIntoView({block:"center"}); return; }
   if(e.target.closest("[data-stfon]")){ staffCall({action:"update", id, on: !m.on}, m.name + (m.on ? ": PIN Turned Off" : ": PIN Turned On")); return; }
   if(e.target.closest("[data-stfsave]")){ staffCall({action:"update", id, tabs: [...card.querySelectorAll("[data-stftab]:checked")].map(i=>i.value)}, m.name + ": Saved"); return; }
   if(e.target.closest("[data-stfrm]")){ if(await askYes("Remove " + m.name + "? Their PIN stops working right away.", "Remove", true)) staffCall({action:"remove", id}, m.name + ": Removed"); return; }
