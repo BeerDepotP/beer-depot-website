@@ -113,6 +113,17 @@
               padding:11px 0;border-bottom:1px solid var(--line)}
   .name{font-weight:500}
   .name mark{background:#FFE2CF;color:inherit;border-radius:3px;padding:0 1px}
+  .stcol{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .nbtn{font:700 13px var(--body);color:var(--orange);background:transparent;border:2px solid var(--orange);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+  .nbtn:hover{background:var(--orange);color:#fff}
+  .dish .foot .nbtn{margin-left:auto}
+  .nmodal{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+  .nmodal[hidden]{display:none}
+  .nbox{background:#fff;color:#2B1B12;border-radius:16px;padding:20px;max-width:400px;width:100%;box-sizing:border-box}
+  .nbox h2{font-family:var(--display);font-size:26px;margin:0 0 4px}
+  .nbox p{margin:0 0 12px} .nbox input[type=email]{width:100%;box-sizing:border-box;font:600 18px var(--body);padding:12px;border:2px solid #CFC6BE;border-radius:12px;margin-bottom:10px}
+  .nbox .row{display:flex;gap:10px} .nbox .row .btn{flex:1}
+  .nbox .hp{position:absolute;left:-9999px;opacity:0}
   .status{flex:none;font-size:14px;font-weight:700;padding:3px 10px;border-radius:999px;white-space:nowrap}
   .status.in{color:var(--in);background:#E4F3E8}
   .status.out{color:var(--out);background:#F1ECE8}
@@ -363,6 +374,17 @@
 </head>
 <body>
 
+<div class="nmodal" id="nmodal" role="dialog" aria-modal="true" aria-labelledby="nm-title" hidden>
+  <form class="nbox" id="nform">
+    <h2 id="nm-title">Email Me When Back</h2>
+    <p id="nm-item" style="font-weight:700"></p>
+    <p style="font-size:15px">We'll send one email when it's back in stock. First come, first served; we can't hold items.</p>
+    <input type="email" id="nm-email" placeholder="Your Email" autocomplete="email" required aria-label="Your email">
+    <input class="hp" type="text" id="nm-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p id="nm-msg" role="status" style="font-size:15px;min-height:1.2em"></p>
+    <div class="row"><button class="btn yes" type="submit" id="nm-go">Email Me</button><button class="btn no" type="button" id="nm-x" style="color:#2B1B12;border-color:#CFC6BE">Close</button></div>
+  </form>
+</div>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
   <div class="gate-card">
     <img src="__LOGO__" alt="The Beer Depot, Pewaukee WI">
@@ -654,6 +676,7 @@ else { renderSales(SAMPLE_SALES); renderSeasonal(SAMPLE_SEASONAL); }
 if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; swEdits = c.swe || {}; swToppings = c.swt || null; } }
 
 async function load(){
+  if(NOTIFY_URL) fetch(NOTIFY_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ notifyOn = !!(j && j.on); render(); }).catch(()=>{});
   if(SEASONAL_URL) fetch(SEASONAL_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSeasonal(j); try{ localStorage.setItem("bd-seasonal", JSON.stringify(j.on ? j : null)); }catch(e){} render(); } }).catch(()=>{});
   if(SALES_URL) fetch(SALES_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSales(j.on ? j.items : []); try{ localStorage.setItem("bd-sales", JSON.stringify(j.on ? j.items : [])); }catch(e){} render(); } }).catch(()=>{});
   const swJob = SWITCH_URL ? fetch(SWITCH_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null) : Promise.resolve(null);
@@ -690,7 +713,12 @@ function extraItems(section, cards, qRaw, onlyIn){
   return (stock||[]).filter(it=>it.section===section && !cards.some(c=>cardMatches(c,it)) && matches(it.name,qRaw) && (!onlyIn || it.inStock))
     .sort((a,b)=>(b.inStock-a.inStock) || a.name.localeCompare(b.name));
 }
-const rowHtml = (it,qRaw) => `<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span><span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`;
+// "Email Me When Back" button on Out of Stock items (turned on/off in Store Tools → Back in Stock)
+const NOTIFY_URL = STOCK_URL ? "/api/notify" : null;
+let notifyOn = !STOCK_URL;       // the preview shows the buttons
+const nbtn = (key,name) => notifyOn ? `<button type="button" class="nbtn" data-nk="${esc(key)}" data-nn="${esc(name)}">Email Me When Back</button>` : "";
+const statusHtml = (inS,key,name) => `<span class="stcol"><span class="status ${inS?"in":"out"}">${inS?"In Stock":"Out of Stock"}</span>${inS?"":nbtn(key,name)}</span>`;
+const rowHtml = (it,qRaw) => `<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>${statusHtml(it.inStock,"k:"+it.name,it.name)}</li>`;
 
 // Made Here and Local Favorites: the on/off switch wins; otherwise the starting value.
 function itemStatus(f, section){
@@ -738,7 +766,7 @@ function render(){
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
         ${f.toppings?(()=>{ const on = toppingList().filter(tp => switches[toppingKey(tp)] !== false);
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
-        <div class="foot">${status}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
+        <div class="foot">${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
   for(const grp of FOOD_GROUPS){
     const cards = FOOD.filter(f=>f.group===grp).map(f=>card(f,"food")).join("");
@@ -781,7 +809,7 @@ function render(){
     const gph = menuPhoto({photo:""}, outdoorKey(g.name));
     return `<li class="${st===false?"is-out":""}">${gph?`<img class="g-ph" src="${esc(gph)}" alt="" loading="lazy">`:""}<div class="g-main"><span class="name">${highlight(menuLabel(g, outdoorKey(g.name)),qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
       ${vars.length?`<ul class="flavors">${vars.map(x=>`<li class="${x.on?"":"out"}"><span>${highlight(x.v,qRaw)}</span><b>${x.on?"In Stock":"Out of Stock"}</b></li>`).join("")}</ul>`:""}
-      ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div>${status}</li>`;
+      ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div><span class="stcol">${status}${switches[outdoorKey(g.name)]===false?nbtn("o:"+outdoorKey(g.name),menuLabel(g, outdoorKey(g.name))):""}</span></li>`;
   }).join("");
   // Only the rows in OUTDOOR show here (no extra KORONA products).
   $("#grilling-outdoor").hidden = !gearShown;
@@ -820,7 +848,7 @@ function render(){
           + `</div>`;
       }
       const list = `<ul class="items">${shown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${moreBtn}`;
+        ${statusHtml(it.inStock,"k:"+it.name,it.name)}</li>`).join("")}</ul>${moreBtn}`;
       const aLimit = qRaw ? alloc.length : (showing.get("allocated") || ALLOCATED_LIMIT);
       const allocShown = alloc.slice(0, aLimit);
       let allocBtn = "";
@@ -833,7 +861,7 @@ function render(){
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
         <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-rules"><span>Stock Updates Live</span> · <span>First Come, First Served</span> · <span>No Reservations</span></p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></div>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-        <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${allocBtn}${clubBox()}</aside>` : "";
+        ${statusHtml(it.inStock,"k:"+it.name,it.name)}</li>`).join("")}</ul>${allocBtn}${clubBox()}</aside>` : "";
       if(SUBSECTIONS[s.id]){
         const subs = SUBSECTIONS[s.id];
         let body = "";
@@ -850,7 +878,7 @@ function render(){
               + `</div>`;
           }
           body += `<div class="na-sub" id="${sid}"><h3 class="grp">${esc(label)}</h3><ul class="items">${group.slice(0,lim).map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
-            <span class="status ${it.inStock?"in":"out"}">${it.inStock?"In Stock":"Out of Stock"}</span></li>`).join("")}</ul>${btn}</div>`;
+            ${statusHtml(it.inStock,"k:"+it.name,it.name)}</li>`).join("")}</ul>${btn}</div>`;
         }
         html += `<section class="shelf" id="${s.id}"><div class="shelf-head"><h2>${esc(s.name)}</h2><span class="count">${nIn} In Stock</span></div>${body}</section>`;
         continue;
@@ -995,6 +1023,28 @@ $("#request-form").addEventListener("submit", async e=>{
 
 // Allocated Bourbon Club sign-up box (inside the Allocated Bourbon box)
 let clubDone = false; try{ clubDone = localStorage.getItem("bd-club") === "1"; }catch(e){}
+let nKey = "", nName = "";
+function nClose(){ $("#nmodal").hidden = true; }
+document.addEventListener("click", e=>{
+  const b = e.target.closest(".nbtn"); if(b){
+    nKey = b.dataset.nk; nName = b.dataset.nn; $("#nm-item").textContent = nName; $("#nm-msg").textContent = ""; $("#nm-go").disabled = false; $("#nm-go").textContent = "Email Me";
+    try{ $("#nm-email").value = localStorage.getItem("bd-nemail") || ""; }catch(_){}
+    $("#nmodal").hidden = false; $("#nm-email").focus(); return; }
+  if(e.target.id==="nm-x" || e.target.id==="nmodal") nClose();
+});
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && !$("#nmodal").hidden) nClose(); });
+$("#nform").addEventListener("submit", async e=>{
+  e.preventDefault(); const go = $("#nm-go"), msg = $("#nm-msg"), email = $("#nm-email").value.trim();
+  go.disabled = true; msg.textContent = "Saving…";
+  try{ localStorage.setItem("bd-nemail", email); }catch(_){}
+  if(!NOTIFY_URL){ msg.textContent = "Got it! (Preview only: nothing was sent.)"; go.textContent = "Done"; return; }
+  try{
+    const r = await fetch(NOTIFY_URL,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"request",key:nKey,name:nName,email,website:$("#nm-hp").value})});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ msg.textContent = j.error || "Something went wrong. Please try again."; go.disabled = false; return; }
+    msg.textContent = "Got it! We'll email you when it's back."; go.textContent = "Done"; setTimeout(nClose, 2200);
+  }catch(_){ msg.textContent = "Something went wrong. Please try again."; go.disabled = false; }
+});
 function clubBox(){
   if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! Watch for our email Thursday at 5 PM.</p></div>`;
   return `<div class="club" id="club"><h4>Join the Bourbon Club</h4>

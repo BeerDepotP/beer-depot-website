@@ -21,6 +21,7 @@ function menuPhoto(f, key){
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
+    notify:{on:true,delayMin:60,items:[{key:"k:Blanton's Single Barrel 750ml",name:"Blanton's Single Barrel 750ml",count:3,people:[{email:"jim@example.com",at:"2026-11-05T15:00:00Z"},{email:"sara@example.com",at:"2026-11-05T16:10:00Z"},{email:"dave@example.com",at:"2026-11-04T12:00:00Z"}]},{key:"f:Smoked Lasagna",name:"Smoked Lasagna",count:1,people:[{email:"pat@example.com",at:"2026-11-05T17:30:00Z"}]}],sent:[{at:"2026-11-04T14:05:00Z",name:"Spotted Cow 12pk Cans",count:2}]},
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
@@ -57,6 +58,11 @@ function menuPhoto(f, key){
       return ok({ok:true,...DB.seasonal}); }
     if(url.startsWith("/api/hours")){ if(post && b.action==="save"){ if(b.weekly) DB.hours.weekly=b.weekly; if(b.overrides) DB.hours.overrides=b.overrides.slice().sort((x,y)=>x.date<y.date?-1:1); }
       return ok({ok:true,...DB.hours}); }
+    if(url.startsWith("/api/notify")){ const n = DB.notify;
+      if(b.action==="settings"){ n.on = !!b.on; if(b.delayMin!=null) n.delayMin = +b.delayMin; }
+      if(b.action==="clear") n.items = n.items.filter(i=>i.key!==b.key);
+      if(b.action==="removeEmail"){ const it = n.items.find(i=>i.key===b.key); if(it){ it.people = it.people.filter(p=>p.email!==b.email); it.count = it.people.length; } n.items = n.items.filter(i=>i.count); }
+      return ok({ok:true,ready:true,...n}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
@@ -65,12 +71,13 @@ function menuPhoto(f, key){
       const c = DB.club;
       if(b.action==="remove") c.members = c.members.filter(m=>m.email!==b.email);
       if(b.action==="sending") c.sending = !!b.on;
+      if(b.action==="schedule"){ c.day = +b.day; c.time = b.time; }
       const DEF = {subject:"This Week's Allocated Bourbon at The Beer Depot",heading:"This Week's Allocated Bourbon",tagline:"Hard-to-Find Bottles. Once They're Gone, They're Gone.",top:"",info:"In stock as of Thursday 5 PM. First come, first served, in store only. No reservations.",bottom:""};
       if(b.action==="saveEmail") c.email = Object.assign({},DEF,b.content);
       if(b.action==="previewEmail"){ const x = Object.assign({},DEF,b.content), q = t=>String(t).replace(/</g,"&lt;").replace(/\n/g,"<br>");
         return ok({subject:x.subject,html:`<body style="margin:0;background:#F3EBE2;font-family:Arial"><div style="max-width:560px;margin:0 auto;padding:20px"><div style="background:#2B1B12;border-radius:14px;padding:22px;color:#E8D9CC"><h1 style="margin:0 0 6px;color:#F26B1D;font-size:28px">${q(x.heading)}</h1><p style="color:#fff;font-weight:bold">${q(x.tagline)}</p><p style="color:#fff">${q(x.top)}</p><ul style="color:#fff"><li>(Sample) Blanton's Single Barrel 750ml</li><li>(Sample) Weller Special Reserve 750ml</li></ul><p>${q(x.info)}</p><p style="color:#fff">${q(x.bottom)}</p></div></div></body>`}); }
       if(b.action==="test") return ok({ok:true,bottles:4});
-      return ok({email:Object.assign({},DEF,c.email),defaults:DEF,sending:c.sending,count:c.members.length,members:c.members,last:{date:"2026-11-05",sent:2,bottles:4},ready:true}); }
+      return ok({day:c.day==null?4:c.day,time:c.time||"17:00",email:Object.assign({},DEF,c.email),defaults:DEF,sending:c.sending,count:c.members.length,members:c.members,last:{date:"2026-11-05",sent:2,bottles:4},ready:true}); }
     return realFetch(url,opt);
   };
   try{ sessionStorage.setItem("bd-pin","demo"); }catch(e){}

@@ -2,7 +2,7 @@
 // Needs BREVO_API_KEY in Netlify. Optional: CLUB_FROM_EMAIL (default bourbon@beerdepotpewaukee.com).
 // The member list lives on our own site (Blobs "bourbon-club"), so switching email
 // services only means changing sendOne() below and the key.
-const SITE = "https://beerdepotpewaukee.com";
+export const SITE = "https://beerdepotpewaukee.com";
 const FROM = () => ({ name: "The Beer Depot", email: process.env.CLUB_FROM_EMAIL || "bourbon@beerdepotpewaukee.com" });
 // The words in the email. Store Tools → Bourbon Club → Email Wording can change any of these (Blobs "bourbon-club-email").
 // The look stays the same; the bottle list is always filled in automatically.
@@ -50,10 +50,10 @@ export function clubEmail(bottles, token, content) {
   return { html, text, unsub, subject: c.subject };
 }
 
-async function sendOne(to, bottles, token, content) {
+// One email through Brevo (also used by the Back in Stock emails).
+export async function sendMail({ to, subject, html, text, unsub }) {
   const key = process.env.BREVO_API_KEY;
   if (!key) throw new Error("BREVO_API_KEY isn't set in Netlify yet.");
-  const { html, text, unsub, subject } = clubEmail(bottles, token, content);
   const r = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
@@ -61,6 +61,11 @@ async function sendOne(to, bottles, token, content) {
       headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
   });
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
+}
+
+async function sendOne(to, bottles, token, content) {
+  const { html, text, unsub, subject } = clubEmail(bottles, token, content);
+  await sendMail({ to, subject, html, text, unsub });
 }
 
 // One email per member (each has their own unsubscribe link), 10 at a time.

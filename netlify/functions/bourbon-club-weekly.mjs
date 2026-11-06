@@ -5,9 +5,9 @@ import { refreshSaved } from "./stock.mjs";
 import { sendClub } from "../lib/club-email.mjs";
 
 function chicago(d = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "2-digit", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
   const g = t => parts.find(p => p.type === t).value;
-  return { day: g("weekday"), hour: +g("hour"), date: `${g("year")}-${g("month")}-${g("day")}` };
+  return { day: g("weekday"), hour: +g("hour"), min: +g("minute"), date: `${g("year")}-${g("month")}-${g("day")}` };
 }
 
 export async function sendWeekly(store, { force = false } = {}) {
@@ -26,12 +26,18 @@ export async function sendWeekly(store, { force = false } = {}) {
   return { sent, bottles: bottles.length };
 }
 
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Runs every 15 minutes and sends once, within an hour after the day and time chosen in Store Tools (default Thursday 5 PM).
 export default async () => {
-  const { day, hour } = chicago();
-  if (day !== "Thu" || hour !== 17) return;      // runs twice to cover daylight saving time
-  try { console.log("Bourbon Club:", JSON.stringify(await sendWeekly(getStore({ name: "beer-depot", consistency: "strong" })))); }
+  const store = getStore({ name: "beer-depot", consistency: "strong" });
+  const settings = (await store.get("bourbon-club-settings", { type: "json" })) || {};
+  const day = Number.isInteger(settings.day) ? settings.day : 4, time = /^\d\d:\d\d$/.test(settings.time || "") ? settings.time : "17:00";
+  const { day: today, hour, min } = chicago();
+  const [th, tm] = time.split(":").map(Number), since = (hour * 60 + min) - (th * 60 + tm);
+  if (DAYS[day] !== today || since < 0 || since > 75) return;
+  try { console.log("Bourbon Club:", JSON.stringify(await sendWeekly(store))); }
   catch (e) { console.error("Bourbon Club send failed", e); }
 };
 
-// 22:02 and 23:02 UTC on Thursdays = 5:02 PM Central in summer (CDT) or winter (CST).
-export const config = { schedule: "2 22,23 * * 4" };
+export const config = { schedule: "*/15 * * * *" };

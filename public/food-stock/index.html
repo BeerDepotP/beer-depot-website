@@ -103,6 +103,11 @@
   @media (max-width:480px){.sl-item{grid-template-columns:96px 1fr}}
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
+  #nt-delay{font:600 17px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:12px;min-width:0}
+  .nt-row summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-weight:700}
+  .nt-row .n{color:var(--orange)} .nt-p{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #E5DCD3;font-size:16px;word-break:break-all}
+  .nt-p button{flex:none;width:auto;margin:0;padding:5px 10px;font-size:14px}
+  #club-when{margin-bottom:12px} #club-when select,#club-when input{font:600 17px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:12px;min-width:0}
   #club-wording{margin-bottom:12px} #club-wording textarea{width:100%;font:inherit;font-size:17px;padding:10px;border:2px solid #CFC6BE;border-radius:12px;box-sizing:border-box}
   #club-test{margin-bottom:6px} ul.sw-list.club-on-card{margin-bottom:12px} #club-dl{margin:0 0 10px}
   .hr-row{display:grid;grid-template-columns:104px 1fr auto;gap:10px;align-items:center;margin-bottom:10px}
@@ -155,6 +160,7 @@
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
     <button class="tab" role="tab" data-tab="hours" aria-selected="false">Hours</button>
+    <button class="tab" role="tab" data-tab="notify" aria-selected="false">Back in Stock</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -229,6 +235,23 @@
     <p class="sp-status" id="ov-status" role="status"></p>
   </section>
 
+  <section id="p-notify" hidden>
+    <h2 class="sec">Back in Stock Emails</h2>
+    <p class="help">Every Out of Stock item on the website gets an "Email Me When Back" button. When the item is back In Stock, the people who asked get one email.</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Back in Stock Emails</span><span class="st" id="nt-on-st"></span></span>
+      <button class="sw nt-sw" role="switch" aria-checked="true" aria-label="Back in stock emails" id="nt-on"></button></li></ul>
+    <div class="card sp-card" style="margin-bottom:12px">
+      <label class="help" for="nt-delay" style="margin:0">Wait Before Sending</label>
+      <select id="nt-delay"><option value="0">Send Right Away</option><option value="15">15 Minutes</option><option value="30">30 Minutes</option><option value="60">1 Hour</option><option value="120">2 Hours</option><option value="240">4 Hours</option></select>
+      <p class="help" style="margin:0">An item has to stay In Stock this long before anyone is emailed. If you mark one In Stock by mistake and fix it in time, nothing is sent.</p>
+      <p class="sp-status" id="nt-status" role="status"></p>
+    </div>
+    <h3 class="grp">What People Are Waiting For</h3>
+    <div id="nt-list"></div>
+    <h3 class="grp">Recently Sent</h3>
+    <div id="nt-sent"></div>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -251,10 +274,18 @@
 
   <section id="p-club" hidden>
     <h2 class="sec">Bourbon Club</h2>
-    <p class="help">Every Thursday at 5 PM, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.</p>
+    <p class="help" id="club-help">Once a week, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.</p>
     <div class="card club-sum" id="club-sum"></div>
-    <ul class="sw-list club-on-card"><li><span><span class="nm">Thursday Emails</span><span class="st" id="club-on-st"></span></span>
-      <button class="club-sw sw" role="switch" aria-checked="true" aria-label="Thursday Bourbon Club emails" id="club-on"></button></li></ul>
+    <ul class="sw-list club-on-card"><li><span><span class="nm">Weekly Emails</span><span class="st" id="club-on-st"></span></span>
+      <button class="club-sw sw" role="switch" aria-checked="true" aria-label="Weekly Bourbon Club emails" id="club-on"></button></li></ul>
+    <div class="card sp-card" id="club-when">
+      <h3 class="grp" style="margin:0">Day and Time It Goes Out</h3>
+      <label class="help" for="cs-day" style="margin:0">Day</label>
+      <select id="cs-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select>
+      <label class="help" for="cs-time" style="margin:0">Time (Store Time)</label><input id="cs-time" type="time" value="17:00">
+      <button class="btn" type="button" id="cs-save">Save Day and Time</button>
+      <p class="sp-status" id="cs-status" role="status"></p>
+    </div>
     <div class="card sp-card" id="club-wording">
       <h3 class="grp" style="margin:0">Email Wording</h3>
       <p class="help" style="margin:0">The look stays the same. Change the words, or add your own notes above and below the bottle list. The bottles fill in by themselves.</p>
@@ -289,7 +320,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","hours","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","hours","notify","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -650,6 +681,29 @@ $("#ov-add").onclick = ()=>{
 $("#ov-list").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; if(!confirm("Remove this change?")) return;
   saveHours({overrides:hrOv.filter((_,i)=>i!==+b.dataset.rm)},"#ov-status","Removed."); });
 
+/* ---------- back in stock ---------- */
+let nt = null;
+const ntDate = d => new Date(d).toLocaleString("en-US",{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+function renderNotify(){
+  $("#nt-on").setAttribute("aria-checked", nt.on);
+  const st = $("#nt-on-st"); st.className = "st" + (nt.on ? " on" : ""); st.textContent = nt.on ? "On · Buttons show on the website" : "Off · No buttons, no emails";
+  $("#nt-delay").value = nt.delayMin;
+  $("#nt-list").innerHTML = nt.items.length ? nt.items.map(it=>`<details class="card nt-row" style="margin-bottom:10px"><summary><span>${esc(it.name)}</span><span class="n">${it.count} ${it.count===1?"Person":"People"}</span></summary>
+    ${it.people.map(p=>`<div class="nt-p"><span>${esc(p.email)}<br><span class="help">${esc(ntDate(p.at))}</span></span><button class="btn ghost" type="button" data-nk="${esc(it.key)}" data-ne="${esc(p.email)}">Remove</button></div>`).join("")}
+    <button class="btn ghost" type="button" data-nclear="${esc(it.key)}" style="margin-top:8px">Clear This Item</button></details>`).join("") : '<p class="help">Nobody is waiting on an item right now.</p>';
+  $("#nt-sent").innerHTML = nt.sent.length ? `<table>${nt.sent.map(x=>`<tr><td>${esc(x.name)}<br><span class="help">${esc(ntDate(x.at))}</span></td><td class="n">${x.count} ${x.count===1?"Email":"Emails"}</td></tr>`).join("")}</table>` : '<p class="help">No emails sent yet.</p>';
+}
+async function ntCall(body, msg){
+  try{ nt = await api("/api/notify",{action:"list",...body}); renderNotify(); if(msg) $("#nt-status").textContent = msg; }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); }
+}
+const loadNotify = () => ntCall({});
+$("#nt-on").onclick = ()=>ntCall({action:"settings", on: nt.on ? false : true, delayMin: nt.delayMin}, "");
+$("#nt-delay").onchange = ()=>ntCall({action:"settings", on: nt.on, delayMin: +$("#nt-delay").value}, "Saved.");
+$("#p-notify").addEventListener("click",e=>{
+  const r = e.target.closest("[data-ne]"); if(r){ ntCall({action:"removeEmail", key:r.dataset.nk, email:r.dataset.ne}); return; }
+  const c = e.target.closest("[data-nclear]"); if(c){ if(confirm("Remove everyone waiting on this item?")) ntCall({action:"clear", key:c.dataset.nclear}); }
+});
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -662,6 +716,7 @@ async function openTab(name){
   if(name==="sales"){ loadSales(); return; }
   if(name==="seasonal"){ loadSeasonal(); return; }
   if(name==="hours"){ loadHours(); return; }
+  if(name==="notify"){ loadNotify(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -676,7 +731,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
@@ -687,10 +742,15 @@ document.addEventListener("click", async e=>{
 
 /* ---------- Bourbon Club ---------- */
 let club = null;
+const clubWhen = () => club ? DAYN[club.day] + "s at " + hrT(club.time) : "once a week";
+function showClubWhen(){ if(!club) return; $("#cs-day").value = club.day; $("#cs-time").value = club.time; $("#club-help").textContent = `Every ${DAYN[club.day]} at ${hrT(club.time)}, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.`; }
+$("#cs-save").onclick = async ()=>{
+  try{ club = await api("/api/bourbon-club",{action:"schedule", day:$("#cs-day").value, time:$("#cs-time").value}); showClubWhen(); setClubSwitch(club.sending); $("#cs-status").textContent = `Saved. Goes out every ${DAYN[club.day]} at ${hrT(club.time)}.`; }catch(err){ toast(err.message,true); }
+};
 const cwGet = () => Object.fromEntries($$("[data-cw]").map(i=>[i.dataset.cw, i.value]));
 function fillWording(c){ $$("[data-cw]").forEach(i=>{ i.value = c[i.dataset.cw] || ""; }); }
 $("#cw-save").onclick = async ()=>{
-  try{ club = await api("/api/bourbon-club",{action:"saveEmail", content: cwGet()}); fillWording(club.email); $("#cw-status").textContent = "Saved. The next Thursday email uses this wording."; }catch(err){ toast(err.message,true); }
+  try{ club = await api("/api/bourbon-club",{action:"saveEmail", content: cwGet()}); fillWording(club.email); $("#cw-status").textContent = "Saved. The next weekly email uses this wording."; }catch(err){ toast(err.message,true); }
 };
 $("#cw-reset").onclick = ()=>{ if(!confirm("Put all the email wording back to the standard text? Tap Save Wording afterward to keep it.")) return; fillWording({...club.defaults}); $("#cw-status").textContent = "Standard wording is in the boxes. Tap Save Wording to keep it."; };
 $("#cw-preview").onclick = async ()=>{
@@ -703,7 +763,7 @@ async function loadClub(){
     + `<p class="help">${club.members.filter(m=>m.source==="sign").length} joined from the QR sign in the store.</p>`
     + (club.last ? `<p class="help">Last email: ${fmtDate(club.last.date)}, ${club.last.bottles} bottles, sent to ${club.last.sent}.</p>` : `<p class="help">No weekly email sent yet.</p>`)
     + (club.ready ? "" : `<p class="help" style="color:var(--red)">Email sending isn't connected yet (BREVO_API_KEY in Netlify). Sign-ups are still being saved.</p>`);
-  setClubSwitch(club.sending);
+  showClubWhen(); setClubSwitch(club.sending);
   if(!$("#club-wording").dataset.loaded){ $("#club-wording").dataset.loaded = "1"; fillWording(club.email); }
   $("#club-list").innerHTML = club.members.length
     ? `<table>${club.members.map(m=>`<tr><td>${esc(m.email)}<br><span class="help">Joined ${fmtDate(m.joined)}${m.source==="sign"?" · QR Sign":""}</span></td><td class="n"><button class="btn ghost club-rm" type="button" data-email="${esc(m.email)}">Remove</button></td></tr>`).join("")}</table>`
@@ -712,13 +772,13 @@ async function loadClub(){
 function setClubSwitch(on){
   $("#club-on").setAttribute("aria-checked", on);
   const st = $("#club-on-st"); st.className = "st" + (on ? " on" : "");
-  st.textContent = on ? "On · Sends Thursdays at 5 PM" : "Off · No emails will go out";
+  st.textContent = on ? "On · Sends " + clubWhen() : "Off · No emails will go out";
 }
 $("#club-on").addEventListener("click", async ()=>{
   const b = $("#club-on"), next = b.getAttribute("aria-checked") !== "true";
-  if(!next && !confirm("Turn off the Thursday Bourbon Club emails? Nothing will be sent until you turn them back on.")) return;
+  if(!next && !confirm("Turn off the weekly Bourbon Club emails? Nothing will be sent until you turn them back on.")) return;
   b.disabled = true;
-  try{ club = await api("/api/bourbon-club",{action:"sending", on: next}); setClubSwitch(club.sending); toast(next ? "Thursday Emails: On" : "Thursday Emails: Off"); }
+  try{ club = await api("/api/bourbon-club",{action:"sending", on: next}); setClubSwitch(club.sending); toast(next ? "Weekly Emails: On" : "Weekly Emails: Off"); }
   catch(err){ toast(err.message, true); }
   b.disabled = false;
 });

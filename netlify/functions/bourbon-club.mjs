@@ -58,6 +58,12 @@ async function storeTools(b) {
     const cur = (await store.get("bourbon-club-settings", { type: "json" })) || {};
     await store.setJSON("bourbon-club-settings", { ...cur, sending: !!b.on, changed: new Date().toISOString() });
   }
+  if (b.action === "schedule") {       // which day and time the weekly email goes out
+    const day = Number(b.day), time = String(b.time || "");
+    if (!(day >= 0 && day <= 6) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return json({ error: "Pick a day and a time." }, 400);
+    const cur = (await store.get("bourbon-club-settings", { type: "json" })) || {};
+    await store.setJSON("bourbon-club-settings", { ...cur, day, time });
+  }
   if (b.action === "saveEmail") {      // the words in the weekly email (blank = standard wording)
     await store.setJSON("bourbon-club-email", cleanContent(b.content));
   }
@@ -78,7 +84,7 @@ async function storeTools(b) {
   const last = await store.get("bourbon-club-sent", { type: "json" });
   const settings = (await store.get("bourbon-club-settings", { type: "json" })) || {};
   const email = cleanContent(await store.get("bourbon-club-email", { type: "json" }));
-  return json({ email, defaults: DEFAULTS, limits: LIMITS, sending: settings.sending !== false, count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
+  return json({ email, defaults: DEFAULTS, limits: LIMITS, sending: settings.sending !== false, day: Number.isInteger(settings.day) ? settings.day : 4, time: settings.time || "17:00", count: members.length, members, last: last ? { date: last.date, sent: last.sent, bottles: (last.bottles || []).length } : null, ready: !!process.env.BREVO_API_KEY });
 }
 
 export const config = { path: "/api/bourbon-club" };
