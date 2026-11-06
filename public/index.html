@@ -244,6 +244,8 @@
   .flavors{list-style:none;margin:6px 0 2px;padding:0;max-width:260px;font-size:15px}
   .flavors li{display:flex;justify-content:space-between;gap:10px;padding:2px 0;border-bottom:1px dotted var(--line)}
   .flavors li b{font-weight:700;color:#1F7A3E;font-size:14px}
+  .flavors li{flex-wrap:wrap}
+  .fl-note{flex-basis:100%;display:block;font-size:13px;font-weight:500;color:var(--muted);line-height:1.35;margin-top:2px;text-decoration:none}
   .flavors li.out span{color:var(--muted);text-decoration:line-through}
   .flavors li.out b{color:var(--muted)}
   ul.gear .status{margin-top:2px}
@@ -762,10 +764,11 @@ function menuPhoto(f, key){
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
 
 // Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
-let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[] };
-function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[] }; }
-const isRemoved = name => !!swMenu.removed[name];
-const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker)];
+let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[], variants:{}, deleted:{} };
+function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
+const isRemoved = name => !!(swMenu.removed[name] || swMenu.deleted[name]);
+const isDeleted = name => !!swMenu.deleted[name];
+const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker && !c.outdoor)];
 // Items in one Made Here group, in the saved order (new items go to the bottom until moved).
 function foodItems(group, withRemoved){
   return ordered(allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name))), swMenu.order[group]);
@@ -785,6 +788,11 @@ const makerKeys = () => [...new Set(LOCAL.map(l=>l.maker)), ...swMenu.newMakers.
 const makerInfo = m => { const nm = swMenu.newMakers.find(x=>x.id===m), base = LOCAL.find(l=>l.maker===m) || {};
   const e = swMenu.makers[m] || {}; return { name: e.name || (nm ? nm.name : m), where: e.where != null ? e.where : (nm ? nm.where : base.where || "") }; };
 const localItems = (m, withRemoved) => ordered([...LOCAL.filter(l=>l.maker===m), ...swMenu.custom.filter(c=>c.maker===m)].filter(l=>withRemoved || !isRemoved(l.name)), swMenu.order["local:"+m]);
+
+// Grilling & Outdoor: built-in list + items added in Store Tools, in the saved order ("outdoor"). Removed/deleted are keyed "Outdoor: <name>".
+const outdoorItems = withRemoved => ordered([...OUTDOOR, ...swMenu.custom.filter(c=>c.outdoor)].filter(g=>withRemoved ? !isDeleted(outdoorKey(g.name)) : !isRemoved(outdoorKey(g.name))), swMenu.order.outdoor);
+// Flavors (like the pellets): [{v, note}] — edited in Store Tools, else the built-in list.
+const flavorsOf = g => swMenu.variants[outdoorKey(g.name)] || (g.variants||[]).map(v=>({ v, note:"" }));
 
 
 // Grilling & Outdoor: shown to everyone (not behind the 21+ check).
@@ -990,16 +998,16 @@ function render(){
   // grilling & outdoor
   const gearPrices = g => menuPrices(g, outdoorKey(g.name)).filter(r=>r[1]);
   let gearShown=0;
-  $("#gear").innerHTML = OUTDOOR.map(g=>{
-    const vars = (g.variants||[]).map(v=>({ v, on: switches[variantKey(g.name, v)] !== false }));
+  $("#gear").innerHTML = outdoorItems().map(g=>{
+    const vars = flavorsOf(g).map(x=>({ v:x.v, note:x.note, on: switches[variantKey(g.name, x.v)] !== false }));
     const st = switches[outdoorKey(g.name)] !== false && (!vars.length || vars.some(x=>x.on));   // In Stock unless switched off in Store Tools
-    if(!matches(menuLabel(g, outdoorKey(g.name))+" "+(g.desc||"")+" "+(g.variants||[]).join(" "), qRaw)) return "";
+    if(!matches(menuLabel(g, outdoorKey(g.name))+" "+(g.desc||"")+" "+vars.map(x=>x.v+" "+x.note).join(" "), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
     const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
     const gph = menuPhoto({photo:""}, outdoorKey(g.name));
     return `<li class="${st===false?"is-out":""}">${gph?`<img class="g-ph" src="${esc(gph)}" alt="" loading="lazy">`:""}<div class="g-main"><span class="name">${highlight(menuLabel(g, outdoorKey(g.name)),qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
-      ${vars.length?`<ul class="flavors">${vars.map(x=>`<li class="${x.on?"":"out"}"><span>${highlight(x.v,qRaw)}</span><b>${x.on?"In Stock":"Out of Stock"}</b></li>`).join("")}</ul>`:""}
+      ${vars.length?`<ul class="flavors">${vars.map(x=>`<li class="${x.on?"":"out"}"><span>${highlight(x.v,qRaw)}</span><b>${x.on?"In Stock":"Out of Stock"}</b>${x.note?`<small class="fl-note">${esc(x.note)}</small>`:""}</li>`).join("")}</ul>`:""}
       ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div><span class="stcol">${status}${switches[outdoorKey(g.name)]===false?nbtn("o:"+outdoorKey(g.name),menuLabel(g, outdoorKey(g.name))):""}</span></li>`;
   }).join("");
   // Only the rows in OUTDOOR show here (no extra KORONA products).

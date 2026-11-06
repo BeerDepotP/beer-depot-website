@@ -17,7 +17,7 @@ function menuPhoto(f, key){
   return f.photo ? (FOOD_PHOTOS[f.photo] || "") : "";
 }
 (function(){
-  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},makers:{},newMakers:[],removed:{"Ribeye":true},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
+  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},makers:{},newMakers:[],variants:{},deleted:{},removed:{"Ribeye":true},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
@@ -39,20 +39,21 @@ function menuPhoto(f, key){
       if(b.check) return ok({ok:true});
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="toppings"){ f.toppings = b.list; return ok({ok:true,...f}); }
-      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name); if(c) c.desc = b.desc; }
+      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name.replace(/^Outdoor: /,"")); if(c) c.desc = b.desc; }
         if(b.label) e.label = b.label; else delete e.label;
         if("photo" in b){ if(b.photo) e.photo = b.photo; else delete e.photo; }
         if(Object.keys(e).length) f.edits[b.name] = e; else delete f.edits[b.name];
         if(Array.isArray(b.prices)) f.prices[b.name] = b.prices;
         return ok({ok:true,...f}); }
-      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); f.prices[n] = b.prices; f.items[n] = true; return ok({ok:true,...f}); }
+      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.outdoor?{name:n,label:b.label,outdoor:true,desc:b.desc}:b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); const k = b.outdoor?"Outdoor: "+n:n; f.prices[k] = b.prices; f.items[k] = true; return ok({ok:true,...f}); }
       if(b.action==="maker"){ f.makers[b.key] = {name:b.name,where:b.where}; return ok({ok:true,...f}); }
       if(b.action==="addMaker"){ f.newMakers.push({id:"m-"+Date.now().toString(36),name:b.name,where:b.where}); return ok({ok:true,...f}); }
       if(b.action==="deleteMaker"){ f.newMakers = f.newMakers.filter(m=>m.id!==b.key); f.custom = f.custom.filter(c=>c.maker!==b.key); return ok({ok:true,...f}); }
       if(b.action==="order"){ f.order[b.group] = b.names; return ok({ok:true,...f}); }
       if(b.action==="removeItem"){ f.removed[b.name] = true; delete f.specials[b.name]; return ok({ok:true,...f}); }
       if(b.action==="restoreItem"){ delete f.removed[b.name]; return ok({ok:true,...f}); }
-      if(b.action==="deleteItem"){ f.custom = f.custom.filter(x=>x.name!==b.name); delete f.removed[b.name]; return ok({ok:true,...f}); }
+      if(b.action==="deleteItem"){ const id = b.name.replace(/^Outdoor: /,""); if(!id.startsWith("c-")) f.deleted[b.name] = true; f.custom = f.custom.filter(x=>x.name!==id); delete f.removed[b.name]; return ok({ok:true,...f}); }
+      if(b.action==="variants"){ f.variants[b.name] = b.list; return ok({ok:true,...f}); }
       if(b.action==="special"){ if(!b.on) delete f.specials[b.name]; else { if(!b.prices.length) return ok({error:"Enter a special price."},400); f.specials[b.name] = {on:true,prices:b.prices,until:b.until}; } return ok({ok:true,...f}); }
       if(typeof b.inStock === "boolean"){ f.items[b.name] = b.inStock; return ok({ok:true,...f}); }
       return ok({ok:true,...f});

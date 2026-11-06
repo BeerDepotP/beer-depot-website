@@ -118,9 +118,18 @@
   .add-item{margin:6px 0 14px} .add-item summary{cursor:pointer;font-weight:700;color:var(--orange)}
   .add-item .ai{display:grid;gap:8px;margin-top:8px} .add-item input{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
   .add-item .ai-p{display:grid;grid-template-columns:1fr 110px;gap:8px}
-  .mk-where{font-weight:600;font-size:15px;color:var(--muted)} h3.grp .mk-edit{margin-left:10px;vertical-align:middle;font:700 13px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer} .mk-edit[aria-expanded="true"]{background:var(--glass);color:#fff}
+  .mk-where{font-weight:600;font-size:15px;color:var(--muted)} .mk-edit{font:700 13px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer} h3.grp .mk-edit{margin-left:10px;vertical-align:middle} .mk-edit[aria-expanded="true"]{background:var(--glass);color:#fff}
   .mk-panel{display:grid;gap:8px;margin-bottom:10px} .mk-panel input{display:block;width:100%;box-sizing:border-box;font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;margin-top:4px}
   .add-mk{margin-top:18px;font-size:17px}
+  .ask{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+  .ask[hidden]{display:none} .ask-box{background:#fff;border-radius:16px;padding:20px;max-width:380px;width:100%}
+  .ask-box p{font-size:18px;font-weight:700;margin:0 0 16px;line-height:1.35} .ask-btns{display:grid;gap:8px}
+  .ask-yes-red{background:#C8102E!important;border-color:#C8102E!important}
+  .fl-n{display:block;font-size:13px;margin:2px 0 0}
+  .fl-panel{display:grid!important;gap:10px;background:#FBF7F3}
+  .fl-row{display:grid;gap:6px;padding-bottom:10px;border-bottom:1px solid #E5DCD3}
+  .fl-row input,.fl-row textarea{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;width:100%;box-sizing:border-box}
+  .fl-row .btn,.fl-panel>.btn{width:auto;margin:0;justify-self:start;padding:6px 12px;font-size:14px}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -220,10 +229,10 @@
     <p class="help">Use the arrows to change the order. Tap Edit Company to change a company's name or city. Tap Edit on an item to change its name, price or picture, or remove it from the website.</p>
     <div id="local"></div>
     <h2 class="sec more" id="j-gear">Grilling &amp; Outdoor</h2>
-    <p class="help">Switch an item off to show Out of Stock. Tap Edit on any item to change its name, price or picture.</p>
+    <p class="help">Switch an item off to show Out of Stock. Use the arrows to change the order. Tap Edit to change the name, price or picture, or remove it from the website. Tap Edit Flavors to add, rename or remove flavors and add notes (like what's in the Perfect Mix).</p>
     <div id="gear"></div>
     <h2 class="sec more" id="j-removed">Removed From the Website</h2>
-    <p class="help">Made Here items you removed. They don't show on the website. Tap Put Back to show one again.</p>
+    <p class="help">Items you removed. They don't show on the website. Tap Put Back to show one again, or Delete Forever to get rid of it for good.</p>
     <div id="removed"></div>
   </section>
 
@@ -389,11 +398,21 @@
     </form>
   </section>
 </main>
+<div class="ask" id="ask" hidden role="dialog" aria-modal="true" aria-labelledby="ask-msg"><div class="ask-box"><p id="ask-msg"></p>
+  <div class="ask-btns"><button class="btn" type="button" id="ask-yes">Yes</button><button class="btn ghost" type="button" id="ask-no">Cancel</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="/menu.js"></script>
 <script>
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+// Our own Yes/Cancel pop-up (the browser's confirm box is blocked in some places, like the demo).
+function askYes(msg, yes, red){
+  return new Promise(res=>{ const box=$("#ask"), y=$("#ask-yes"), n=$("#ask-no");
+    $("#ask-msg").textContent = msg; y.textContent = yes || "Yes"; y.classList.toggle("ask-yes-red", !!red); box.hidden = false; y.focus();
+    const done = v => { box.hidden = true; y.onclick = n.onclick = box.onclick = null; document.removeEventListener("keydown", key); res(v); };
+    const key = e => { if(e.key==="Escape") done(false); };
+    y.onclick = ()=>done(true); n.onclick = ()=>done(false); box.onclick = e=>{ if(e.target===box) done(false); };
+    document.addEventListener("keydown", key); }); }
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
@@ -430,7 +449,9 @@ function current(item, section){
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
-let makerOpen = null;
+let makerOpen = null, flDrafts = {};
+document.addEventListener("input", e=>{ const r = e.target.closest && e.target.closest(".fl-row"); if(!r) return;
+  const key = r.closest(".gear-card").querySelector("[data-fl]").dataset.fl; flDrafts[key][+r.dataset.i][e.target.dataset.flf] = e.target.value; });
 function applyFood(j){
   if(!j) return;
   switches = j.items || switches; swPrices = j.prices || swPrices; swEdits = j.edits || swEdits;
@@ -439,7 +460,8 @@ function applyFood(j){
 }
 document.addEventListener("click", async e=>{
   const m = e.target.closest("[data-mv]");
-  if(m){ const key = m.dataset.key, f = ITEMS[key].item, g = f.maker ? "local:"+f.maker : f.group, list = (f.maker ? localItems(f.maker) : foodItems(f.group)).map(x=>x.name), i = list.indexOf(key), j = i + +m.dataset.mv;
+  if(m){ const key = m.dataset.key, f = ITEMS[key].item, od = ITEMS[key].section==="outdoor", g = od ? "outdoor" : f.maker ? "local:"+f.maker : f.group,
+    list = (od ? outdoorItems() : f.maker ? localItems(f.maker) : foodItems(f.group)).map(x=>x.name), cur = od ? f.name : key, i = list.indexOf(cur), j = i + +m.dataset.mv;
     if(j<0 || j>=list.length) return; [list[i], list[j]] = [list[j], list[i]];
     swMenu.order[g] = list; renderFood();
     const again = document.querySelector(`[data-mv="${m.dataset.mv}"][data-key="${CSS.escape(key)}"]`); if(again) again.focus();
@@ -449,23 +471,35 @@ document.addEventListener("click", async e=>{
   if(ad){ const box = ad.closest(".add-item"), v = k => box.querySelector(`[data-ai="${k}"]`).value.trim();
     if(!v("label")){ toast("Give the item a name.",true); return; }
     ad.disabled = true;
-    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, maker: ad.dataset.maker || "", label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
+    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, maker: ad.dataset.maker || "", outdoor: !!ad.dataset.outdoor, label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
     catch(err){ ad.disabled = false; toast(err.message,true); }
     return; }
+  const flb = e.target.closest("[data-fl]");
+  if(flb){ const k = flb.dataset.fl; if(flDrafts[k]) delete flDrafts[k]; else flDrafts[k] = flavorsOf(ITEMS[k].item).map(x=>({...x})); renderFood(); return; }
+  const fla = e.target.closest("[data-fladd]");
+  if(fla){ flDrafts[fla.dataset.fladd].push({v:"",note:""}); renderFood(); const ins = $$(`.fl-row input[data-flf=v]`); if(ins.length) ins[ins.length-1].focus(); return; }
+  const flr = e.target.closest("[data-flrm]");
+  if(flr){ const key = flr.closest(".gear-card").querySelector("[data-fl]").dataset.fl;
+    flDrafts[key].splice(+flr.dataset.flrm,1); renderFood(); return; }
+  const flc = e.target.closest("[data-flcancel]");
+  if(flc){ delete flDrafts[flc.dataset.flcancel]; renderFood(); return; }
+  const fls = e.target.closest("[data-flsave]");
+  if(fls){ const key = fls.dataset.flsave, list = flDrafts[key].filter(x=>x.v.trim());
+    try{ applyFood(await api("/api/food-stock",{ action:"variants", name:key, list })); delete flDrafts[key]; renderFood(); toast("Flavors Saved"); }catch(err){ toast(err.message,true); } return; }
   const mk = e.target.closest("[data-mk]");
   if(mk){ makerOpen = makerOpen===mk.dataset.mk ? null : mk.dataset.mk; renderFood(); return; }
   const ms = e.target.closest("[data-mksave]");
   if(ms){ const p = ms.closest(".mk-panel"), v = k => p.querySelector(`[data-mkf="${k}"]`).value.trim();
     try{ applyFood(await api("/api/food-stock",{ action:"maker", key: ms.dataset.mksave, name:v("name"), where:v("where") })); makerOpen = null; renderFood(); toast(v("name") + ": Saved"); }catch(err){ toast(err.message,true); } return; }
   const md = e.target.closest("[data-mkdel]");
-  if(md){ if(!confirm("Delete this company and the items you added to it? This can't be undone.")) return;
+  if(md){ if(!(await askYes("Delete this company and the items you added to it? This can't be undone."))) return;
     try{ applyFood(await api("/api/food-stock",{ action:"deleteMaker", key: md.dataset.mkdel })); makerOpen = null; renderFood(); toast("Company Deleted"); }catch(err){ toast(err.message,true); } return; }
   if(e.target.closest("#mk-add")){ const n = $("#mk-new-name").value.trim(); if(!n){ toast("Give the company a name.",true); return; }
     try{ applyFood(await api("/api/food-stock",{ action:"addMaker", name:n, where:$("#mk-new-where").value.trim() })); renderFood(); toast(n + ": Added. Now add its items."); }catch(err){ toast(err.message,true); } return; }
   const rs = e.target.closest("[data-restore]");
   if(rs){ try{ applyFood(await api("/api/food-stock",{ action:"restoreItem", name:rs.dataset.restore })); renderFood(); toast("Back on the Website"); }catch(err){ toast(err.message,true); } return; }
   const dl = e.target.closest("[data-delete]");
-  if(dl){ if(!confirm("Delete this item forever? This can't be undone.")) return;
+  if(dl){ if(!(await askYes("Delete " + (dl.dataset.label||"this item") + " forever? It can't be put back after this.", "Delete Forever", true))) return;
     try{ applyFood(await api("/api/food-stock",{ action:"deleteItem", name:dl.dataset.delete })); renderFood(); toast("Deleted"); }catch(err){ toast(err.message,true); } return; }
 });
 /* ----- Edit drop-down (name, price, picture) ----- */
@@ -490,7 +524,7 @@ function editPanel(key){
       <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
         ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
         ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
-    ${ITEMS[key].section==="food" ? foodExtras(key, d) : ITEMS[key].section==="local" ? `${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>` : ""}
+    ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${(key.startsWith("c-")||key.startsWith("Outdoor: c-"))?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>` : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
 }
 const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
@@ -554,19 +588,31 @@ function renderFood(){
     + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
         <ul class="sw-list">${toppingList().map(topRow).join("")}<li class="top-add"><input id="top-new" maxlength="30" placeholder="New Topping (e.g. Pineapple)" aria-label="New topping name" autocomplete="off"><button class="btn" type="button" id="top-add">Add</button></li></ul></details>` : "")).join("");
   const det = document.querySelector("details.toppings"); if(det) det.addEventListener("toggle", ()=>{ toppingsOpen = det.open; });
-  $("#gear").innerHTML = OUTDOOR.map(g=>{
+  $("#gear").innerHTML = outdoorItems().map(g=>{
     const key = outdoorKey(g.name), on = switches[key] !== false;
-    ITEMS[key] = { item:{ ...g, photo:"" }, base:{ label:g.name, prices:g.prices } };
-    return `<div class="card gear-card"><ul class="sw-list"><li><span><span class="nm">${esc(menuLabel(g,key))}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+    ITEMS[key] = { item:{ ...g, photo:"" }, section:"outdoor", base:{ label:g.label||g.name, prices:g.prices||[] } };
+    const fl = flavorsOf(g), fd = flDrafts[key];
+    return `<div class="card gear-card"><ul class="sw-list"><li><span class="mv"><button type="button" data-mv="-1" data-key="${esc(key)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(key)}" aria-label="Move down">▼</button></span><span><span class="nm">${esc(menuLabel(g,key))}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
       ${editBtn(key)}
       <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(g.name)} in stock" data-name="${esc(key)}" data-label="${esc(menuLabel(g,key))}"></button>${editPanel(key)}</li>
-      ${(g.variants||[]).map(v=>{ const vk = variantKey(g.name, v), von = switches[vk] !== false;
-        return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span></span>
-        <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul></div>`;
-  }).join("");
-  const gone = [...FOOD_GROUPS.flatMap(g=>foodItems(g,true)), ...makerKeys().flatMap(m=>localItems(m,true))].filter(f=>isRemoved(f.name));
-  $("#removed").innerHTML = gone.length ? gone.map(f=>`<div class="rm-row"><span><b>${esc(menuLabel(f))}</b><br><span class="help">${esc(f.maker ? "Local Favorites · " + makerInfo(f.maker).name : f.group)}</span></span><span>
-    <button class="btn" type="button" data-restore="${esc(f.name)}">Put Back</button>${f.name.startsWith("c-")?`<button class="btn ghost" type="button" data-delete="${esc(f.name)}">Delete Forever</button>`:""}</span></div>`).join("") : '<p class="help">Nothing removed.</p>';
+      ${fl.map(x=>{ const v = x.v, vk = variantKey(g.name, v), von = switches[vk] !== false;
+        return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span>${x.note?`<span class="help fl-n">${esc(x.note)}</span>`:""}</span>
+        <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} in stock" data-name="${esc(vk)}" data-label="${esc(v)}"></button></li>`; }).join("")}
+      <li class="var-row"><button class="mk-edit" type="button" data-fl="${esc(key)}" aria-expanded="${!!fd}">${fl.length?"Edit Flavors and Notes":"+ Add Flavors"}</button></li>
+      ${fd ? `<li class="fl-panel">${fd.map((x,i)=>`<div class="fl-row" data-i="${i}"><input data-flf="v" value="${esc(x.v)}" maxlength="40" placeholder="Flavor Name" aria-label="Flavor name">
+          <textarea data-flf="note" rows="2" maxlength="300" placeholder="Note (Optional, Example: Hickory, Cherry and Maple)" aria-label="Note">${esc(x.note)}</textarea>
+          <button class="btn ghost" type="button" data-flrm="${i}">Remove Flavor</button></div>`).join("")}
+        <button class="btn ghost" type="button" data-fladd="${esc(key)}">+ Add Flavor</button>
+        <div class="ep-act"><button class="btn" type="button" data-flsave="${esc(key)}">Save Flavors</button><button class="btn ghost" type="button" data-flcancel="${esc(key)}">Cancel</button></div></li>` : ""}</ul></div>`;
+  }).join("") + `<details class="add-item"><summary>+ Add an Item to Grilling &amp; Outdoor</summary><div class="ai">
+      <input data-ai="label" maxlength="60" placeholder="Name (Example: Wood Chips)" aria-label="New item name">
+      <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
+      <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price (Optional)" aria-label="Price"></div>
+      <button class="btn" type="button" data-additem="" data-outdoor="1">Add Item</button></div></details>`;
+  const gone = [...FOOD_GROUPS.flatMap(g=>foodItems(g,true)).map(f=>[f,f.name,f.group]), ...makerKeys().flatMap(m=>localItems(m,true)).map(f=>[f,f.name,"Local Favorites · " + makerInfo(f.maker).name]),
+    ...outdoorItems(true).map(g=>[g,outdoorKey(g.name),"Grilling & Outdoor"])].filter(([f,k])=>isRemoved(k) && !isDeleted(k));
+  $("#removed").innerHTML = gone.length ? gone.map(([f,k,where])=>`<div class="rm-row"><span><b>${esc(menuLabel(f,k))}</b><br><span class="help">${esc(where)}</span></span><span>
+    <button class="btn" type="button" data-restore="${esc(k)}">Put Back</button><button class="btn ghost ep-rm" type="button" data-delete="${esc(k)}" data-label="${esc(menuLabel(f,k))}">Delete Forever</button></span></div>`).join("") : '<p class="help">Nothing removed.</p>';
   $("#local").innerHTML = makerKeys().map(m=>{ const info = makerInfo(m), open = makerOpen === m;
     return `<h3 class="grp" id="${jid(m)}">${esc(info.name)}<span class="mk-where">${info.where?" · "+esc(info.where):""}</span>
       <button class="mk-edit" type="button" data-mk="${esc(m)}" aria-expanded="${open}">Edit Company</button></h3>
@@ -589,7 +635,7 @@ document.addEventListener("click", async e=>{
   const eb = e.target.closest(".ebtn");
   if(eb){ const k = eb.dataset.edit; if(k in drafts) delete drafts[k]; else openDraft(k); renderFood(); return; }
   const tr = e.target.closest(".top-rm");
-  if(tr){ const name = tr.dataset.top; if(!confirm("Remove " + name + " from the toppings?")) return;
+  if(tr){ const name = tr.dataset.top; if(!(await askYes("Remove " + name + " from the toppings?"))) return;
     saveToppings(toppingList().filter(x=>x!==name), name + ": Removed"); return; }
   if(e.target.closest("#top-add")){ addTopping(); return; }
   const a = e.target.closest("[data-act]"), panel = e.target.closest(".edit-panel");
@@ -600,13 +646,13 @@ document.addEventListener("click", async e=>{
   else if(act==="nophoto"){ d.photo = "none"; d.preview = ""; renderFood(); }
   else if(act==="origphoto"){ d.photo = ""; d.preview = ""; renderFood(); }
   else if(act==="cancel"){ delete drafts[key]; renderFood(); }
-  else if(act==="removeitem"){ if(!confirm("Remove " + (d.label||key) + " from the website? It moves to the bottom of this page, where you can put it back.")) return;
+  else if(act==="removeitem"){ if(!(await askYes("Remove " + (d.label||key) + " from the website? It moves to the bottom of this page, where you can put it back."))) return;
     try{ applyFood(await api("/api/food-stock",{ action:"removeItem", name:key })); delete drafts[key]; renderFood(); toast((d.label||key) + ": Removed From the Website"); }catch(err){ toast(err.message,true); } }
   else if(act==="save"){
     const base = ITEMS[key].base, label = String(d.label||"").trim();
     const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
     if(d.photo !== undefined) body.photo = d.photo;
-    if(key.startsWith("c-")) body.desc = d.desc || "";
+    if(key.startsWith("c-") || key.startsWith("Outdoor: c-")) body.desc = d.desc || "";
     a.disabled = true;
     try{ let j = await api("/api/food-stock", body);
       if(ITEMS[key].section==="food" && d.sp && (d.sp.on || d.sp.was)){
@@ -716,10 +762,10 @@ $("#sl-list").addEventListener("input", e=>{
   const it = sales.items[+box.dataset.i]; it[k] = e.target.value;
   if(k==="price"||k==="was") box.querySelector(".sl-save-amt").textContent = slSaveText(it);
 });
-$("#sl-list").addEventListener("click", e=>{
+$("#sl-list").addEventListener("click", async e=>{
   const b = e.target.closest(".sl-rm"); if(!b) return;
   const i = +b.closest(".sl-item").dataset.i;
-  if(!confirm("Remove " + (sales.items[i].name || "this item") + "?")) return;
+  if(!(await askYes("Remove " + (sales.items[i].name || "this item") + "?"))) return;
   sales.items.splice(i,1); renderSales(); $("#sl-status").textContent = "Removed. Tap Save Sales to update the website.";
 });
 // photos: shrunk in the browser to about 1000px wide before upload
@@ -787,10 +833,10 @@ $("#se-list").addEventListener("input", e=>{
   const box = e.target.closest(".sl-item"), k = e.target.dataset.k; if(!box || !k || k==="photo") return;
   seasonal.items[+box.dataset.i][k] = e.target.value;
 });
-$("#se-list").addEventListener("click", e=>{
+$("#se-list").addEventListener("click", async e=>{
   const b = e.target.closest(".sl-rm"); if(!b) return;
   const i = +b.closest(".sl-item").dataset.i;
-  if(!confirm("Remove " + (seasonal.items[i].name || "this item") + "?")) return;
+  if(!(await askYes("Remove " + (seasonal.items[i].name || "this item") + "?"))) return;
   seasonal.items.splice(i,1); renderSeasonal(); $("#se-status").textContent = "Removed. Tap Save Seasonal to update the website.";
 });
 $("#se-list").addEventListener("change", async e=>{
@@ -845,7 +891,7 @@ $("#ov-add").onclick = ()=>{
   saveHours({overrides:[...hrOv.filter(x=>x.date!==date),o]},"#ov-status","Added. It shows on the website now and goes away on its own after that day.");
   $("#ov-note").value=""; $("#ov-date").value="";
 };
-$("#ov-list").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; if(!confirm("Remove this change?")) return;
+$("#ov-list").addEventListener("click",async e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; if(!(await askYes("Remove this change?"))) return;
   saveHours({overrides:hrOv.filter((_,i)=>i!==+b.dataset.rm)},"#ov-status","Removed."); });
 
 /* ---------- back in stock ---------- */
@@ -884,13 +930,13 @@ $("#nf-preview").onclick = async ()=>{
   const f = Object.fromEntries($$("[data-nf]").map(i=>[i.dataset.nf,i.value]));
   try{ const j = await api("/api/notify",{action:"previewEmail", form:f}); const fr = $("#nf-frame"); fr.hidden = false; fr.srcdoc = j.html; $("#nf-status").textContent = "Preview with a sample item. Subject: " + j.subject; }catch(err){ toast(err.message,true); }
 };
-$("#nf-reset").onclick = ()=>{ if(!confirm("Put the pop-up and email wording back to standard? Tap Save Pop-Up and Email Wording afterward to keep it.")) return; nfFill(nt.defaults); $("#nf-status").textContent = "Standard wording is in the boxes. Tap Save Pop-Up and Email Wording to keep it."; };
+$("#nf-reset").onclick = async ()=>{ if(!(await askYes("Put the pop-up and email wording back to standard? Tap Save Pop-Up and Email Wording afterward to keep it."))) return; nfFill(nt.defaults); $("#nf-status").textContent = "Standard wording is in the boxes. Tap Save Pop-Up and Email Wording to keep it."; };
 const loadNotify = () => ntCall({});
 $("#nt-on").onclick = ()=>ntCall({action:"settings", on: nt.on ? false : true, delayMin: nt.delayMin}, "");
 $("#nt-delay").onchange = ()=>ntCall({action:"settings", on: nt.on, delayMin: +$("#nt-delay").value}, "Saved.");
-$("#p-notify").addEventListener("click",e=>{
+$("#p-notify").addEventListener("click",async e=>{
   const r = e.target.closest("[data-ne]"); if(r){ ntCall({action:"removeEmail", key:r.dataset.nk, email:r.dataset.ne}); return; }
-  const c = e.target.closest("[data-nclear]"); if(c){ if(confirm("Remove everyone waiting on this item?")) ntCall({action:"clear", key:c.dataset.nclear}); }
+  const c = e.target.closest("[data-nclear]"); if(c){ if(await askYes("Remove everyone waiting on this item?")) ntCall({action:"clear", key:c.dataset.nclear}); }
 });
 
 /* ---------- layout (website buttons) ---------- */
@@ -921,13 +967,13 @@ async function loadLayout(){
 }
 const lyId = () => "c-" + Math.random().toString(36).slice(2,10);
 $("#ly-list").addEventListener("input",e=>{ const r=e.target.closest(".ly-row"); if(!r) return; const k=e.target.dataset.k; if(!k) return; ly.rows[+r.dataset.i][k] = e.target.type==="checkbox" ? e.target.checked : e.target.value; });
-$("#ly-list").addEventListener("click",e=>{
+$("#ly-list").addEventListener("click",async e=>{
   const t = e.target.closest("button"); if(!t) return;
   const mv = (i,d)=>{ const j=i+d; if(j<0||j>=ly.rows.length) return; [ly.rows[i],ly.rows[j]]=[ly.rows[j],ly.rows[i]]; lyRender(); $("#ly-status").textContent="Tap Save Layout to update the website."; const b=$(`#ly-list [data-${d<0?"up":"down"}="${j}"]`); if(b) b.focus(); };
   if(t.dataset.up!=null) return mv(+t.dataset.up,-1);
   if(t.dataset.down!=null) return mv(+t.dataset.down,1);
   if(t.dataset.sw!=null){ const r=ly.rows[+t.dataset.sw]; r.off=!r.off; lyRender(); $("#ly-status").textContent="Tap Save Layout to update the website."; return; }
-  if(t.dataset.rm!=null){ const r=ly.rows[+t.dataset.rm]; if(confirm("Remove the " + (r.name||"new") + " button?")){ ly.rows.splice(+t.dataset.rm,1); lyRender(); } return; }
+  if(t.dataset.rm!=null){ const r=ly.rows[+t.dataset.rm]; if(await askYes("Remove the " + (r.name||"new") + " button?")){ ly.rows.splice(+t.dataset.rm,1); lyRender(); } return; }
   if(t.dataset.gx!=null){ const [i,g]=t.dataset.gx.split(":").map(Number); ly.rows[i].groups.splice(g,1); lyRender(); return; }
   if(t.dataset.gadd!=null){ const i=+t.dataset.gadd, inp=$(`#ly-list [data-gin="${i}"]`), v=inp.value.trim(); if(!v) return;
     if(ly.groupNames.length && !ly.groupNames.some(n=>n.toLowerCase()===v.toLowerCase())){ toast("That group isn't in KORONA. Pick one from the list.",true); return; }
@@ -941,7 +987,7 @@ $("#ly-save").onclick = async ()=>{
   const items = ly.rows.map(r=>({ id:r.id, name: r.custom || (r.name.trim() && r.name.trim()!==r.def) ? r.name.trim() : "", off:r.off, custom:r.custom, open:r.open, groups:r.groups }));
   try{ lyBuild(await api("/api/layout",{action:"save", items})); lyRender(); $("#ly-status").textContent = "Saved. The buttons and sections update within a minute; KORONA group links apply in about a minute."; }catch(err){ toast(err.message,true); }
 };
-$("#ly-reset").onclick = async ()=>{ if(!confirm("Put all the buttons back to the standard order and names? New buttons and group links are removed.")) return;
+$("#ly-reset").onclick = async ()=>{ if(!(await askYes("Put all the buttons back to the standard order and names? New buttons and group links are removed."))) return;
   try{ lyBuild(await api("/api/layout",{action:"reset"})); lyRender(); $("#ly-status").textContent = "Back to the standard layout."; }catch(err){ toast(err.message,true); } };
 
 /* ---------- tabs ---------- */
@@ -993,7 +1039,7 @@ function fillWording(c){ $$("[data-cw]").forEach(i=>{ i.value = c[i.dataset.cw] 
 $("#cw-save").onclick = async ()=>{
   try{ club = await api("/api/bourbon-club",{action:"saveEmail", content: cwGet()}); fillWording(club.email); $("#cw-status").textContent = "Saved. The next weekly email uses this wording."; }catch(err){ toast(err.message,true); }
 };
-$("#cw-reset").onclick = ()=>{ if(!confirm("Put all the email wording back to the standard text? Tap Save Wording afterward to keep it.")) return; fillWording({...club.defaults}); $("#cw-status").textContent = "Standard wording is in the boxes. Tap Save Wording to keep it."; };
+$("#cw-reset").onclick = async ()=>{ if(!(await askYes("Put all the email wording back to the standard text? Tap Save Wording afterward to keep it."))) return; fillWording({...club.defaults}); $("#cw-status").textContent = "Standard wording is in the boxes. Tap Save Wording to keep it."; };
 $("#cw-preview").onclick = async ()=>{
   try{ const j = await api("/api/bourbon-club",{action:"previewEmail", content: cwGet()}); const f = $("#cw-frame"); f.hidden = false; f.srcdoc = j.html; $("#cw-status").textContent = "Preview with sample bottles. Subject: " + j.subject; }catch(err){ toast(err.message,true); }
 };
@@ -1017,7 +1063,7 @@ function setClubSwitch(on){
 }
 $("#club-on").addEventListener("click", async ()=>{
   const b = $("#club-on"), next = b.getAttribute("aria-checked") !== "true";
-  if(!next && !confirm("Turn off the weekly Bourbon Club emails? Nothing will be sent until you turn them back on.")) return;
+  if(!next && !(await askYes("Turn off the weekly Bourbon Club emails? Nothing will be sent until you turn them back on."))) return;
   b.disabled = true;
   try{ club = await api("/api/bourbon-club",{action:"sending", on: next}); setClubSwitch(club.sending); toast(next ? "Weekly Emails: On" : "Weekly Emails: Off"); }
   catch(err){ toast(err.message, true); }
@@ -1038,7 +1084,7 @@ $("#club-dl").onclick = ()=>{
 };
 document.addEventListener("click", async e=>{
   const b = e.target.closest && e.target.closest(".club-rm"); if(!b) return;
-  if(!confirm("Remove " + b.dataset.email + " from the Bourbon Club?")) return;
+  if(!(await askYes("Remove " + b.dataset.email + " from the Bourbon Club?"))) return;
   try{ await api("/api/bourbon-club",{action:"remove", email:b.dataset.email}); toast("Removed"); loadClub(); }catch(err){ toast(err.message, true); }
 });
 

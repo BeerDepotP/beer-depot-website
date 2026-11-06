@@ -43,7 +43,7 @@ function tidy(d) {      // drop specials that have ended
   return d;
 }
 const view = d => ({ ok: true, items: d.items || {}, prices: d.prices || {}, edits: d.edits || {}, toppings: d.toppings || null,
-  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], updated: d.updated });
+  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, updated: d.updated });
 async function saveData(store, d) { tidy(d); d.updated = new Date().toISOString(); await store.setJSON(KEY, d); return json(view(d)); }
 
 export default async (req) => {
@@ -83,14 +83,15 @@ export default async (req) => {
 
   if (body.action === "addItem") {
     const d = (await store.get(KEY, { type: "json" })) || { items: {} };
-    const label = title(clean(body.label, 60)), group = clean(body.group, 40), maker = clean(body.maker, 60);
-    if (!label || !(group || maker)) return json({ error: "Give the item a name." }, 400);
+    const label = title(clean(body.label, 60)), group = clean(body.group, 40), maker = clean(body.maker, 60), outdoor = !!body.outdoor;
+    if (!label || !(group || maker || outdoor)) return json({ error: "Give the item a name." }, 400);
     d.custom = d.custom || [];
     if (d.custom.length >= 150) return json({ error: "That's the limit of added items." }, 400);
     const name = "c-" + Date.now().toString(36);
-    d.custom.push(maker ? { name, label, maker, desc: clean(body.desc, 120) } : { name, label, group, desc: clean(body.desc, 120) });
-    d.prices = d.prices || {}; d.prices[name] = priceRows(body.prices);
-    d.items[name] = true;
+    d.custom.push(outdoor ? { name, label, outdoor: true, desc: clean(body.desc, 120) } : maker ? { name, label, maker, desc: clean(body.desc, 120) } : { name, label, group, desc: clean(body.desc, 120) });
+    const key = outdoor ? "Outdoor: " + name : name;
+    d.prices = d.prices || {}; d.prices[key] = priceRows(body.prices);
+    d.items[key] = true;
     return saveData(store, d);
   }
   if (body.action === "order") {
@@ -130,6 +131,17 @@ export default async (req) => {
     return saveData(store, d);
   }
 
+  if (body.action === "variants") {        // flavors of a Grilling & Outdoor item: [{ v, note }]
+    const d = (await store.get(KEY, { type: "json" })) || { items: {} };
+    const key = clean(body.name, 120);
+    if (!key.startsWith("Outdoor: ") || !Array.isArray(body.list)) return json({ error: "Bad request." }, 400);
+    const seen = new Set();
+    const list = body.list.map(x => ({ v: title(clean(x && x.v, 40)), note: clean(x && x.note, 300) }))
+      .filter(x => x.v && !seen.has(x.v.toLowerCase()) && seen.add(x.v.toLowerCase())).slice(0, 30);
+    d.variants = d.variants || {}; d.variants[key] = list;
+    return saveData(store, d);
+  }
+
   if (body.action === "toppings") {
     if (!Array.isArray(body.list)) return json({ error: "Bad request." }, 400);
     const seen = new Set();
@@ -148,8 +160,13 @@ export default async (req) => {
     if (body.action === "removeItem") { data.removed[name] = true; if (data.specials) delete data.specials[name]; }
     if (body.action === "restoreItem") delete data.removed[name];
     if (body.action === "deleteItem") {
-      if (!name.startsWith("c-")) return json({ error: "Only items added in Store Tools can be deleted." }, 400);
-      data.custom = (data.custom || []).filter(c => c.name !== name);
+      const id = name.replace(/^Outdoor: /, "");
+      if (!id.startsWith("c-")) {       // a built-in item: hide it for good (it stays in the code, but never shows again)
+        data.deleted = data.deleted || {}; data.deleted[name] = true; delete data.removed[name];
+        return saveData(store, data);
+      }
+      data.custom = (data.custom || []).filter(c => c.name !== id);
+      if (data.variants) delete data.variants[name];
       for (const k of ["removed", "prices", "edits", "specials", "items"]) if (data[k]) delete data[k][name];
       for (const g of Object.keys(data.order || {})) data.order[g] = data.order[g].filter(n => n !== name);
     }
@@ -171,7 +188,7 @@ export default async (req) => {
   }
 
   if (body.action === "edit") {
-    if (typeof body.desc === "string" && name.startsWith("c-")) { const c = (data.custom || []).find(x => x.name === name); if (c) c.desc = clean(body.desc, 120); }
+    if (typeof body.desc === "string") { const id = name.replace(/^Outdoor: /, ""); const c = (data.custom || []).find(x => x.name === id); if (c) c.desc = clean(body.desc, 120); }
     data.edits = data.edits || {};
     data.prices = data.prices || {};
     const e = { ...(data.edits[name] || {}) };

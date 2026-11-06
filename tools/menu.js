@@ -113,10 +113,11 @@ function menuPhoto(f, key){
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
 
 // Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
-let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[] };
-function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[] }; }
-const isRemoved = name => !!swMenu.removed[name];
-const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker)];
+let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[], variants:{}, deleted:{} };
+function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
+const isRemoved = name => !!(swMenu.removed[name] || swMenu.deleted[name]);
+const isDeleted = name => !!swMenu.deleted[name];
+const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker && !c.outdoor)];
 // Items in one Made Here group, in the saved order (new items go to the bottom until moved).
 function foodItems(group, withRemoved){
   return ordered(allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name))), swMenu.order[group]);
@@ -136,3 +137,8 @@ const makerKeys = () => [...new Set(LOCAL.map(l=>l.maker)), ...swMenu.newMakers.
 const makerInfo = m => { const nm = swMenu.newMakers.find(x=>x.id===m), base = LOCAL.find(l=>l.maker===m) || {};
   const e = swMenu.makers[m] || {}; return { name: e.name || (nm ? nm.name : m), where: e.where != null ? e.where : (nm ? nm.where : base.where || "") }; };
 const localItems = (m, withRemoved) => ordered([...LOCAL.filter(l=>l.maker===m), ...swMenu.custom.filter(c=>c.maker===m)].filter(l=>withRemoved || !isRemoved(l.name)), swMenu.order["local:"+m]);
+
+// Grilling & Outdoor: built-in list + items added in Store Tools, in the saved order ("outdoor"). Removed/deleted are keyed "Outdoor: <name>".
+const outdoorItems = withRemoved => ordered([...OUTDOOR, ...swMenu.custom.filter(c=>c.outdoor)].filter(g=>withRemoved ? !isDeleted(outdoorKey(g.name)) : !isRemoved(outdoorKey(g.name))), swMenu.order.outdoor);
+// Flavors (like the pellets): [{v, note}] — edited in Store Tools, else the built-in list.
+const flavorsOf = g => swMenu.variants[outdoorKey(g.name)] || (g.variants||[]).map(v=>({ v, note:"" }));
