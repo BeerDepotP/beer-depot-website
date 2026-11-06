@@ -34,7 +34,8 @@ export const DEFAULT_FORM = {
   fields: [],        // extra boxes: [{ id, label, type: "text" | "tel", required }]
 };
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
-export function cleanForm(f = {}) {
+export function cleanForm(f) {
+  f = f || {};
   const pick = (k, n, keepEmpty) => { const v = typeof f[k] === "string" ? one(f[k], n) : DEFAULT_FORM[k]; return v || (keepEmpty ? "" : DEFAULT_FORM[k]); };
   const fields = (Array.isArray(f.fields) ? f.fields : []).slice(0, 5).map((x, i) => ({
     id: "f" + (i + 1), label: one(x && x.label, 40), type: x && x.type === "tel" ? "tel" : "text", required: !!(x && x.required),
@@ -44,7 +45,8 @@ export function cleanForm(f = {}) {
 
 const esc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // The Back in Stock email (same look every time; the words come from the form settings).
-export function notifyEmail(name, token, form, info = DEFAULT_INFO) {
+export function notifyEmail(name, token, form, info) {
+  info = { ...DEFAULT_INFO, ...(info || {}) };
   const f = cleanForm(form), unsub = `${SITE}/api/notify?unsub=${token}`;
   const html = `<!doctype html><html><body style="margin:0;background:#F3EBE2;font-family:Arial,Helvetica,sans-serif"><div style="max-width:560px;margin:0 auto;padding:20px">
  <div style="background:#2B1B12;border-radius:14px;padding:22px;color:#E8D9CC">

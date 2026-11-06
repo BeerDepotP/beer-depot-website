@@ -15,7 +15,8 @@ export const DEFAULTS = {
   bottom: "",
 };
 export const LIMITS = { subject: 120, heading: 80, tagline: 160, top: 1000, info: 400, bottom: 1000 };
-export function cleanContent(c = {}) {
+export function cleanContent(c) {
+  c = c || {};          // nothing saved yet comes back as null
   const o = {};
   for (const k of Object.keys(DEFAULTS)) {
     const v = typeof c[k] === "string" ? c[k].replace(/\r/g, "").trim().slice(0, LIMITS[k]) : "";
@@ -27,7 +28,8 @@ const para = (t, style) => t ? `<p style="${style}">${esc(t).replace(/\n/g, "<br
 import { DEFAULT_INFO, telOf } from "./info.mjs";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-export function clubEmail(bottles, token, content, info = DEFAULT_INFO) {
+export function clubEmail(bottles, token, content, info) {
+  info = { ...DEFAULT_INFO, ...(info || {}) };
   const c = cleanContent(content), ADDRESS = info.address, PHONE = info.phone;
   const unsub = `${SITE}/api/bourbon-club?unsub=${token}`;
   const list = bottles.map(n => `<li style="padding:8px 0;border-bottom:1px solid #4E3626;font-size:17px;color:#fff">${esc(n)}</li>`).join("");
@@ -52,7 +54,8 @@ export function clubEmail(bottles, token, content, info = DEFAULT_INFO) {
 
 // One email through Brevo (also used by the Back in Stock emails).
 // info (optional): from storeInfo() — fromName and replyTo set in Store Tools → Banners & Text → Emails.
-export async function sendMail({ to, subject, html, text, unsub, info = {} }) {
+export async function sendMail({ to, subject, html, text, unsub, info }) {
+  info = info || {};
   const from = { ...FROM(), name: info.fromName || FROM().name }, reply = { email: info.replyTo || from.email, name: from.name };
   const key = process.env.BREVO_API_KEY;
   if (!key) throw new Error("BREVO_API_KEY isn't set in Netlify yet.");

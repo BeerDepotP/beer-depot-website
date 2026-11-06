@@ -53,7 +53,8 @@ const T = /^([01]\d|2[0-3]):[0-5]\d$/, DT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const nowCT = () => new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).slice(0, 16).replace(" ", "T");
 
-function merged(d = {}) {
+function merged(d) {
+  d = d || {};          // nothing saved yet comes back as null
   return { hotHam: { ...DEFAULTS.hotHam, ...(d.hotHam || {}) }, announce: { ...DEFAULTS.announce, ...(d.announce || {}) }, text: { ...DEFAULTS.text, ...(d.text || {}) },
     info: { ...DEFAULTS.info, ...(d.info || {}) }, settings: { ...DEFAULTS.settings, ...(d.settings || {}) },
     colors: { ...DEFAULTS.colors, ...(d.colors || {}) }, images: { ...DEFAULTS.images, ...(d.images || {}) },

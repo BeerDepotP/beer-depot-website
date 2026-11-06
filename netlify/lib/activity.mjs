@@ -4,7 +4,8 @@ const q = s => String(s ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
 const nm = s => q(String(s || "").replace(/^Outdoor: /, "").replace(/^Topping: /, "Topping "));
 
 // What a request changes, in plain words (null = it only reads).
-export function describe(area, b = {}) {
+export function describe(area, b) {
+  b = b || {};
   const a = b.action;
   switch (area) {
     case "food":
