@@ -114,7 +114,7 @@
   .ep-sp{border:2px solid #C8102E;border-radius:12px;padding:10px;display:grid;gap:8px}
   .ep-sp .sp-row{display:grid;grid-template-columns:1fr auto 110px;gap:8px;align-items:center;font-size:15px}
   .ep-sp input[type=text],.ep-sp input[type=datetime-local]{font:600 16px var(--body);padding:8px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
-  .ep-rm{color:#C8102E;border-color:#C8102E}
+  .rm-site{color:#C8102E!important;border-color:#C8102E!important;width:100%;margin:0}
   .add-item{margin:6px 0 14px} .add-item summary{cursor:pointer;font-weight:700;color:var(--orange)}
   .add-item .ai{display:grid;gap:8px;margin-top:8px} .add-item input{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
   .add-item .ai-p{display:grid;grid-template-columns:1fr 110px;gap:8px}
@@ -526,7 +526,7 @@ function editPanel(key){
       <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
         ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
         ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
-    ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${(key.startsWith("c-")||key.startsWith("Outdoor: c-"))?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>` : ""}
+    ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${(key.startsWith("c-")||key.startsWith("Outdoor: c-"))?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost rm-site" type="button" data-act="removeitem">Remove From Website</button>` : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
 }
 const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
@@ -534,10 +534,10 @@ const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",mon
 function foodExtras(key, d){
   const sp = d.sp;
   return `${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}
-    <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows at the Top of Made Here)</label>
+    <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows First in Its List)</label>
     ${sp.on ? d.prices.filter(r=>String(r[0]).trim()).map((r,i)=>`<div class="sp-row"><span>${esc(r[0])}</span><span class="help" style="margin:0">Regular ${r[1]?"$"+esc(r[1]):"–"}</span><input type="text" inputmode="decimal" data-f="spp" data-l="${esc(r[0])}" value="${esc(sp.prices[r[0]]||"")}" placeholder="Special $" aria-label="Special price for ${esc(r[0])}"></div>`).join("")
       + `<label class="help" style="margin:0">Special Ends (Optional, Store Time)<input type="datetime-local" data-f="spuntil" value="${esc(sp.until||"")}"></label><p class="help" style="margin:0">It turns itself off then. Leave blank to keep it on until you turn it off.</p>` : ""}</div>
-    <button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>`;
+    <button class="btn ghost rm-site" type="button" data-act="removeitem">Remove From Website</button>`;
 }
 function openDraft(key){
   const b = ITEMS[key].base;
@@ -614,13 +614,13 @@ function renderFood(){
   const gone = [...FOOD_GROUPS.flatMap(g=>foodItems(g,true)).map(f=>[f,f.name,f.group]), ...makerKeys().flatMap(m=>localItems(m,true)).map(f=>[f,f.name,"Local Favorites · " + makerInfo(f.maker).name]),
     ...outdoorItems(true).map(g=>[g,outdoorKey(g.name),"Grilling & Outdoor"])].filter(([f,k])=>isRemoved(k) && !isDeleted(k));
   $("#removed").innerHTML = gone.length ? gone.map(([f,k,where])=>`<div class="rm-row"><span><b>${esc(menuLabel(f,k))}</b><br><span class="help">${esc(where)}</span></span><span>
-    <button class="btn" type="button" data-restore="${esc(k)}">Put Back</button><button class="btn ghost ep-rm" type="button" data-delete="${esc(k)}" data-label="${esc(menuLabel(f,k))}">Delete Forever</button></span></div>`).join("") : '<p class="help">Nothing removed.</p>';
+    <button class="btn" type="button" data-restore="${esc(k)}">Put Back</button><button class="btn ghost rm-site" type="button" data-delete="${esc(k)}" data-label="${esc(menuLabel(f,k))}">Delete Forever</button></span></div>`).join("") : '<p class="help">Nothing removed.</p>';
   $("#local").innerHTML = makerKeys().map(m=>{ const info = makerInfo(m), open = makerOpen === m;
     return `<h3 class="grp" id="${jid(m)}">${esc(info.name)}<span class="mk-where">${info.where?" · "+esc(info.where):""}</span>
       <button class="mk-edit" type="button" data-mk="${esc(m)}" aria-expanded="${open}">Edit Company</button></h3>
     ${open ? `<div class="card mk-panel" data-mkp="${esc(m)}"><label class="help" style="margin:0">Company Name<input data-mkf="name" maxlength="50" value="${esc(info.name)}"></label>
       <label class="help" style="margin:0">City<input data-mkf="where" maxlength="50" value="${esc(info.where)}" placeholder="Example: Watertown, WI"></label>
-      <div class="ep-act"><button class="btn" type="button" data-mksave="${esc(m)}">Save</button>${m.startsWith("m-")?`<button class="btn ghost ep-rm" type="button" data-mkdel="${esc(m)}">Delete Company</button>`:""}</div></div>` : ""}
+      <div class="ep-act"><button class="btn" type="button" data-mksave="${esc(m)}">Save</button>${m.startsWith("m-")?`<button class="btn ghost rm-site" type="button" data-mkdel="${esc(m)}">Delete Company</button>`:""}</div></div>` : ""}
     <ul class="sw-list">${localItems(m).map(l=>swRow(l,"local")).join("") || '<li><span class="help" style="margin:0">No items yet.</span></li>'}</ul>
     <details class="add-item"><summary>+ Add an Item to ${esc(info.name)}</summary><div class="ai">
       <input data-ai="label" maxlength="60" placeholder="Name (Example: Cajun Snack Stick)" aria-label="New item name">
