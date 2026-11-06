@@ -47,6 +47,10 @@
   a{color:inherit}
   :focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:4px}
   .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+  /* the page's sections follow the button order from Store Tools → Layout */
+  #main{display:flex;flex-direction:column}
+  #drinks{display:contents}
+  #drinks > section.shelf{width:100%;max-width:1040px;margin-left:auto;margin-right:auto;padding-left:20px;padding-right:20px;box-sizing:border-box}
 
   /* ---------- header / hero ---------- */
   .hero{background:var(--glass);color:#fff;padding:18px 0 34px}
@@ -582,7 +586,7 @@ let HOURS = [
 ];
 
 // open:true = shown to everyone (not behind the 21+ check).
-const SECTIONS = [
+const DEFAULT_SECTIONS = [
   { id:"cocktails", name:"Ready to Drink Cocktails" },
   { id:"beer",    name:"Beer" },
   { id:"nonalc",  name:"Non-Alcoholic" },
@@ -598,6 +602,37 @@ const SECTIONS = [
   { id:"liqueur", name:"Liqueur" },
   { id:"mixers",  name:"Soda & Mixers", open:true },
 ];
+let SECTIONS = DEFAULT_SECTIONS.slice();
+// Buttons and sections can be moved, renamed, removed and added in Store Tools → Layout (blob "layout").
+// The top bar and the Browse side menu are always built from this one list, so they always match.
+const STATIC_NAV = [["made-here","Made Here"],["on-sale","On Sale"],["seasonal","Seasonal"],["local-favorites","Local Favorites"],["grilling-outdoor","Grilling & Outdoor"],["new-arrivals","New Arrivals"]];
+const LAYOUT_URL = STOCK_URL ? "/api/layout" : null;
+let LAYOUT = null;      // [{id, name?, off?, custom?, open?}] from Store Tools, or null = standard
+const layoutOf = id => (LAYOUT||[]).find(x=>x.id===id) || {};
+const navName = (id, def) => layoutOf(id).name || def;
+function layoutOrder(){
+  const defaults = [...STATIC_NAV.map(x=>x[0]), ...DEFAULT_SECTIONS.map(s=>s.id)];
+  const known = new Set([...defaults, ...(LAYOUT||[]).filter(x=>x.custom).map(x=>x.id)]);
+  const saved = (LAYOUT||[]).map(x=>x.id).filter(id=>known.has(id));
+  return [...saved, ...defaults.filter(id=>!saved.includes(id))];
+}
+function applyLayoutSections(){
+  const base = new Map(DEFAULT_SECTIONS.map(s=>[s.id,s]));
+  for(const c of (LAYOUT||[]).filter(x=>x.custom)) base.set(c.id,{id:c.id,name:c.name,open:!!c.open});
+  SECTIONS = layoutOrder().filter(id=>base.has(id) && !layoutOf(id).off).map(id=>({...base.get(id), name: navName(id, base.get(id).name)}));
+}
+// Puts the page's sections in the same order as the buttons, hides removed ones, applies new names.
+if(LAYOUT_URL){ try{ LAYOUT = JSON.parse(localStorage.getItem("bd-layout")||"null"); applyLayoutSections(); }catch(e){} }   // last-known layout, so the page doesn't jump on load
+function applyOrder(){
+  const ids = layoutOrder(), at = id => ids.indexOf(id)*10;
+  for(const [id,def] of STATIC_NAV){
+    const el = document.getElementById(id); if(!el) continue;
+    el.style.order = at(id); el.style.display = layoutOf(id).off ? "none" : "";
+    const h = el.querySelector(".shelf-head h2"); if(h && id!=="seasonal") h.textContent = navName(id, def);
+  }
+  const cat = document.getElementById("catering"); if(cat) cat.style.order = at("made-here")+5;
+  document.querySelectorAll("#drinks > section").forEach(el=>{ el.style.order = el.id ? at(el.id) : 999; });
+}
 // Sections split into smaller parts (by KORONA commodity group or tag), in this order.
 const SUBSECTIONS = {
   nonalc: [["beer","Beer"],["wine","Wine"],["spirits","Spirits"],[undefined,"More Non-Alcoholic"]],
@@ -790,6 +825,7 @@ else { renderSales(SAMPLE_SALES); renderSeasonal(SAMPLE_SEASONAL); }
 if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; swEdits = c.swe || {}; swToppings = c.swt || null; } }
 
 async function load(){
+  if(LAYOUT_URL) fetch(LAYOUT_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return; LAYOUT = (j.items && j.items.length) ? j.items : null; try{ localStorage.setItem("bd-layout", JSON.stringify(LAYOUT)); }catch(e){} applyLayoutSections(); render(); }).catch(()=>{});
   if(NOTIFY_URL) fetch(NOTIFY_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ notifyOn = !!(j && j.on); if(j && j.form) NFORM = j.form; render(); }).catch(()=>{});
   if(SEASONAL_URL) fetch(SEASONAL_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSeasonal(j); try{ localStorage.setItem("bd-seasonal", JSON.stringify(j.on ? j : null)); }catch(e){} render(); } }).catch(()=>{});
   if(SALES_URL) fetch(SALES_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(j){ renderSales(j.on ? j.items : []); try{ localStorage.setItem("bd-sales", JSON.stringify(j.on ? j.items : [])); }catch(e){} render(); } }).catch(()=>{});
@@ -1022,12 +1058,24 @@ function render(){
   fitAlloc();
   setTimeout(()=>{ balanceChips(); setBarOffset(); spy(); }, 0);
 
-  // chips
+  // chips (the Browse side menu is copied from these, so both always have the same order)
   const present = SECTIONS.filter(s=>(!foodOnly || s.open) && document.getElementById(s.id));   // expired sections never render
+  applyOrder();
   setTimeout(setBarOffset, 0);
   $("#chips").dataset.built = "0";
-  $("#chips").innerHTML = (foodShown?'<a class="chip food" href="#made-here">Made Here</a>':"") + (saleItems.length ? '<a class="chip sale-chip" href="#on-sale">On Sale</a>' : "") + (seasonal.items.length ? `<a class="chip seasonal-chip" href="#seasonal">${esc(seasonal.title)}</a>` : "") + (localShown?'<a class="chip" href="#local-favorites">Local Favorites</a>':"") + (gearShown?'<a class="chip" href="#grilling-outdoor">Grilling &amp; Outdoor</a>':"") + (fresh.length?'<a class="chip" href="#new-arrivals">New Arrivals</a>':"") + present.map(s=>`<a class="chip" href="#${s.id}">${esc(s.name)}</a>`
-    + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "")).join("");
+  const navHtml = {
+    "made-here": foodShown && `<a class="chip food" href="#made-here">${esc(navName("made-here","Made Here"))}</a>`,
+    "on-sale": saleItems.length && `<a class="chip sale-chip" href="#on-sale">${esc(navName("on-sale","On Sale"))}</a>`,
+    "seasonal": seasonal.items.length && `<a class="chip seasonal-chip" href="#seasonal">${esc(seasonal.title)}</a>`,
+    "local-favorites": localShown && `<a class="chip" href="#local-favorites">${esc(navName("local-favorites","Local Favorites"))}</a>`,
+    "grilling-outdoor": gearShown && `<a class="chip" href="#grilling-outdoor">${esc(navName("grilling-outdoor","Grilling & Outdoor"))}</a>`,
+    "new-arrivals": fresh.length && `<a class="chip" href="#new-arrivals">${esc(navName("new-arrivals","New Arrivals"))}</a>`,
+  };
+  $("#chips").innerHTML = layoutOrder().filter(id=>!layoutOf(id).off).map(id=>{
+    if(id in navHtml) return navHtml[id] || "";
+    const s = present.find(x=>x.id===id); if(!s) return "";
+    return `<a class="chip" href="#${s.id}">${esc(s.name)}</a>` + (s.id==="whiskey" && document.getElementById("allocated") ? '<a class="chip alloc-chip" href="#allocated">Allocated Bourbon</a>' : "");
+  }).join("");
 }
 
 /* ---------- hours ---------- */

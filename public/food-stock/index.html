@@ -109,6 +109,16 @@
   .nf-row label{font-size:15px;display:flex;gap:6px;align-items:center;white-space:nowrap}
   .nf-row .btn{width:auto;margin:0;padding:6px 12px;grid-column:1/-1;justify-self:start;font-size:14px}
   .nf-add{display:flex;gap:8px;flex-wrap:wrap} .nf-add .btn{width:auto;margin:0;padding:8px 14px;font-size:15px}
+  .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
+  .ly-top input{font:700 17px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0;width:100%;box-sizing:border-box}
+  .ly-arrows{display:flex;flex-direction:column;gap:4px} .ly-arrows button{width:42px;height:30px;border:2px solid #CFC6BE;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;padding:0}
+  .ly-row.is-off{opacity:.55} .ly-sub{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .ly-sub .btn{width:auto;margin:0;padding:5px 12px;font-size:14px}
+  .ly-gl{margin-top:8px} .ly-gl summary{cursor:pointer;font-weight:700;font-size:15px}
+  .ly-tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0} .ly-tag{background:#F3EBE2;border-radius:999px;padding:4px 6px 4px 12px;font-size:14px;display:flex;gap:6px;align-items:center}
+  .ly-tag button{border:0;background:#D8CCC0;border-radius:999px;width:22px;height:22px;cursor:pointer;padding:0;line-height:1}
+  .ly-gadd{display:flex;gap:8px} .ly-gadd input{flex:1;font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0} .ly-gadd .btn{width:auto;margin:0;padding:6px 14px}
+  #ly-new{font:600 17px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:12px}
   #nt-delay{font:600 17px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:12px;min-width:0}
   .nt-row summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-weight:700}
   .nt-row .n{color:var(--orange)} .nt-p{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #E5DCD3;font-size:16px;word-break:break-all}
@@ -167,6 +177,7 @@
     <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
     <button class="tab" role="tab" data-tab="hours" aria-selected="false">Hours</button>
     <button class="tab" role="tab" data-tab="notify" aria-selected="false">Back in Stock</button>
+    <button class="tab" role="tab" data-tab="layout" aria-selected="false">Layout</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -281,6 +292,21 @@
     </div>
   </section>
 
+  <section id="p-layout" hidden>
+    <h2 class="sec">Website Buttons</h2>
+    <p class="help">These are the buttons in the top bar and in the 3-line Browse menu. Both always show the same buttons in the same order, and the sections on the page follow that order too. Use the arrows to move one, rename it, turn it off to remove it, or link it to KORONA groups so those products show under it.</p>
+    <div id="ly-list"></div>
+    <div class="card sp-card" style="margin:12px 0">
+      <h3 class="grp" style="margin:0">Add a Button</h3>
+      <input id="ly-new" maxlength="40" placeholder="Name (Example: Craft Cans)" autocomplete="off" aria-label="New button name">
+      <button class="btn ghost" type="button" id="ly-add">+ Add Button</button>
+    </div>
+    <button class="btn" type="button" id="ly-save">Save Layout</button>
+    <button class="btn ghost" type="button" id="ly-reset">Back to Standard Layout</button>
+    <p class="sp-status" id="ly-status" role="status"></p>
+    <datalist id="ly-groups"></datalist>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -350,7 +376,7 @@ const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAl
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","hours","notify","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","hours","notify","layout","nofind","top","requests","club"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -756,6 +782,57 @@ $("#p-notify").addEventListener("click",e=>{
   const c = e.target.closest("[data-nclear]"); if(c){ if(confirm("Remove everyone waiting on this item?")) ntCall({action:"clear", key:c.dataset.nclear}); }
 });
 
+/* ---------- layout (website buttons) ---------- */
+let ly = null;   // { rows:[{id,name,def,off,custom,open,groups}], groupNames, builtin }
+const lyIsStatic = id => ["made-here","on-sale","seasonal","local-favorites","grilling-outdoor","new-arrivals"].includes(id);
+function lyBuild(j){
+  const builtin = j.builtin || {}, saved = (j.items||[]).filter(x=>x.custom || x.id in builtin);
+  const rows = saved.map(x=>({ id:x.id, name:x.name||"", def: x.custom ? "" : builtin[x.id], off:!!x.off, custom:!!x.custom, open:!!x.open, groups:(x.groups||[]).slice() }));
+  for(const id of Object.keys(builtin)) if(!rows.some(r=>r.id===id)) rows.push({ id, name:"", def:builtin[id], off:false, custom:false, open:false, groups:[] });
+  ly = { rows, groupNames: j.groupNames||[], groupError: j.groupError||"", builtin };
+  $("#ly-groups").innerHTML = ly.groupNames.map(n=>`<option value="${esc(n)}">`).join("");
+}
+function lyRender(){
+  $("#ly-list").innerHTML = ly.rows.map((r,i)=>`<div class="card ly-row${r.off?" is-off":""}" data-i="${i}">
+    <div class="ly-top"><span class="ly-arrows"><button type="button" data-up="${i}" aria-label="Move up">▲</button><button type="button" data-down="${i}" aria-label="Move down">▼</button></span>
+      ${r.id==="seasonal" ? `<input value="Named in the Seasonal tab" disabled aria-label="Name">` : `<input data-k="name" value="${esc(r.name)}" placeholder="${esc(r.def||"Button name")}" maxlength="40" aria-label="Button name">`}
+      <button class="sw ly-sw" role="switch" aria-checked="${!r.off}" aria-label="Show this button" data-sw="${i}"></button></div>
+    <div class="ly-sub"><span class="help" style="margin:0">${r.off?"Off · Hidden from the website":"On"}${r.custom?" · New Button":""}</span>
+      ${r.custom?`<label style="font-size:14px"><input type="checkbox" data-k="open"${r.open?" checked":""}> Show to Under 21 Too</label><button class="btn ghost" type="button" data-rm="${i}">Remove</button>`:""}</div>
+    ${lyIsStatic(r.id) ? "" : `<details class="ly-gl"${r.groups.length||r.custom?" open":""}><summary>KORONA Groups (${r.groups.length})</summary>
+      <div class="ly-tags">${r.groups.length ? r.groups.map((g,gi)=>`<span class="ly-tag">${esc(g)}<button type="button" data-gx="${i}:${gi}" aria-label="Remove ${esc(g)}">×</button></span>`).join("") : '<span class="help" style="margin:0">Standard sorting. Add a group to show its products here.</span>'}</div>
+      <div class="ly-gadd"><input list="ly-groups" data-gin="${i}" placeholder="Pick or Type a KORONA Group" aria-label="KORONA group"><button class="btn ghost" type="button" data-gadd="${i}">Add</button></div></details>`}
+  </div>`).join("");
+  if(ly.groupError) $("#ly-status").textContent = ly.groupError;
+}
+async function loadLayout(){
+  try{ lyBuild(await api("/api/layout",{action:"list"})); lyRender(); }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); }
+}
+const lyId = () => "c-" + Math.random().toString(36).slice(2,10);
+$("#ly-list").addEventListener("input",e=>{ const r=e.target.closest(".ly-row"); if(!r) return; const k=e.target.dataset.k; if(!k) return; ly.rows[+r.dataset.i][k] = e.target.type==="checkbox" ? e.target.checked : e.target.value; });
+$("#ly-list").addEventListener("click",e=>{
+  const t = e.target.closest("button"); if(!t) return;
+  const mv = (i,d)=>{ const j=i+d; if(j<0||j>=ly.rows.length) return; [ly.rows[i],ly.rows[j]]=[ly.rows[j],ly.rows[i]]; lyRender(); $("#ly-status").textContent="Tap Save Layout to update the website."; const b=$(`#ly-list [data-${d<0?"up":"down"}="${j}"]`); if(b) b.focus(); };
+  if(t.dataset.up!=null) return mv(+t.dataset.up,-1);
+  if(t.dataset.down!=null) return mv(+t.dataset.down,1);
+  if(t.dataset.sw!=null){ const r=ly.rows[+t.dataset.sw]; r.off=!r.off; lyRender(); $("#ly-status").textContent="Tap Save Layout to update the website."; return; }
+  if(t.dataset.rm!=null){ const r=ly.rows[+t.dataset.rm]; if(confirm("Remove the " + (r.name||"new") + " button?")){ ly.rows.splice(+t.dataset.rm,1); lyRender(); } return; }
+  if(t.dataset.gx!=null){ const [i,g]=t.dataset.gx.split(":").map(Number); ly.rows[i].groups.splice(g,1); lyRender(); return; }
+  if(t.dataset.gadd!=null){ const i=+t.dataset.gadd, inp=$(`#ly-list [data-gin="${i}"]`), v=inp.value.trim(); if(!v) return;
+    if(ly.groupNames.length && !ly.groupNames.some(n=>n.toLowerCase()===v.toLowerCase())){ toast("That group isn't in KORONA. Pick one from the list.",true); return; }
+    const name = ly.groupNames.find(n=>n.toLowerCase()===v.toLowerCase()) || v;
+    if(!ly.rows[i].groups.includes(name)) ly.rows[i].groups.push(name); lyRender(); const again=$(`#ly-list [data-gin="${i}"]`); if(again) again.focus(); }
+});
+$("#ly-add").onclick = ()=>{ const n=$("#ly-new").value.trim(); if(!n){ toast("Type a name for the new button.",true); return; }
+  ly.rows.push({ id:lyId(), name:n, def:"", off:false, custom:true, open:false, groups:[] }); $("#ly-new").value=""; lyRender(); $("#ly-status").textContent="Added at the bottom. Move it, link KORONA groups, then tap Save Layout.";
+  const last=$$("#ly-list .ly-row").pop(); if(last) last.scrollIntoView({block:"center"}); };
+$("#ly-save").onclick = async ()=>{
+  const items = ly.rows.map(r=>({ id:r.id, name: r.custom || (r.name.trim() && r.name.trim()!==r.def) ? r.name.trim() : "", off:r.off, custom:r.custom, open:r.open, groups:r.groups }));
+  try{ lyBuild(await api("/api/layout",{action:"save", items})); lyRender(); $("#ly-status").textContent = "Saved. The buttons and sections update within a minute; KORONA group links apply in about a minute."; }catch(err){ toast(err.message,true); }
+};
+$("#ly-reset").onclick = async ()=>{ if(!confirm("Put all the buttons back to the standard order and names? New buttons and group links are removed.")) return;
+  try{ lyBuild(await api("/api/layout",{action:"reset"})); lyRender(); $("#ly-status").textContent = "Back to the standard layout."; }catch(err){ toast(err.message,true); } };
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   if(!TABS.includes(name)) name = "food";
@@ -769,6 +846,7 @@ async function openTab(name){
   if(name==="seasonal"){ loadSeasonal(); return; }
   if(name==="hours"){ loadHours(); return; }
   if(name==="notify"){ loadNotify(); return; }
+  if(name==="layout"){ loadLayout(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -783,7 +861,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;

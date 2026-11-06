@@ -135,7 +135,25 @@ function groupChain(groupId, groups) {
   return chain;
 }
 
-function sectionFor(groupId, groups) {
+// Store Tools → Layout can link KORONA commodity groups to website buttons (Blobs "layout"): group name -> section id.
+const normG = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+async function groupLinks() {
+  try {
+    const store = getStore({ name: "beer-depot", consistency: "strong" });
+    const lay = await store.get("layout", { type: "json" });
+    const links = {};
+    for (const it of (lay && lay.items) || []) for (const g of it.groups || []) links[normG(g)] = it.id;
+    return links;
+  } catch { return {}; }
+}
+
+// Names of every KORONA commodity group (for the Store Tools → Layout picker).
+export async function listGroupNames() {
+  const list = await getAll("/commodityGroups");
+  return [...new Set(list.map(g => (g.name || "").trim()).filter(n => n && !RETIRED.test(n)))].sort((a, b) => a.localeCompare(b));
+}
+
+function sectionFor(groupId, groups, links = {}) {
   const chain = [];
   for (let id = groupId, guard = 0; id && groups[id] && guard < 10; guard++) {
     chain.push(groups[id].name || "");
@@ -143,6 +161,7 @@ function sectionFor(groupId, groups) {
   }
   if (chain.some(n => BLOCK_RULES.test(n))) return null;
   for (const name of chain) {            // most specific group first
+    if (links[normG(name)]) return links[normG(name)];     // linked in Store Tools
     if (SECTION_BY_GROUP[name]) return SECTION_BY_GROUP[name];
     for (const [section, re] of SECTION_RULES) if (re.test(name)) return section;
   }
@@ -150,6 +169,7 @@ function sectionFor(groupId, groups) {
 }
 
 export async function buildStock() {
+  const links = await groupLinks();
   // 1. Commodity groups (for sections)
   const groupList = await getAll("/commodityGroups");
   const groups = {};
@@ -194,7 +214,7 @@ export async function buildStock() {
     const naSub = tags.map(t => NA_SUB_TAGS[t]).find(Boolean);
     const tagSection = allocated ? "whiskey" : naSub ? "nonalc" : tags.map(t => TAG_SECTIONS[t]).find(Boolean);
     const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
-    const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups));
+    const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups, links));
     if (tagSection) report.placedByTag = (report.placedByTag || 0) + 1;
     if (!section) {
       const gname = groups[p.commodityGroup?.id]?.name || "(no group)";

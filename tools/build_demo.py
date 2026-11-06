@@ -22,6 +22,7 @@ function menuPhoto(f, key){
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
     notify:{on:true,delayMin:60,form:{title:"Email Me When Back",intro:"We'll send you one email when it's back in stock.",button:"Email Me",thanks:"Got it! We'll email you when it's back.",emailSubject:"{item} Is Back in Stock at The Beer Depot",emailHeading:"It's Back in Stock!",emailNote:"Stop in or give us a call to grab it.",emailLink:"See What's In Stock",fields:[{id:"f1",label:"Name",type:"text",required:true},{id:"f2",label:"Phone Number",type:"tel",required:false}]},items:[{key:"k:Blanton's Single Barrel 750ml",name:"Blanton's Single Barrel 750ml",count:3,people:[{email:"jim@example.com",at:"2026-11-05T15:00:00Z"},{email:"sara@example.com",at:"2026-11-05T16:10:00Z"},{email:"dave@example.com",at:"2026-11-04T12:00:00Z"}]},{key:"f:Smoked Lasagna",name:"Smoked Lasagna",count:1,people:[{email:"pat@example.com",at:"2026-11-05T17:30:00Z"}]}],sent:[{at:"2026-11-04T14:05:00Z",name:"Spotted Cow 12pk Cans",count:2}]},
+    layout:{items:[],groups:["Beer - Domestic","Beer - Craft","Hard Seltzer","Whiskey","Bourbon","Vodka","Wine - Red","Wine - White","Tequila","Cigars (Not Shown)","Craft Cans","Kombucha"]},
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
@@ -66,6 +67,10 @@ function menuPhoto(f, key){
       if(b.action==="clear") n.items = n.items.filter(i=>i.key!==b.key);
       if(b.action==="removeEmail"){ const it = n.items.find(i=>i.key===b.key); if(it){ it.people = it.people.filter(p=>p.email!==b.email); it.count = it.people.length; } n.items = n.items.filter(i=>i.count); }
       return ok({ok:true,ready:true,defaults:{title:"Email Me When Back",intro:"We'll send you one email when it's back in stock.",button:"Email Me",thanks:"Got it! We'll email you when it's back.",emailSubject:"{item} Is Back in Stock at The Beer Depot",emailHeading:"It's Back in Stock!",emailNote:"Stop in or give us a call to grab it.",emailLink:"See What's In Stock",fields:[]},...n}); }
+    if(url.startsWith("/api/layout")){ const l = DB.layout;
+      if(b.action==="save") l.items = b.items.map(x=>Object.assign({},x,{name:x.name||undefined}));
+      if(b.action==="reset") l.items = [];
+      return ok({ok:true,items:l.items,groupNames:l.groups,groupError:"",builtin:{"made-here":"Made Here","on-sale":"On Sale","seasonal":"Seasonal","local-favorites":"Local Favorites","grilling-outdoor":"Grilling & Outdoor","new-arrivals":"New Arrivals",cocktails:"Ready to Drink Cocktails",beer:"Beer",nonalc:"Non-Alcoholic",seltzer:"Hard Seltzers",thc:"THC",whiskey:"Whiskey & Bourbon",wine:"Wine",tequila:"Tequila",vodka:"Vodka",brandy:"Brandy",gin:"Gin",rum:"Rum",liqueur:"Liqueur",mixers:"Soda & Mixers"}}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
