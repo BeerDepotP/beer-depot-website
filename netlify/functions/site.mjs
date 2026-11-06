@@ -3,6 +3,7 @@
 // POST /api/site { pin, action:"list" } | { pin, action:"save", hotHam?, announce?, text? }
 import { getStore } from "@netlify/blobs";
 import { checkPin, json } from "../lib/pin.mjs";
+import { DEFAULT_INFO } from "../lib/info.mjs";
 
 export const DEFAULTS = {
   hotHam: { on: true, day: 0, from: "09:00", until: "15:00", text: "Hot Ham Available Now Until {until}" },
@@ -14,21 +15,59 @@ export const DEFAULTS = {
     cateringTitle: "Party & Catering Orders",
     cateringText: "Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.",
     cateringButton: "Call to Order",
+    saleIntro: "Deals this week, while they last.",
+    localIntro: "Meat, cheese and bakery from local makers.",
+    outdoorIntro: "",
+    newIntro: "Just came in over the last two weeks.",
+    allocNote: "Hard-to-Find Bottles. Once They're Gone, They're Gone.",
+    allocRules: "Stock Updates Live · First Come, First Served · No Reservations",
+    clubTitle: "Join the Bourbon Club",
+    clubText: "Every Thursday at 5 PM, get our list of allocated bottles in stock.",
+    clubDone: "You're in! Watch for our email Thursday at 5 PM.",
+    requestTitle: "Don't See It? Ask Us to Bring It In.",
+    requestText: "Tell us what you'd like us to carry. We read every request and will call you if we get it in.",
+    gateTitle: "Are you 21 or older?",
+    gateText: "This site lists beer and spirits. You must be 21 to see them.",
+    gateYes: "Yes, I'm 21 or older",
+    gateNo: "No, just show me the food",
+    clubPageTitle: "Join the Bourbon Club",
+    clubPageLede: "Every Thursday at 5 PM, get our list of allocated bottles in stock.",
+    clubPageSub: "Hard-to-find bottles go fast. Be the first to know what's on the shelf.",
+    clubPageFine: "One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.",
+    clubPageDone: "Watch for our email Thursday at 5 PM.",
   },
+  info: { ...DEFAULT_INFO },
+  settings: { newDays: 14, thcUntil: "2026-12-11" },
+  colors: { main: "#F26B1D", dark: "#2B1A10", light: "#F3ECE3" },
+  images: { logo: "", icon: "" },      // uploaded logo / browser tab icon ("" = the built-in ones)
 };
+const HEX = /^#[0-9a-f]{6}$/i;
+const IMG_TYPES = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const MAX_IMG = 700 * 1024;
 const LIMITS = { heroTitle: 60, searchHint: 60, madeHereIntro: 300, cateringTitle: 60, cateringText: 500, cateringButton: 30 };
+const MAY_BE_EMPTY = new Set(["outdoorIntro"]);
 const T = /^([01]\d|2[0-3]):[0-5]\d$/, DT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const nowCT = () => new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).slice(0, 16).replace(" ", "T");
 
 function merged(d = {}) {
-  return { hotHam: { ...DEFAULTS.hotHam, ...(d.hotHam || {}) }, announce: { ...DEFAULTS.announce, ...(d.announce || {}) }, text: { ...DEFAULTS.text, ...(d.text || {}) } };
+  return { hotHam: { ...DEFAULTS.hotHam, ...(d.hotHam || {}) }, announce: { ...DEFAULTS.announce, ...(d.announce || {}) }, text: { ...DEFAULTS.text, ...(d.text || {}) },
+    info: { ...DEFAULTS.info, ...(d.info || {}) }, settings: { ...DEFAULTS.settings, ...(d.settings || {}) },
+    colors: { ...DEFAULTS.colors, ...(d.colors || {}) }, images: { ...DEFAULTS.images, ...(d.images || {}) } };
 }
 
 export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   const cur = merged(await store.get("site", { type: "json" }));
   if (req.method === "GET") {
+    const img = new URL(req.url).searchParams.get("img");
+    if (img) {
+      const id = img.replace(/[^a-z0-9.]/gi, "");
+      const buf = await store.get("site-img-" + id, { type: "arrayBuffer" });
+      if (!buf) return new Response("Not found", { status: 404 });
+      const ext = id.split(".").pop(), type = Object.keys(IMG_TYPES).find(t => IMG_TYPES[t] === ext) || "image/png";
+      return new Response(buf, { headers: { "content-type": type, "cache-control": "public, max-age=31536000, immutable" } });
+    }
     const a = cur.announce, live = a.on && a.text && !(a.until && a.until <= nowCT());
     return json({ ...cur, announce: live ? a : { on: false } });
   }
@@ -36,6 +75,22 @@ export default async (req) => {
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const bad = await checkPin(store, b.pin, "banners", b);
   if (bad) return json({ error: bad.error }, bad.status);
+  if (b.action === "image") {          // upload a new logo or tab icon, or go back to the built-in one
+    const kind = b.kind === "icon" ? "icon" : "logo", next = merged(cur);
+    if (b.reset) next.images[kind] = "";
+    else {
+      const m = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/.exec(String(b.data || ""));
+      if (!m) return json({ error: "Use a PNG, JPG or WEBP picture." }, 400);
+      const buf = Buffer.from(m[2], "base64");
+      if (buf.length > MAX_IMG) return json({ error: "That picture is too big. Try one under 700 KB." }, 400);
+      const id = kind + Date.now().toString(36) + "." + IMG_TYPES[m[1]];
+      await store.set("site-img-" + id, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length));
+      next.images[kind] = id;
+    }
+    next.updated = new Date().toISOString();
+    await store.setJSON("site", next);
+    return json({ ok: true, ...merged(next), defaults: DEFAULTS });
+  }
   if (b.action === "save") {
     const next = merged(cur);
     if (b.hotHam) {
@@ -52,8 +107,30 @@ export default async (req) => {
     }
     if (b.text) {
       const t = {};
-      for (const k of Object.keys(DEFAULTS.text)) t[k] = one(b.text[k], LIMITS[k]) || DEFAULTS.text[k];
+      for (const k of Object.keys(DEFAULTS.text)) {
+        const v = b.text[k] === undefined ? next.text[k] : one(b.text[k], LIMITS[k] || 400);
+        t[k] = v || (MAY_BE_EMPTY.has(k) ? "" : DEFAULTS.text[k]);
+      }
       next.text = t;
+    }
+    if (b.info) {
+      const phone = one(b.info.phone, 20), address = one(b.info.address, 120);
+      if (phone.replace(/\D/g, "").length !== 10) return json({ error: "Enter a 10-digit phone number." }, 400);
+      if (!address) return json({ error: "Enter the address." }, 400);
+      const d = phone.replace(/\D/g, "");
+      next.info = { phone: `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`, address };
+    }
+    if (b.colors) {
+      const c = b.colors.reset ? { ...DEFAULTS.colors } : { main: b.colors.main, dark: b.colors.dark, light: b.colors.light };
+      if (!Object.values(c).every(v => HEX.test(String(v || "")))) return json({ error: "Pick all three colors." }, 400);
+      next.colors = c;
+    }
+    if (b.settings) {
+      const n = Math.round(Number(b.settings.newDays));
+      if (!(n >= 1 && n <= 90)) return json({ error: "New Arrivals days must be 1 to 90." }, 400);
+      const thc = String(b.settings.thcUntil || "");
+      if (thc && !/^\d{4}-\d{2}-\d{2}$/.test(thc)) return json({ error: "Pick a date for the THC section." }, 400);
+      next.settings = { newDays: n, thcUntil: thc };
     }
     next.updated = new Date().toISOString();
     await store.setJSON("site", next);
@@ -63,3 +140,4 @@ export default async (req) => {
 };
 
 export const config = { path: "/api/site" };
+

@@ -47,9 +47,9 @@
 <body>
 <main>
   <a href="/"><img class="logo" src="/img/logo-orange.png" alt="The Beer Depot, Pewaukee WI"></a>
-  <h1>Join the Bourbon Club</h1>
-  <p class="lede">Every Thursday at 5 PM, get our list of allocated bottles in stock.</p>
-  <p class="sub">Hard-to-find bottles go fast. Be the first to know what's on the shelf.</p>
+  <h1 data-tx="clubPageTitle">Join the Bourbon Club</h1>
+  <p class="lede" data-tx="clubPageLede">Every Thursday at 5 PM, get our list of allocated bottles in stock.</p>
+  <p class="sub" data-tx="clubPageSub">Hard-to-find bottles go fast. Be the first to know what's on the shelf.</p>
 
   <div id="box">
     <form id="club-form" novalidate>
@@ -58,20 +58,27 @@
       <label class="age"><input type="checkbox" name="of_age" required> I'm 21 or Older</label>
       <button type="submit">Join the Club</button>
       <p class="msg" id="msg" role="status"></p>
-      <p class="fine">One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.</p>
+      <p class="fine" data-tx="clubPageFine">One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.</p>
     </form>
   </div>
 
   <div class="links">
     <a href="/#allocated">See What's In Stock Now</a>
-    <a href="tel:+12626964602">262-696-4602</a>
+    <a href="tel:+12626964602" id="phone">262-696-4602</a>
   </div>
 </main>
-<footer>The Beer Depot · N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072 · <a href="/">beerdepotpewaukee.com</a></footer>
+<footer>The Beer Depot · <span id="addr">N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072</span> · <a href="/">beerdepotpewaukee.com</a></footer>
 
 <script>
-const done = `<div class="done"><h2>You're In!</h2><p>Watch for our email Thursday at 5 PM.</p><p class="fine">Tip: add bourbon@beerdepotpewaukee.com to your contacts so it doesn't land in spam.</p></div>`;
-try{ if(localStorage.getItem("bd-club")==="1") document.getElementById("box").innerHTML = done; }catch(e){}
+let doneText = "Watch for our email Thursday at 5 PM.";
+const done = () => `<div class="done"><h2>You're In!</h2><p>${doneText.replace(/[<>&]/g,"")}</p><p class="fine">Tip: add bourbon@beerdepotpewaukee.com to your contacts so it doesn't land in spam.</p></div>`;
+try{ if(localStorage.getItem("bd-club")==="1") document.getElementById("box").innerHTML = done(); }catch(e){}
+// wording, phone and address from Store Tools → Banners & Text
+fetch("/api/site",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(d=>{ if(!d) return; const t = d.text || {};
+  document.querySelectorAll("[data-tx]").forEach(el=>{ if(t[el.dataset.tx]) el.textContent = t[el.dataset.tx]; });
+  if(t.clubPageDone){ doneText = t.clubPageDone; const p = document.querySelector(".done p"); if(p) p.textContent = doneText; }
+  if(d.info){ const ph = document.getElementById("phone"); ph.textContent = d.info.phone; ph.href = "tel:+1" + d.info.phone.replace(/\D/g,""); document.getElementById("addr").textContent = d.info.address; }
+}).catch(()=>{});
 const source = new URLSearchParams(location.search).get("from") || "page";
 const f = document.getElementById("club-form");
 if(f) f.addEventListener("submit", async e=>{
@@ -88,7 +95,7 @@ if(f) f.addEventListener("submit", async e=>{
     const d = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(d.error || "");
     try{ localStorage.setItem("bd-club","1"); }catch(e){}
-    document.getElementById("box").innerHTML = done;
+    document.getElementById("box").innerHTML = done();
   }catch(err){
     msg.textContent = err.message || "That didn't go through. Try again, or call us at 262-696-4602.";
     btn.disabled = false; btn.textContent = "Join the Club";

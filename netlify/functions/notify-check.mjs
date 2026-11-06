@@ -4,6 +4,7 @@
 import { getStore } from "@netlify/blobs";
 import { refreshSaved } from "./stock.mjs";
 import { sendMail } from "../lib/club-email.mjs";
+import { storeInfo } from "../lib/info.mjs";
 import { loadState, loadWants, isIn, cleanForm, notifyEmail } from "../lib/notify.mjs";
 
 export async function checkNotify(store) {
@@ -13,7 +14,7 @@ export async function checkNotify(store) {
   const keys = Object.keys(d.wants);
   if (!keys.length) { if (Object.keys(state.inSince).length) await store.setJSON("notify-state", { ...state, inSince: {} }); return { skipped: "nothing requested" }; }
   const stock = keys.some(k => k.startsWith("k:")) ? ((await refreshSaved(store).catch(() => null)) || (await store.get("stock-latest", { type: "json" }))) : null;
-  const form = cleanForm(state.form), now = Date.now(), inSince = {}, sentLog = [...(state.sent || [])];
+  const info = await storeInfo(store), form = cleanForm(state.form), now = Date.now(), inSince = {}, sentLog = [...(state.sent || [])];
   let emails = 0;
   for (const key of keys) {
     const here = await isIn(store, key, stock);
@@ -23,7 +24,7 @@ export async function checkNotify(store) {
     if (now - since < state.delayMin * 60000) { inSince[key] = since; continue; }                       // not In Stock long enough yet
     const w = d.wants[key]; let n = 0;
     for (const email of Object.keys(w.people)) {
-      try { const m = notifyEmail(w.name, d.tokens[email], form); await sendMail({ to: email, subject: m.subject, html: m.html, text: m.text, unsub: m.unsub }); n++; delete w.people[email]; }
+      try { const m = notifyEmail(w.name, d.tokens[email], form, info); await sendMail({ to: email, subject: m.subject, html: m.html, text: m.text, unsub: m.unsub }); n++; delete w.people[email]; }
       catch (e) { console.error("Back in stock email failed", email, e.message); if (n === 0 && /BREVO_API_KEY|Brevo 40/.test(e.message)) break; }
     }
     if (n) { sentLog.push({ at: new Date().toISOString(), name: w.name, count: n }); emails += n; }

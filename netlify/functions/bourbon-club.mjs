@@ -6,6 +6,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin } from "../lib/pin.mjs";
+import { storeInfo } from "../lib/info.mjs";
 import { sendTest, clubEmail, cleanContent, DEFAULTS, LIMITS } from "../lib/club-email.mjs";
 
 const KEY = "bourbon-club";
@@ -69,7 +70,7 @@ async function storeTools(b) {
   }
   if (b.action === "previewEmail") {   // what the email would look like with these words
     const bottles = ["(Sample) Blanton's Single Barrel 750ml", "(Sample) Weller Special Reserve 750ml", "(Sample) Eagle Rare 10 Year 750ml"];
-    return json({ html: clubEmail(bottles, "preview", b.content).html, subject: cleanContent(b.content).subject });
+    return json({ html: clubEmail(bottles, "preview", b.content, await storeInfo(store)).html, subject: cleanContent(b.content).subject });
   }
   if (b.action === "test") {
     const to = String(b.to || "").trim();
@@ -77,7 +78,7 @@ async function storeTools(b) {
     const stock = await store.get("stock-latest", { type: "json" });
     let bottles = [...new Set((stock?.items || []).filter(it => it.allocated && it.inStock).map(it => it.name))].sort((x, y) => x.localeCompare(y));
     if (!bottles.length) bottles = ["(Sample) Blanton's Single Barrel 750ml", "(Sample) Weller Special Reserve 750ml"];
-    try { await sendTest(to, bottles, b.content ? cleanContent(b.content) : await store.get("bourbon-club-email", { type: "json" })); } catch (e) { return json({ error: e.message }, 502); }
+    try { await sendTest(to, bottles, b.content ? cleanContent(b.content) : await store.get("bourbon-club-email", { type: "json" }), await storeInfo(store)); } catch (e) { return json({ error: e.message }, 502); }
     return json({ ok: true, bottles: bottles.length });
   }
   const members = Object.entries(list).map(([email, m]) => ({ email, joined: m.joined, source: m.source || "website" })).sort((x, y) => y.joined.localeCompare(x.joined));

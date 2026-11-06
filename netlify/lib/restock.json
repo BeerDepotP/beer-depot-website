@@ -1,9 +1,51 @@
 {
- "thursday9am": [
-  "Grebe's Better Butter Rolls",
-  "Grebe's Brat Buns",
-  "Grebe's White Bread Loaf",
-  "Grebe's Crullers",
-  "Grebe's Mini Chocolate Covered Crullers"
- ]
+ "makers": {
+  "Northern Trails": [
+   "Northern Trails Garlic Beef Stick",
+   "Northern Trails Jalape\u00f1o Cheddar Beef Stick",
+   "Northern Trails Pepper Jack Beef Stick",
+   "Northern Trails BBQ Beef Stick",
+   "Northern Trails Hot Wing Beef Stick",
+   "Northern Trails Garlic Cheddar Beef Stick",
+   "Northern Trails Garlic Summer Sausage",
+   "Northern Trails Regular Summer Sausage",
+   "Northern Trails Bacon"
+  ],
+  "Pernat's": [
+   "Pernat's Jalape\u00f1o Cheddar Beef Stick",
+   "Pernat's Garlic Cheddar Beef Stick",
+   "Pernat's Honey BBQ Beef Stick",
+   "Pernat's Cheesy Sweet & Hot Beef Stick"
+  ],
+  "Kraemer": [
+   "Kraemer 5 Year Cheddar",
+   "Kraemer Medium Cheddar",
+   "Kraemer Mild Brick",
+   "Kraemer Gouda",
+   "Kraemer Swiss",
+   "Kraemer Hot Pepper Jack",
+   "Kraemer Colby Jack",
+   "Kraemer Muenster",
+   "Kraemer Mozzarella"
+  ],
+  "Sausage Haus": [
+   "Fresh Bacon Cheddar Brats",
+   "Fresh Hungarian Brats",
+   "Burger Patties"
+  ],
+  "Grebe's": [
+   "Grebe's Better Butter Rolls",
+   "Grebe's Brat Buns",
+   "Grebe's White Bread Loaf",
+   "Grebe's Crullers",
+   "Grebe's Mini Chocolate Covered Crullers"
+  ]
+ },
+ "defaults": {
+  "Grebe's": {
+   "on": true,
+   "day": 4,
+   "time": "09:00"
+  }
+ }
 }

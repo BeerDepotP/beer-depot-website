@@ -144,6 +144,20 @@
   .stf-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px} .stf-tabs label{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600}
   .stf-card{margin-bottom:12px;display:grid;gap:8px} .stf-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .stf-card .btn{width:auto;margin:0;padding:6px 12px;font-size:14px} .stf-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .dk-q{width:100%;box-sizing:border-box;font:600 18px var(--body);padding:12px;border:2px solid #CFC6BE;border-radius:12px;margin-bottom:10px}
+  .dk-row{display:grid;grid-template-columns:1fr;gap:6px;padding:10px 0;border-bottom:1px solid #E5DCD3} .dk-row .dk-ctl{display:flex;gap:8px;flex-wrap:wrap}
+  .dk-row select{font:600 15px var(--body);padding:7px;border:2px solid #CFC6BE;border-radius:10px;min-width:0;flex:1}
+  .dk-row .btn{width:auto;margin:0;padding:6px 12px;font-size:14px}
+  .clr{display:flex;gap:12px;align-items:center} .clr input[type=color]{width:56px!important;height:44px;padding:2px!important;flex:none;cursor:pointer}
+  .clr-prev{display:grid;border-radius:12px;overflow:hidden;border:1px solid #CFC6BE} .clr-prev span{padding:12px;font-weight:800}
+  .p-dark{color:#fff;display:flex;justify-content:space-between;align-items:center} .p-btn{color:#fff;border-radius:999px;padding:4px 12px}
+  .logo-prev{background:#2B1A10;border-radius:12px;padding:14px;text-align:center;min-height:40px} .logo-prev img{max-width:100%;max-height:90px}
+  .logo-prev.icon{background:#fff;border:1px solid #CFC6BE} .logo-prev.icon img{width:48px;height:48px}
+  .find{position:relative;margin:0 0 14px} .find input{width:100%;box-sizing:border-box;font:600 17px var(--body);padding:12px 14px;border:2px solid var(--glass);border-radius:12px;background:#fff}
+  .find-res{position:absolute;left:0;right:0;top:100%;z-index:30;background:#fff;border:2px solid var(--line);border-radius:12px;margin-top:4px;max-height:60vh;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+  .find-res button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #EFE7DF;background:#fff;padding:10px 14px;font:600 16px var(--body);cursor:pointer;color:var(--ink)}
+  .find-res button:hover,.find-res button:focus{background:#FBF3EA} .find-res small{display:block;color:var(--muted);font-weight:600;font-size:13px}
+  .flash{animation:flash 1.6s ease} @keyframes flash{0%,40%{box-shadow:0 0 0 4px var(--orange)}100%{box-shadow:0 0 0 0 transparent}}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -218,6 +232,7 @@
     <button class="tab" role="tab" data-tab="notify" aria-selected="false">Back in Stock</button>
     <button class="tab" role="tab" data-tab="layout" aria-selected="false">Layout</button>
     <button class="tab" role="tab" data-tab="banners" aria-selected="false">Banners &amp; Text</button>
+    <button class="tab" role="tab" data-tab="drinks" aria-selected="false">Drinks</button>
     <button class="tab" role="tab" data-tab="staff" aria-selected="false" hidden>Staff</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
@@ -227,6 +242,10 @@
 </div>
 
 <main>
+  <div class="find" id="find" hidden>
+    <input id="find-q" type="search" placeholder="Search Settings (Example: Hours, Phone, Logo, Pulled Pork)" autocomplete="off" aria-label="Search settings">
+    <div class="find-res" id="find-res" hidden></div>
+  </div>
   <form class="card pin" id="pin-form">
     <h2>Enter Your PIN</h2>
     <p>Set food stock, and see what customers search for and request on the website.</p>
@@ -389,6 +408,45 @@
       <p class="sp-status" id="hh-status" role="status"></p>
     </div>
 
+    <h2 class="sec" style="margin-top:28px">Colors and Logos</h2>
+    <p class="help">Changes the website's colors and logo. The red On Sale and Special colors stay red. If it doesn't look right, tap Back to Standard Colors.</p>
+    <div class="card sp-card bt-card">
+      <div class="clr"><input type="color" id="cl-main" aria-label="Main color"><label for="cl-main"><b>Main Color</b><br><span class="help" style="margin:0">Buttons, headings' underline, highlights (now orange)</span></label></div>
+      <div class="clr"><input type="color" id="cl-dark" aria-label="Dark color"><label for="cl-dark"><b>Dark Color</b><br><span class="help" style="margin:0">Top of the page and dark boxes (now brown)</span></label></div>
+      <div class="clr"><input type="color" id="cl-light" aria-label="Light color"><label for="cl-light"><b>Light Background</b><br><span class="help" style="margin:0">Background of the food sections (now light tan)</span></label></div>
+      <div class="clr-prev" id="cl-prev"><span class="p-dark">Top of Page <span class="p-btn">Button</span></span><span class="p-light">Made Here <u>Section</u></span></div>
+      <button class="btn" type="button" id="cl-save">Save Colors</button>
+      <button class="btn ghost" type="button" id="cl-reset">Back to Standard Colors</button>
+      <p class="sp-status" id="cl-status" role="status"></p>
+      <h3 class="grp" style="margin:10px 0 0">Logo</h3>
+      <div class="logo-prev" id="lg-prev"></div>
+      <label class="btn ghost" style="text-align:center">Upload a New Logo<input type="file" accept="image/png,image/jpeg,image/webp" id="lg-file" hidden></label>
+      <button class="btn ghost" type="button" id="lg-reset">Use the Standard Logo</button>
+      <p class="help" style="margin:0">Best: a PNG with a see-through background, about 600 pixels wide. It shows on the dark top of the page.</p>
+      <h3 class="grp" style="margin:10px 0 0">Browser Tab Icon</h3>
+      <div class="logo-prev icon" id="ic-prev"></div>
+      <label class="btn ghost" style="text-align:center">Upload a New Tab Icon<input type="file" accept="image/png,image/jpeg,image/webp" id="ic-file" hidden></label>
+      <button class="btn ghost" type="button" id="ic-reset">Use the Standard Tab Icon</button>
+      <p class="help" style="margin:0">A small square picture shown in the browser tab. Square, at least 64 by 64 pixels.</p>
+    </div>
+
+    <h2 class="sec" style="margin-top:28px">Store Info</h2>
+    <p class="help">Used everywhere: the call buttons, Get Directions, and the bottom of every email.</p>
+    <div class="card sp-card bt-card">
+      <label class="help" for="in-phone">Phone Number</label><input id="in-phone" inputmode="tel" maxlength="20">
+      <label class="help" for="in-address">Address</label><input id="in-address" maxlength="120">
+      <button class="btn" type="button" id="in-save">Save Store Info</button>
+      <p class="sp-status" id="in-status" role="status"></p>
+    </div>
+
+    <h2 class="sec" style="margin-top:28px">Settings</h2>
+    <div class="card sp-card bt-card">
+      <label class="help" for="st-newdays">New Arrivals: How Many Days an Item Counts as New</label><input id="st-newdays" type="number" min="1" max="90">
+      <label class="help" for="st-thc">THC Section Turns Off On (Leave Blank to Keep It On)</label><input id="st-thc" type="date">
+      <button class="btn" type="button" id="st-save">Save Settings</button>
+      <p class="sp-status" id="st-status" role="status"></p>
+    </div>
+
     <h2 class="sec" style="margin-top:28px">Page Wording</h2>
     <p class="help">Leave a box empty to go back to the standard wording.</p>
     <div class="card sp-card bt-card">
@@ -398,9 +456,38 @@
       <label class="help" for="tx-cateringTitle">Party &amp; Catering Heading</label><input id="tx-cateringTitle" data-tx="cateringTitle" maxlength="60">
       <label class="help" for="tx-cateringText">Party &amp; Catering Text</label><textarea id="tx-cateringText" data-tx="cateringText" rows="4" maxlength="500"></textarea>
       <label class="help" for="tx-cateringButton">Party &amp; Catering Button Words (Above the Phone Number)</label><input id="tx-cateringButton" data-tx="cateringButton" maxlength="30">
+      <label class="help" for="tx-saleIntro">On Sale Intro</label><input id="tx-saleIntro" data-tx="saleIntro" maxlength="300">
+      <label class="help" for="tx-localIntro">Local Favorites Intro</label><input id="tx-localIntro" data-tx="localIntro" maxlength="300">
+      <label class="help" for="tx-outdoorIntro">Grilling & Outdoor Intro (Optional)</label><input id="tx-outdoorIntro" data-tx="outdoorIntro" maxlength="300">
+      <label class="help" for="tx-newIntro">New Arrivals Intro</label><input id="tx-newIntro" data-tx="newIntro" maxlength="300">
+      <label class="help" for="tx-allocNote">Allocated Bourbon Box: Line Under the Heading</label><input id="tx-allocNote" data-tx="allocNote" maxlength="300">
+      <label class="help" for="tx-allocRules">Allocated Bourbon Box: Small Rules Line (Separate With ·)</label><input id="tx-allocRules" data-tx="allocRules" maxlength="300">
+      <label class="help" for="tx-clubTitle">Bourbon Club Sign-Up Box: Heading</label><input id="tx-clubTitle" data-tx="clubTitle" maxlength="300">
+      <label class="help" for="tx-clubText">Bourbon Club Sign-Up Box: Text</label><textarea id="tx-clubText" data-tx="clubText" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-clubDone">Bourbon Club Sign-Up Box: After They Join</label><input id="tx-clubDone" data-tx="clubDone" maxlength="300">
+      <label class="help" for="tx-requestTitle">Request an Item: Heading</label><input id="tx-requestTitle" data-tx="requestTitle" maxlength="300">
+      <label class="help" for="tx-requestText">Request an Item: Text</label><textarea id="tx-requestText" data-tx="requestText" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-gateTitle">21+ Question: Heading</label><input id="tx-gateTitle" data-tx="gateTitle" maxlength="300">
+      <label class="help" for="tx-gateText">21+ Question: Text</label><textarea id="tx-gateText" data-tx="gateText" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-gateYes">21+ Question: Yes Button</label><input id="tx-gateYes" data-tx="gateYes" maxlength="300">
+      <label class="help" for="tx-gateNo">21+ Question: No Button</label><input id="tx-gateNo" data-tx="gateNo" maxlength="300">
+      <label class="help" for="tx-clubPageTitle">Bourbon Club Page (QR Sign): Heading</label><input id="tx-clubPageTitle" data-tx="clubPageTitle" maxlength="300">
+      <label class="help" for="tx-clubPageLede">Bourbon Club Page: Main Line</label><textarea id="tx-clubPageLede" data-tx="clubPageLede" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-clubPageSub">Bourbon Club Page: Second Line</label><textarea id="tx-clubPageSub" data-tx="clubPageSub" rows="3" maxlength="300"></textarea>
+      <label class="help" for="tx-clubPageFine">Bourbon Club Page: Small Print</label><textarea id="tx-clubPageFine" data-tx="clubPageFine" rows="3" maxlength="400"></textarea>
+      <label class="help" for="tx-clubPageDone">Bourbon Club Page: After They Join</label><input id="tx-clubPageDone" data-tx="clubPageDone" maxlength="300">
       <button class="btn" type="button" id="tx-save">Save Wording</button>
       <p class="sp-status" id="tx-status" role="status"></p>
     </div>
+  </section>
+
+  <section id="p-drinks" hidden>
+    <h2 class="sec">Drinks From KORONA</h2>
+    <p class="help">Find any drink on the website to hide it or move it to a different section. This wins over KORONA tags and groups. Changes show on the website within about a minute.</p>
+    <input id="dk-q" type="search" class="dk-q" placeholder="Search Drinks (Example: Tito's)" autocomplete="off" aria-label="Search drinks">
+    <div id="dk-results"></div>
+    <h3 class="grp">Hidden From the Website</h3><div id="dk-hidden"></div>
+    <h3 class="grp">Moved to Another Section</h3><div id="dk-moved"></div>
   </section>
 
   <section id="p-staff" hidden>
@@ -498,7 +585,7 @@ function askYes(msg, yes, red){
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club","staff"];
+const TABS = ["food","sales","seasonal","hours","notify","layout","banners","drinks","nofind","top","requests","club","staff"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -596,7 +683,8 @@ document.addEventListener("click", async e=>{
   if(mk){ makerOpen = makerOpen===mk.dataset.mk ? null : mk.dataset.mk; renderFood(); return; }
   const ms = e.target.closest("[data-mksave]");
   if(ms){ const p = ms.closest(".mk-panel"), v = k => p.querySelector(`[data-mkf="${k}"]`).value.trim();
-    try{ applyFood(await api("/api/food-stock",{ action:"maker", key: ms.dataset.mksave, name:v("name"), where:v("where") })); makerOpen = null; renderFood(); toast(v("name") + ": Saved"); }catch(err){ toast(err.message,true); } return; }
+    const ron = p.querySelector('[data-mkf="ron"]').checked;
+    try{ applyFood(await api("/api/food-stock",{ action:"maker", key: ms.dataset.mksave, name:v("name"), where:v("where"), note:v("note"), restock:{ on:ron, day:+v("rday"), time:v("rtime") } })); makerOpen = null; renderFood(); toast(v("name") + ": Saved"); }catch(err){ toast(err.message,true); } return; }
   const md = e.target.closest("[data-mkdel]");
   if(md){ if(!(await askYes("Delete this company and the items you added to it? This can't be undone."))) return;
     try{ applyFood(await api("/api/food-stock",{ action:"deleteMaker", key: md.dataset.mkdel })); makerOpen = null; renderFood(); toast("Company Deleted"); }catch(err){ toast(err.message,true); } return; }
@@ -630,15 +718,23 @@ function editPanel(key){
       <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
         ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
         ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
-    ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${(key.startsWith("c-")||key.startsWith("Outdoor: c-"))?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost rm-site" type="button" data-act="removeitem">Remove From Website</button>` : ""}
+    ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${moreFields(key, d)}<button class="btn ghost rm-site" type="button" data-act="removeitem">Remove From Website</button>` : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
 }
 const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
 // Made Here only: description (added items), On Special, Remove From Website
+// Description, small tag and (Made Here) add-ons, for any item
+function moreFields(key, d){
+  const sec = ITEMS[key].section;
+  return `<label class="ep-l">Description (Optional)<input type="text" class="ep-in" data-f="desc" maxlength="160" value="${esc(d.desc||"")}" placeholder="Example: Regular or Spicy"></label>
+    ${sec!=="outdoor" ? `<label class="ep-l">Small Tag (Optional)<input type="text" class="ep-in" data-f="tag" maxlength="30" value="${esc(d.tag||"")}" placeholder="Example: Thu–Sun, Summer"></label>` : ""}
+    ${sec==="food" ? `<div><div class="help" style="margin:0 0 6px;font-weight:700">Add-Ons (Optional)</div><div class="ep-prices">${d.extras.map((r,i)=>`<div class="gp-row xp-row" data-xi="${i}"><input class="gp-l" data-f="xl" value="${esc(r[0])}" aria-label="Add-on name" placeholder="Example: Extra Tzatziki"><span class="help" style="margin:0">$</span><input class="gp-v" data-f="xv" inputmode="decimal" value="${esc(r[1])}" aria-label="Add-on price"><button class="ep-rm" type="button" data-act="rmextra" aria-label="Remove add-on">×</button></div>`).join("")}
+      <button class="ep-btn" type="button" data-act="addextra" style="align-self:flex-start">+ Add an Add-On</button></div></div>` : ""}`;
+}
 function foodExtras(key, d){
   const sp = d.sp;
   return `<label class="ep-l">Group<select class="ep-in" data-f="group">${foodGroups().map(g=>`<option value="${esc(g.key)}"${g.key===d.group?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>
-    ${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}
+    ${moreFields(key, d)}
     <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows First in Its List)</label>
     ${sp.on ? d.prices.filter(r=>String(r[0]).trim()).map((r,i)=>`<div class="sp-row"><span>${esc(r[0])}</span><span class="help" style="margin:0">Regular ${r[1]?"$"+esc(r[1]):"–"}</span><input type="text" inputmode="decimal" data-f="spp" data-l="${esc(r[0])}" value="${esc(sp.prices[r[0]]||"")}" placeholder="Special $" aria-label="Special price for ${esc(r[0])}"></div>`).join("")
       + `<label class="help" style="margin:0">Special Ends (Optional, Store Time)<input type="datetime-local" data-f="spuntil" value="${esc(sp.until||"")}"></label><p class="help" style="margin:0">It turns itself off then. Leave blank to keep it on until you turn it off.</p>` : ""}</div>
@@ -649,7 +745,8 @@ function openDraft(key){
   drafts[key] = { label: (swEdits[key]||{}).label || b.label, prices: (swPrices[key] || b.prices).map(r=>[r[0], r[1]||""]) };
   const cur = specialOf(key);
   drafts[key].sp = { on: !!cur, was: !!cur, until: cur ? cur.until : "", prices: Object.fromEntries(cur ? cur.prices : []) };
-  drafts[key].desc = ITEMS[key].item.desc || "";
+  drafts[key].desc = menuDesc(ITEMS[key].item, key); drafts[key].tag = menuTag(ITEMS[key].item, key);
+  drafts[key].extras = menuExtras(ITEMS[key].item, key).map(r=>[r[0], r[1]||""]);
   if(ITEMS[key].section==="food") drafts[key].group = groupOf(ITEMS[key].item);
   if(!drafts[key].prices.length) drafts[key].prices = [["Each",""]];
 }
@@ -728,6 +825,9 @@ function renderFood(){
       <button class="mk-edit" type="button" data-mk="${esc(m)}" aria-expanded="${open}">Edit Company</button></h3>
     ${open ? `<div class="card mk-panel" data-mkp="${esc(m)}"><label class="help" style="margin:0">Company Name<input data-mkf="name" maxlength="50" value="${esc(info.name)}"></label>
       <label class="help" style="margin:0">City<input data-mkf="where" maxlength="50" value="${esc(info.where)}" placeholder="Example: Watertown, WI"></label>
+      <label class="help" style="margin:0">Note Under the Company Name (Optional)<input data-mkf="note" maxlength="200" value="${esc(info.note)}" placeholder="Example: Fresh Thursday through Sunday"></label>
+      ${(()=>{ const r = makerRestock(m); return `<label class="help" style="margin:0;display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" data-mkf="ron"${r.on?" checked":""} style="width:auto;margin:0"> Switch All Its Items Back to In Stock Every Week</label>
+      <div class="hr-times"><select data-mkf="rday" aria-label="Restock day">${DAYN.map((dn,i)=>`<option value="${i}"${i===r.day?" selected":""}>${dn}</option>`).join("")}</select><label>At <input type="time" data-mkf="rtime" value="${esc(r.time)}" style="width:auto"></label></div>`; })()}
       <div class="ep-act"><button class="btn" type="button" data-mksave="${esc(m)}">Save</button>${m.startsWith("m-")?`<button class="btn ghost rm-site" type="button" data-mkdel="${esc(m)}">Delete Company</button>`:""}</div></div>` : ""}
     <ul class="sw-list">${localItems(m).map(l=>swRow(l,"local")).join("") || '<li><span class="help" style="margin:0">No items yet.</span></li>'}</ul>
     <details class="add-item"><summary>+ Add an Item to ${esc(info.name)}</summary><div class="ai">
@@ -756,13 +856,16 @@ document.addEventListener("click", async e=>{
   else if(act==="nophoto"){ d.photo = "none"; d.preview = ""; renderFood(); }
   else if(act==="origphoto"){ d.photo = ""; d.preview = ""; renderFood(); }
   else if(act==="cancel"){ delete drafts[key]; renderFood(); }
+  else if(act==="addextra"){ d.extras.push(["",""]); renderFood(); const r = $$(`.edit-panel[data-key="${CSS.escape(key)}"] .xp-row .gp-l`); if(r.length) r[r.length-1].focus(); }
+  else if(act==="rmextra"){ d.extras.splice(+a.closest(".xp-row").dataset.xi,1); renderFood(); }
   else if(act==="removeitem"){ if(!(await askYes("Remove " + (d.label||key) + " from the website? It moves to the bottom of this page, where you can put it back."))) return;
     try{ applyFood(await api("/api/food-stock",{ action:"removeItem", name:key })); delete drafts[key]; renderFood(); toast((d.label||key) + ": Removed From the Website"); }catch(err){ toast(err.message,true); } }
   else if(act==="save"){
     const base = ITEMS[key].base, label = String(d.label||"").trim();
     const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
     if(d.photo !== undefined) body.photo = d.photo;
-    if(key.startsWith("c-") || key.startsWith("Outdoor: c-")) body.desc = d.desc || "";
+    if(ITEMS[key].section){ body.desc = d.desc || ""; if(ITEMS[key].section!=="outdoor") body.tag = d.tag || ""; }
+    if(ITEMS[key].section==="food") body.extras = d.extras.filter(r=>String(r[0]).trim());
     if(d.group) body.group = d.group === ITEMS[key].item.group ? "" : d.group;
     a.disabled = true;
     try{ let j = await api("/api/food-stock", body);
@@ -780,11 +883,13 @@ document.addEventListener("input", e=>{
   const d = drafts[panel.dataset.key], f = e.target.dataset.f; if(!f) return;
   if(f==="label") d.label = e.target.value;
   else if(f==="desc") d.desc = e.target.value;
+  else if(f==="tag") d.tag = e.target.value;
+  else if(f==="xl" || f==="xv"){ d.extras[+e.target.closest(".xp-row").dataset.xi][f==="xl"?0:1] = e.target.value; }
   else if(f==="group") d.group = e.target.value;
   else if(f==="spp") d.sp.prices[e.target.dataset.l] = e.target.value;
   else if(f==="spuntil") d.sp.until = e.target.value;
   else if(f==="spon"){ d.sp.on = e.target.checked; renderFood(); }
-  else { const i = +e.target.closest(".gp-row").dataset.i; d.prices[i][f==="pl"?0:1] = e.target.value; }
+  else if(f==="pl" || f==="pp"){ const i = +e.target.closest(".gp-row").dataset.i; d.prices[i][f==="pl"?0:1] = e.target.value; }
 });
 document.addEventListener("change", async e=>{
   const inp = e.target; if(!inp.matches || !inp.matches('.edit-panel input[type=file]') || !inp.files[0]) return;
@@ -1123,6 +1228,12 @@ function renderSite(){
   $("#hh-on").setAttribute("aria-checked", !!h.on); $("#hh-st").className = "st" + (h.on?" on":""); $("#hh-st").textContent = h.on ? "On · Shows " + DAYN[h.day] + "s " + hrT(h.from) + " – " + hrT(h.until) : "Off";
   $("#hh-day").value = h.day; $("#hh-from").value = h.from; $("#hh-until").value = h.until; $("#hh-text").value = h.text;
   $$("[data-tx]").forEach(i=>{ i.value = site.text[i.dataset.tx] || ""; });
+  $("#cl-main").value = site.colors.main; $("#cl-dark").value = site.colors.dark; $("#cl-light").value = site.colors.light; clPreview();
+  const imgSrc = id => "/api/site?img=" + encodeURIComponent(id);
+  $("#lg-prev").innerHTML = `<img src="${site.images.logo ? imgSrc(site.images.logo) : "/img/logo-orange.png"}" alt="Current logo">`;
+  $("#ic-prev").innerHTML = `<img src="${site.images.icon ? imgSrc(site.images.icon) : "/img/favicon-64.png"}" alt="Current tab icon">`;
+  $("#in-phone").value = site.info.phone; $("#in-address").value = site.info.address;
+  $("#st-newdays").value = site.settings.newDays; $("#st-thc").value = site.settings.thcUntil || "";
 }
 function anPreview(){ const t = $("#an-text").value.trim(); $("#an-preview").innerHTML = t ? `<p class="help" style="margin:4px 0">Preview:</p><span class="an-prev ${esc($("#an-color").value)}">${esc(t)}</span>` : ""; }
 ["input","change"].forEach(ev=>{ $("#an-text").addEventListener(ev, anPreview); $("#an-color").addEventListener(ev, anPreview); });
@@ -1135,11 +1246,23 @@ const hhBody = on => ({ hotHam:{ on, day:$("#hh-day").value, from:$("#hh-from").
 $("#hh-save").onclick = ()=>siteSave(hhBody(site.hotHam.on), "#hh-status", "Saved.");
 $("#hh-on").onclick = ()=>siteSave(hhBody(!site.hotHam.on), "#hh-status", site.hotHam.on ? "Hot Ham banner turned off." : "Hot Ham banner is on.");
 $("#tx-save").onclick = ()=>siteSave({ text: Object.fromEntries($$("[data-tx]").map(i=>[i.dataset.tx, i.value])) }, "#tx-status", "Saved. The website shows it within a minute.");
+$("#in-save").onclick = ()=>siteSave({ info:{ phone:$("#in-phone").value, address:$("#in-address").value } }, "#in-status", "Saved. The website and emails use it within a minute.");
+$("#st-save").onclick = ()=>siteSave({ settings:{ newDays:$("#st-newdays").value, thcUntil:$("#st-thc").value } }, "#st-status", "Saved.");
+function clPreview(){ const m = $("#cl-main").value, d = $("#cl-dark").value, l = $("#cl-light").value;
+  $("#cl-prev .p-dark").style.background = d; $("#cl-prev .p-btn").style.background = m; $("#cl-prev .p-light").style.background = l; $("#cl-prev u").style.textDecorationColor = m; $("#cl-prev .p-light").style.color = "#22160F"; }
+["#cl-main","#cl-dark","#cl-light"].forEach(id=>$(id).addEventListener("input", clPreview));
+$("#cl-save").onclick = ()=>siteSave({ colors:{ main:$("#cl-main").value, dark:$("#cl-dark").value, light:$("#cl-light").value } }, "#cl-status", "Saved. The website shows the new colors within a minute.");
+$("#cl-reset").onclick = async ()=>{ if(await askYes("Put the website colors back to the standard orange and brown?")) siteSave({ colors:{ reset:true } }, "#cl-status", "Back to the standard colors."); };
+function readImg(file){ return new Promise((res,rej)=>{ if(!file) return rej(new Error("No picture.")); if(file.size > 700*1024) return rej(new Error("That picture is too big. Try one under 700 KB.")); const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = ()=>rej(new Error("Couldn't read that picture.")); r.readAsDataURL(file); }); }
+async function upImg(kind, input){ try{ toast("Uploading…"); const data = await readImg(input.files[0]); site = await api("/api/site",{action:"image", kind, data}); renderSite(); toast(kind==="icon" ? "Tab Icon Saved" : "Logo Saved"); }catch(err){ toast(err.message,true); } input.value = ""; }
+$("#lg-file").onchange = e=>upImg("logo", e.target); $("#ic-file").onchange = e=>upImg("icon", e.target);
+$("#lg-reset").onclick = async ()=>{ if(await askYes("Go back to the standard Beer Depot logo?")){ try{ site = await api("/api/site",{action:"image", kind:"logo", reset:true}); renderSite(); toast("Standard Logo"); }catch(err){ toast(err.message,true); } } };
+$("#ic-reset").onclick = async ()=>{ if(await askYes("Go back to the standard tab icon?")){ try{ site = await api("/api/site",{action:"image", kind:"icon", reset:true}); renderSite(); toast("Standard Tab Icon"); }catch(err){ toast(err.message,true); } } };
 async function loadSite(){ try{ site = await api("/api/site",{action:"list"}); renderSite(); }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); } }
 
 /* ---------- staff (owner only) ---------- */
 let me = null, staff = null;
-const AREA_NAMES = { food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
+const AREA_NAMES = { food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", drinks:"Drinks", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
 const tabBoxes = (sel, attr) => Object.entries(AREA_NAMES).map(([k,n])=>`<label><input type="checkbox" ${attr} value="${k}"${sel.includes(k)?" checked":""}> ${esc(n)}</label>`).join("");
 function renderStaff(){
   $("#stf-list").innerHTML = staff.members.length ? staff.members.map(m=>`<div class="card stf-card" data-id="${esc(m.id)}">
@@ -1193,6 +1316,95 @@ function applyAccess(){
   $("#who").hidden = false; $("#who").textContent = me.owner ? "Owner" : me.name;
 }
 
+/* ---------- drinks: hide or move a KORONA product ---------- */
+let dk = null;
+function renderDrinks(){
+  const q = norm($("#dk-q").value), opts = sel => Object.entries(dk.sections).map(([id,n])=>`<option value="${esc(id)}"${id===sel?" selected":""}>${esc(n)}</option>`).join("");
+  const hits = q.length < 2 ? [] : stock.filter(it=>norm(it.name).includes(q)).slice(0,40);
+  $("#dk-results").innerHTML = q.length < 2 ? '<p class="help">Type at least 2 letters.</p>' : hits.length ? hits.map(it=>`<div class="dk-row" data-n="${esc(it.name)}"><span><b>${esc(it.name)}</b> <span class="help" style="margin:0">${it.inStock?"In Stock":"Out of Stock"}</span></span>
+    <div class="dk-ctl"><select data-dkmove aria-label="Section for ${esc(it.name)}">${opts(it.section)}</select><button class="btn ghost rm-site" type="button" data-dkhide>Hide</button></div></div>`).join("") : '<p class="help">No drinks match. Hidden drinks are listed below.</p>';
+  $("#dk-hidden").innerHTML = dk.hide.length ? dk.hide.map(n=>`<div class="dk-row" data-n="${esc(n)}"><b>${esc(n)}</b><div class="dk-ctl"><button class="btn" type="button" data-dkunhide>Put Back on Website</button></div></div>`).join("") : '<p class="help">Nothing hidden.</p>';
+  const mv = Object.entries(dk.move);
+  $("#dk-moved").innerHTML = mv.length ? mv.map(([n,sec])=>`<div class="dk-row" data-n="${esc(n)}"><span><b>${esc(n)}</b> <span class="help" style="margin:0">In ${esc(dk.sections[sec]||sec)}</span></span><div class="dk-ctl"><button class="btn ghost" type="button" data-dkunmove>Put Back in Usual Section</button></div></div>`).join("") : '<p class="help">Nothing moved.</p>';
+}
+async function dkCall(body, msg){ try{ dk = await api("/api/products", body); renderDrinks(); if(msg) toast(msg); }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); } }
+const loadDrinks = () => dkCall({action:"list"});
+$("#dk-q").addEventListener("input", ()=>{ if(dk) renderDrinks(); });
+$("#p-drinks").addEventListener("change", e=>{ const s = e.target.closest("[data-dkmove]"); if(!s) return; const n = s.closest(".dk-row").dataset.n;
+  dkCall({action:"move", name:n, section:s.value}, n + ": Moved to " + dk.sections[s.value]); });
+$("#p-drinks").addEventListener("click", async e=>{ const r = e.target.closest(".dk-row"); if(!r) return; const n = r.dataset.n;
+  if(e.target.closest("[data-dkhide]")){ if(await askYes("Hide " + n + " from the website? You can put it back from this tab.", "Hide", true)){ stock = stock.filter(x=>x.name!==n); dkCall({action:"hide", name:n}, n + ": Hidden"); } return; }
+  if(e.target.closest("[data-dkunhide]")){ dkCall({action:"unhide", name:n}, n + ": Back on the Website"); return; }
+  if(e.target.closest("[data-dkunmove]")){ dkCall({action:"unmove", name:n}, n + ": Back in Its Usual Section"); } });
+
+/* ---------- settings search ---------- */
+// Extra words people might type, pointing at a spot on a tab.
+const FIND_WORDS = [
+  ["Store Phone Number and Address", "phone number address call directions location", "banners", "#in-phone"],
+  ["Colors and Logo", "color colours theme logo picture brand icon favicon tab icon", "banners", "#cl-main"],
+  ["Announcement Bar", "announcement banner notice message top bar thanksgiving", "banners", "#an-text"],
+  ["Hot Ham Banner", "hot ham sunday banner", "banners", "#hh-day"],
+  ["Holiday or Short Hours (One Day)", "christmas holiday closed short hours thanksgiving new year easter", "hours", "#ov-date"],
+  ["Weekly Hours", "hours open close time schedule", "hours", "#hr-week"],
+  ["New Arrivals Days", "new arrivals days new items", "banners", "#st-newdays"],
+  ["THC Section Shut-Off Date", "thc hemp delta date", "banners", "#st-thc"],
+  ["Hide or Move a Drink", "hide drink product korona move section beer wine liquor", "drinks", "#dk-q"],
+  ["Website Buttons and Sections", "layout buttons menu bar sections order rename korona group", "layout", "#ly-list"],
+  ["Staff PINs", "staff employee pin password access worker changes log", "staff", "#stf-list"],
+  ["Back in Stock Emails", "back in stock email notify waiting", "notify", "#nt-list"],
+  ["Bourbon Club Email Wording", "bourbon club email wording weekly send day time allocated", "club", "#club-wording"],
+  ["Pizza Toppings", "pizza toppings", "food", "details.toppings"],
+  ["Made Here Groups", "groups meats sides categories desserts", "food", "#grp-edit"],
+  ["Sales", "sale on sale deals discount", "sales", "#sl-list"],
+  ["Seasonal Section", "seasonal christmas holiday packers section", "seasonal", "#se-title"],
+];
+let findIndex = [];
+function buildFind(){
+  const can = t => me && (t==="staff" ? me.owner : me.tabs.includes(t)), tabName = t => (document.querySelector(`.tab[data-tab="${t}"]`)||{}).textContent || t;
+  const out = FIND_WORDS.filter(x=>can(x[2])).map(([title, words, tab, sel])=>({ title, words: norm(title + " " + words), tab, sel, where: tabName(tab) }));
+  // every heading and box label on every tab
+  TABS.filter(can).forEach(t=>{ $$(`#p-${t} h2.sec, #p-${t} h3.grp, #p-${t} label.help`).forEach(el=>{ const tx = el.textContent.replace(/\s+/g," ").trim(); if(tx.length < 3 || tx.length > 90) return;
+    out.push({ title: tx, words: norm(tx), tab: t, el, where: tabName(t) }); }); });
+  // every food item, company and drink
+  if(can("food")){
+    foodGroups().forEach(g=>foodItems(g.key,true).forEach(f=>out.push({ title: menuLabel(f), words: norm(menuLabel(f)+" "+f.name), tab:"food", item:f.name, where:"Food Stock · " + g.name })));
+    makerKeys().forEach(m=>{ const i = makerInfo(m); out.push({ title: i.name, words: norm(i.name+" company"), tab:"food", sel:"#"+jid(m), where:"Food Stock · Local Favorites" });
+      localItems(m,true).forEach(l=>out.push({ title: menuLabel(l), words: norm(menuLabel(l)+" "+l.name+" "+i.name), tab:"food", item:l.name, where:"Food Stock · " + i.name })); });
+    outdoorItems(true).forEach(g=>out.push({ title: menuLabel(g, outdoorKey(g.name)), words: norm(menuLabel(g, outdoorKey(g.name))+" "+flavorsOf(g).map(x=>x.v).join(" ")), tab:"food", item: outdoorKey(g.name), where:"Food Stock · Grilling & Outdoor" }));
+  }
+  if(can("drinks")) stock.forEach(it=>out.push({ title: it.name, words: norm(it.name), tab:"drinks", drink: it.name, where:"Drinks (Hide or Move)" }));
+  findIndex = out;
+}
+function showFind(){
+  const q = norm($("#find-q").value), box = $("#find-res");
+  if(q.length < 2){ box.hidden = true; return; }
+  const words = q.split(" "), seen = new Set();
+  const hits = findIndex.map(x=>({ x, score: words.every(w=>(" "+x.words).includes(" "+w)) ? 2 : words.every(w=>x.words.includes(w)) ? 1 : 0 })).filter(h=>h.score)
+    .sort((a,b)=>b.score-a.score).map(h=>h.x).filter(x=>{ const k = x.title+"|"+x.where; if(seen.has(k)) return false; seen.add(k); return true; }).slice(0,12);
+  box.innerHTML = hits.length ? hits.map((h,i)=>`<button type="button" data-fi="${findIndex.indexOf(h)}">${esc(h.title)}<small>${esc(h.where)}</small></button>`).join("") : '<p class="help" style="padding:10px 14px;margin:0">Nothing found. Try another word.</p>';
+  box.hidden = false;
+}
+async function goFind(h){
+  $("#find-res").hidden = true; $("#find-q").value = "";
+  await openTab(h.tab);
+  setTimeout(()=>{
+    let el = h.el;
+    if(h.item){ if(!(h.item in drafts)) openDraft(h.item); renderFood(); el = document.querySelector(`.edit-panel[data-key="${CSS.escape(h.item)}"]`); el = el && el.closest("li") || el; }
+    if(h.drink){ $("#dk-q").value = h.drink; if(dk) renderDrinks(); el = $("#dk-results"); }
+    if(!el && h.sel) el = document.querySelector(h.sel);
+    if(!el) return;
+    const top = el.getBoundingClientRect().top + scrollY - ($(".top") ? $(".top").offsetHeight : 0) - 16;
+    window.scrollTo({ top, behavior:"smooth" });
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+    const inp = el.matches("label") ? (el.control || el.querySelector("input,textarea,select")) : el.matches("input,textarea,select") ? el : null; if(inp) setTimeout(()=>inp.focus({preventScroll:true}), 500);
+  }, h.tab==="food" ? 50 : 500);
+}
+$("#find-q").addEventListener("focus", buildFind);
+$("#find-q").addEventListener("input", showFind);
+$("#find-q").addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); const b = $("#find-res button"); if(b) b.click(); } if(e.key==="Escape") $("#find-res").hidden = true; });
+$("#find-res").addEventListener("click", e=>{ const b = e.target.closest("[data-fi]"); if(b) goFind(findIndex[+b.dataset.fi]); });
+document.addEventListener("click", e=>{ if(!e.target.closest("#find")) $("#find-res").hidden = true; });
+
 /* ---------- tabs ---------- */
 async function openTab(name){
   const can = t => me && (t==="staff" ? me.owner : me.tabs.includes(t));
@@ -1210,6 +1422,7 @@ async function openTab(name){
   if(name==="layout"){ loadLayout(); return; }
   if(name==="banners"){ loadSite(); return; }
   if(name==="staff"){ loadStaff(); return; }
+  if(name==="drinks"){ loadDrinks(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -1299,7 +1512,7 @@ async function unlock(p){
   pin = p;
   me = await api("/api/staff",{ action:"whoami" });
   ss.set("bd-pin", pin);
-  applyAccess();
+  applyAccess(); $("#find").hidden = false;
   const [sw, st] = await Promise.all([
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
@@ -1312,7 +1525,7 @@ async function unlock(p){
   clearInterval(unlock.t); unlock.t = setInterval(refreshBadges, 60000);
 }
 function lockPage(message){
-  pin=""; me = null; ss.set("bd-pin",""); clearInterval(unlock.t); $("#who").hidden = true;
+  $("#find").hidden = true; pin=""; me = null; ss.set("bd-pin",""); clearInterval(unlock.t); $("#who").hidden = true;
   TABS.forEach(t=>$("#p-"+t).hidden = true); $("#tabs").hidden = true; $("#lock").hidden = true; $("#pin-form").hidden = false;
   $("#pin").value=""; $("#pin-msg").textContent = message || ""; $("#pin").focus();
 }

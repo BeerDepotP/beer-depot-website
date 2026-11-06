@@ -3,6 +3,7 @@
 import { getStore } from "@netlify/blobs";
 import { refreshSaved } from "./stock.mjs";
 import { sendClub } from "../lib/club-email.mjs";
+import { storeInfo } from "../lib/info.mjs";
 
 function chicago(d = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
@@ -21,7 +22,7 @@ export async function sendWeekly(store, { force = false } = {}) {
   if (!bottles.length) return { skipped: "no allocated bourbon in stock" };
   const members = Object.entries((await store.get("bourbon-club", { type: "json" })) || {});
   if (!members.length) return { skipped: "no members yet" };
-  const sent = await sendClub(members, bottles, await store.get("bourbon-club-email", { type: "json" }));
+  const sent = await sendClub(members, bottles, await store.get("bourbon-club-email", { type: "json" }), await storeInfo(store));
   await store.setJSON("bourbon-club-sent", { date, at: new Date().toISOString(), sent, bottles });
   return { sent, bottles: bottles.length };
 }

@@ -403,12 +403,12 @@
 </div>
 <div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" hidden>
   <div class="gate-card">
-    <img src="__LOGO__" alt="The Beer Depot, Pewaukee WI">
-    <h2 id="gate-title">Are you 21 or older?</h2>
-    <p>This site lists beer and spirits. You must be 21 to see them.</p>
+    <img class="site-logo" src="__LOGO__" alt="The Beer Depot, Pewaukee WI">
+    <h2 id="gate-title" data-tx="gateTitle">Are you 21 or older?</h2>
+    <p data-tx="gateText">This site lists beer and spirits. You must be 21 to see them.</p>
     <div class="gate-btns">
-      <button class="btn yes" id="gate-yes">Yes, I'm 21 or older</button>
-      <button class="btn no" id="gate-no">No, just show me the food</button>
+      <button class="btn yes" id="gate-yes" data-tx="gateYes">Yes, I'm 21 or older</button>
+      <button class="btn no" id="gate-no" data-tx="gateNo">No, just show me the food</button>
     </div>
   </div>
 </div>
@@ -426,7 +426,7 @@ __PREVIEW_FLAG__
   <div class="wrap">
     <div class="topbar">
       <div class="brand"><button class="menu-btn sec-open" type="button" aria-controls="drawer" aria-expanded="false" aria-label="Browse the store"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span></button>
-      <a class="home-logo" href="#top" aria-label="The Beer Depot, back to the top"><img src="__LOGO__" alt="The Beer Depot, Pewaukee WI"></a></div>
+      <a class="home-logo" href="#top" aria-label="The Beer Depot, back to the top"><img class="site-logo" src="__LOGO__" alt="The Beer Depot, Pewaukee WI"></a></div>
       <a class="call" href="tel:+12626964602" aria-label="Call The Beer Depot at 262-696-4602">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>
         262-696-4602
@@ -460,7 +460,7 @@ __PREVIEW_FLAG__
 
 <div class="mini-bar" id="mini-bar" aria-hidden="true"><div class="wrap">
   <button class="menu-btn sec-open small" type="button" aria-controls="drawer" aria-label="Browse the store" tabindex="-1"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span></button>
-  <a class="mini-logo" href="#top" aria-label="Back to the top" tabindex="-1"><img src="__LOGO__" alt="The Beer Depot"></a>
+  <a class="mini-logo" href="#top" aria-label="Back to the top" tabindex="-1"><img class="site-logo" src="__LOGO__" alt="The Beer Depot"></a>
   <div class="search">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
     <input id="q2" type="search" placeholder="Search Our Stock…" autocomplete="off" aria-label="Search our stock" tabindex="-1">
@@ -500,7 +500,7 @@ __PREVIEW_FLAG__
   <section class="sale shelf" id="on-sale" hidden>
     <div class="wrap">
       <div class="shelf-head"><h2>On Sale</h2><span class="count" id="sale-count"></span></div>
-      <p class="lede">Deals this week, while they last.</p>
+      <p class="lede" data-tx="saleIntro">Deals this week, while they last.</p>
       <div class="menu" id="sale-list"></div>
     </div>
   </section>
@@ -514,20 +514,21 @@ __PREVIEW_FLAG__
   <section class="made shelf local" id="local-favorites">
     <div class="wrap">
       <div class="shelf-head"><h2>Local Favorites</h2><span class="count" id="local-count"></span></div>
-      <p class="lede">Meat, cheese and bakery from local makers.</p>
+      <p class="lede" data-tx="localIntro">Meat, cheese and bakery from local makers.</p>
       <div id="local-menu"></div>
     </div>
   </section>
   <section class="shelf outdoor" id="grilling-outdoor">
     <div class="wrap">
       <div class="shelf-head"><h2>Grilling &amp; Outdoor</h2><span class="count" id="outdoor-count"></span></div>
+      <p class="lede" data-tx="outdoorIntro" data-empty-ok hidden></p>
       <ul class="gear" id="gear"></ul>
     </div>
   </section>
   <section class="shelf new-arrivals" id="new-arrivals" hidden>
     <div class="wrap">
       <div class="shelf-head"><h2>New Arrivals</h2><span class="count" id="new-count"></span></div>
-      <p class="lede">Just came in over the last two weeks.</p>
+      <p class="lede" data-tx="newIntro">Just came in over the last two weeks.</p>
       <ul class="items" id="new-list"></ul>
     </div>
   </section>
@@ -536,8 +537,8 @@ __PREVIEW_FLAG__
 
 <section class="request" id="request">
   <div class="wrap">
-    <h2>Don't See It? Ask Us to Bring It In.</h2>
-    <p class="lede">Tell us what you'd like us to carry. We read every request and will call you if we get it in.</p>
+    <h2 data-tx="requestTitle">Don't See It? Ask Us to Bring It In.</h2>
+    <p class="lede" data-tx="requestText">Tell us what you'd like us to carry. We read every request and will call you if we get it in.</p>
     <form name="request" method="POST" data-netlify="true" netlify-honeypot="company" id="request-form">
       <input type="hidden" name="form-name" value="request">
       <p class="hp"><label>Leave this empty <input name="company" tabindex="-1" autocomplete="off"></label></p>
@@ -556,7 +557,7 @@ __PREVIEW_FLAG__
 <footer>
   <div class="wrap">
     <div>
-      <img src="__LOGO__" alt="The Beer Depot">
+      <img class="site-logo" src="__LOGO__" alt="The Beer Depot">
     </div>
     <div>
       <p><strong>The Beer Depot</strong> · Pewaukee, WI</p>
@@ -582,8 +583,12 @@ const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon
 
 // Drink sections, in the order they appear on the page.
 // Store info
-const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
-const MAPS_URL = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("The Beer Depot, " + ADDRESS);
+let ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
+let PHONE = "262-696-4602";          // both can be changed in Store Tools → Banners & Text → Store Info
+const telOf = p => "tel:+1" + String(p).replace(/\D/g,"");
+const mapsUrl = () => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent("The Beer Depot, " + ADDRESS);
+let SITE_TEXT = {};
+const tx = (k, d) => (SITE_TEXT[k] != null && SITE_TEXT[k] !== "") ? SITE_TEXT[k] : d;
 // Hot Ham banner: shown across the top on this day, between these times.
 let HOT_HAM = { on: true, day: 0, from: "09:00", until: "15:00", text: "Hot Ham Available Now Until {until}" };   // Sunday 9 AM to 3 PM
 // Hours by day (0 = Sunday). Times are 24-hour "HH:MM"; null = closed all day.
@@ -641,6 +646,26 @@ function applySite(d){
   if(!d) return;
   if(d.hotHam) HOT_HAM = { ...HOT_HAM, ...d.hotHam };
   const t = d.text || {}, set = (id, v) => { const el = document.getElementById(id); if(el && v) el.textContent = v; };
+  SITE_TEXT = t;
+  document.querySelectorAll("[data-tx]").forEach(el=>{ const v = t[el.dataset.tx]; if(v) el.textContent = v; if(el.hasAttribute("data-empty-ok")){ el.hidden = !v; if(!v) el.textContent = ""; } });
+  if(d.info){
+    if(d.info.address) ADDRESS = d.info.address;
+    if(d.info.phone && d.info.phone !== PHONE){ const old = PHONE; PHONE = d.info.phone;
+      document.querySelectorAll('a[href^="tel:"]').forEach(a=>{ a.href = telOf(PHONE); if(a.getAttribute("aria-label")) a.setAttribute("aria-label", a.getAttribute("aria-label").split(old).join(PHONE)); });
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n; while((n = w.nextNode())) if(n.nodeValue.includes(old)) n.nodeValue = n.nodeValue.split(old).join(PHONE); }
+  }
+  // colors and logos (Store Tools → Banners & Text → Colors and Logos)
+  if(d.colors){ const r = document.documentElement.style, c = d.colors;
+    const mix = (hex, amt) => { const n = parseInt(hex.slice(1),16), f = v => Math.max(0,Math.min(255,Math.round(amt<0 ? v*(1+amt) : v+(255-v)*amt)));
+      return "#" + [n>>16, n>>8&255, n&255].map(v=>f(v).toString(16).padStart(2,"0")).join(""); };
+    if(/^#[0-9a-f]{6}$/i.test(c.main||"")){ r.setProperty("--orange", c.main); r.setProperty("--orange-deep", mix(c.main,-0.18)); }
+    if(/^#[0-9a-f]{6}$/i.test(c.dark||"")){ r.setProperty("--glass", c.dark); r.setProperty("--glass-2", mix(c.dark,0.08)); }
+    if(/^#[0-9a-f]{6}$/i.test(c.light||"")) r.setProperty("--kraft", c.light); }
+  if(d.images){ const src = id => SITE_URL + "?img=" + encodeURIComponent(id);
+    if(d.images.logo) document.querySelectorAll("img.site-logo").forEach(i=>{ i.src = src(d.images.logo); });
+    if(d.images.icon) document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(l=>{ l.href = src(d.images.icon); }); }
+  if(d.settings && "thcUntil" in d.settings){ const thc = DEFAULT_SECTIONS.find(x=>x.id==="thc"); if(thc){ if(d.settings.thcUntil) thc.until = d.settings.thcUntil; else delete thc.until; applyLayoutSections(); } }
+  if(typeof render === "function" && stock) try{ render(); }catch(e){}
   set("hero-title", t.heroTitle); set("made-intro", t.madeHereIntro); set("cat-title", t.cateringTitle); set("cat-text", t.cateringText); set("cat-btn", t.cateringButton);
   if(t.searchHint) $("#q").placeholder = t.searchHint;
   const a = d.announce || {}, el = $("#announce"), nowCT = new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
@@ -814,7 +839,7 @@ function render(){
 
   // updated line
   const up = $("#updated");
-  if(loadError) up.innerHTML = '<span class="live-dot off"></span>Live stock is unavailable right now. Call 262-696-4602.';
+  if(loadError) up.innerHTML = '<span class="live-dot off"></span>Live stock is unavailable right now. Call ' + PHONE + '.';
   else if(updatedAt) up.innerHTML = '<span class="live-dot"></span>Stock updated '+ago(updatedAt);
 
   // food
@@ -830,7 +855,7 @@ function render(){
   const card = (f, section) => {
       const st = itemStatus(f, section);
       const sp = section==="food" ? specialOf(f.name) : null, spr = sp ? spRows(f, sp) : null;
-      if(!matches(f.name+" "+menuLabel(f)+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
+      if(!matches(f.name+" "+menuLabel(f)+" "+menuDesc(f)+" "+menuExtras(f).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
       const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
@@ -838,12 +863,12 @@ function render(){
       const img = photo ? `<img src="${esc(photo)}" alt="${esc(menuLabel(f))}" loading="lazy">` : "";
       return `<article class="dish ${st===false?"dim":""}${sp?" special":""}">${sp?'<span class="sp-flag">Special</span>':""}
         <div class="ph ${photo?"has-img":""}">${img}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg></div>
-        <div class="body"><h3>${highlight(menuLabel(f),qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
+        <div class="body"><h3>${highlight(menuLabel(f),qRaw)}</h3>${menuDesc(f)?`<p>${esc(menuDesc(f))}</p>`:""}
         ${spr ? `<div class="prices">${spr.html}</div>` : prices.length?`<div class="prices">${priceRows(prices)}</div>`:""}
-        ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
+        ${menuExtras(f).length?`<details class="extras"><summary>Add-Ons</summary>${priceRows(menuExtras(f))}</details>`:""}
         ${f.toppings?(()=>{ const on = toppingList().filter(tp => switches[toppingKey(tp)] !== false);
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
-        <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
+        <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${menuTag(f)?`<span class="tag">${esc(menuTag(f))}</span>`:""}</div></div></article>`;
   };
   for(const {key:grp, name:gname, note} of foodGroups()){
     // items on special go to the front of their own group
@@ -862,7 +887,7 @@ function render(){
     if(cards){
       const where = info.where ? `, ${esc(info.where)}` : "";
       localHtml += `<h3 class="grp">${esc(info.name)}<span class="where">${where}</span></h3>`
-        + (MAKER_NOTES[maker] ? `<p class="maker-note">${esc(MAKER_NOTES[maker])}</p>` : "")
+        + (info.note ? `<p class="maker-note">${esc(info.note)}</p>` : "")
         + `<div class="menu">${cards}</div>`;
     }
   }
@@ -879,12 +904,12 @@ function render(){
   $("#gear").innerHTML = outdoorItems().map(g=>{
     const vars = flavorsOf(g).map(x=>({ v:x.v, note:x.note, on: switches[variantKey(g.name, x.v)] !== false }));
     const st = switches[outdoorKey(g.name)] !== false && (!vars.length || vars.some(x=>x.on));   // In Stock unless switched off in Store Tools
-    if(!matches(menuLabel(g, outdoorKey(g.name))+" "+(g.desc||"")+" "+vars.map(x=>x.v+" "+x.note).join(" "), qRaw)) return "";
+    if(!matches(menuLabel(g, outdoorKey(g.name))+" "+menuDesc(g, outdoorKey(g.name))+" "+vars.map(x=>x.v+" "+x.note).join(" "), qRaw)) return "";
     if(onlyIn && st===false) return "";
     gearShown++;
     const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
     const gph = menuPhoto({photo:""}, outdoorKey(g.name));
-    return `<li class="${st===false?"is-out":""}">${gph?`<img class="g-ph" src="${esc(gph)}" alt="" loading="lazy">`:""}<div class="g-main"><span class="name">${highlight(menuLabel(g, outdoorKey(g.name)),qRaw)}</span>${g.desc?`<span class="g-desc">${esc(g.desc)}</span>`:""}
+    return `<li class="${st===false?"is-out":""}">${gph?`<img class="g-ph" src="${esc(gph)}" alt="" loading="lazy">`:""}<div class="g-main"><span class="name">${highlight(menuLabel(g, outdoorKey(g.name)),qRaw)}</span>${menuDesc(g, outdoorKey(g.name))?`<span class="g-desc">${esc(menuDesc(g, outdoorKey(g.name)))}</span>`:""}
       ${vars.length?`<ul class="flavors">${vars.map(x=>`<li class="${x.on?"":"out"}"><span>${highlight(x.v,qRaw)}</span><b>${x.on?"In Stock":"Out of Stock"}</b>${x.note?`<small class="fl-note">${esc(x.note)}</small>`:""}</li>`).join("")}</ul>`:""}
       ${gearPrices(g).length?`<div class="prices">${priceRows(gearPrices(g))}</div>`:""}</div><span class="stcol">${status}${switches[outdoorKey(g.name)]===false?nbtn("o:"+outdoorKey(g.name),menuLabel(g, outdoorKey(g.name))):""}</span></li>`;
   }).join("");
@@ -936,7 +961,7 @@ function render(){
           + `</div>`;
       }
       const side = alloc.length ? `<aside class="alloc" id="allocated" aria-label="Allocated Bourbon"><h3>Allocated Bourbon</h3>
-        <p class="alloc-note">Hard-to-Find Bottles. Once They're Gone, They're Gone.</p><p class="alloc-rules"><span>Stock Updates Live</span> · <span>First Come, First Served</span> · <span>No Reservations</span></p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${MAPS_URL}" target="_blank" rel="noopener">Get Directions</a></div>
+        <p class="alloc-note">${esc(tx("allocNote","Hard-to-Find Bottles. Once They're Gone, They're Gone."))}</p><p class="alloc-rules">${tx("allocRules","Stock Updates Live · First Come, First Served · No Reservations").split("·").map(x=>`<span>${esc(x.trim())}</span>`).join(" · ")}</p><div class="alloc-top"><p class="alloc-open ${openStatus().open?"is-open":"is-closed"}">${esc(openStatus().text.replace(/^Open Now · Until (.+)$/,"Open Until $1 Today"))}</p><a class="alloc-dir-link" href="${mapsUrl()}" target="_blank" rel="noopener">Get Directions</a></div>
         <ul class="items">${allocShown.map(it=>`<li class="${it.inStock?"":"is-out"}"><span class="name">${highlight(it.name,qRaw)}</span>
         ${statusHtml(it.inStock,"k:"+it.name,it.name)}</li>`).join("")}</ul>${allocBtn}${clubBox()}</aside>` : "";
       if(SUBSECTIONS[s.id]){
@@ -968,7 +993,7 @@ function render(){
   lastFound = total + foodShown + gearShown + localShown;
   if(qRaw && !total && !foodShown && !gearShown && !localShown){
     html = `<div class="empty"><h2>Nothing matches “${esc(qRaw)}”</h2>
-      <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="tel:+12626964602"><strong>262-696-4602</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
+      <p>Check the spelling or try the brand name. Can't find it? Call us at <a href="${telOf(PHONE)}"><strong>${PHONE}</strong></a> and ask if we can get it, or <a href="#request" id="ask-link">request it below</a>.</p></div>`;
   }
   if(!stock && !loadError){
     html = Array.from({length:3},()=>`<section class="shelf skel" aria-hidden="true"><div class="shelf-head"><span class="sk sk-h"></span></div>
@@ -1042,7 +1067,7 @@ function renderHours(){
   $("#hours-list").innerHTML = order.map(d=>{ const off = (d - day + 7) % 7, [n,o,c,ov] = hoursFor(off);
     return `<li class="${d===day?"today":""}"><span>${n}${ov?" *":""}</span><span>${o?`${fmtTime(o)} – ${fmtTime(c)}`:"Closed"}</span></li>`; }).join("")
     + (OVERRIDES.some(x=>x.date>=chicagoDate(0) && x.date<=chicagoDate(6)) ? '<li class="hrs-fn"><span>* Special hours this week</span></li>' : "");
-  $("#addr").textContent = ADDRESS; $("#dir").href = MAPS_URL;
+  $("#addr").textContent = ADDRESS; $("#dir").href = mapsUrl();
   $("#ham-text").textContent = HOT_HAM.text.replace(/\{until\}/gi, fmtTime(HOT_HAM.until));
   $("#ham-banner").hidden = !HOT_HAM.on || !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
   // Notice bar for a one-day change today or in the next 14 days
@@ -1106,7 +1131,7 @@ $("#request-form").addEventListener("submit", async e=>{
       body:JSON.stringify({type:"request",item:f.item.value,name:f.name.value,phone:f.phone.value})}).catch(()=>{});
     f.reset(); msg.className="req-msg ok"; msg.textContent="Request sent. Thanks! We'll see what we can do.";
   }catch(err){
-    msg.className="req-msg err"; msg.textContent="Your request didn't go through. Try again, or call us at 262-696-4602.";
+    msg.className="req-msg err"; msg.textContent="Your request didn't go through. Try again, or call us at " + PHONE + ".";
   }
   btn.disabled=false; btn.textContent="Send Request";
 });
@@ -1144,9 +1169,9 @@ $("#nform").addEventListener("submit", async e=>{
   }catch(_){ msg.textContent = "Something went wrong. Please try again."; go.disabled = false; }
 });
 function clubBox(){
-  if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">You're in! Watch for our email Thursday at 5 PM.</p></div>`;
-  return `<div class="club" id="club"><h4>Join the Bourbon Club</h4>
-    <p>Every Thursday at 5 PM, get our list of allocated bottles in stock.</p>
+  if(clubDone) return `<div class="club"><h4>Bourbon Club</h4><p class="club-msg ok">${esc(tx("clubDone","You're in! Watch for our email Thursday at 5 PM."))}</p></div>`;
+  return `<div class="club" id="club"><h4>${esc(tx("clubTitle","Join the Bourbon Club"))}</h4>
+    <p>${esc(tx("clubText","Every Thursday at 5 PM, get our list of allocated bottles in stock."))}</p>
     <form id="club-form" novalidate>
       <div class="club-row"><input type="email" name="email" placeholder="Your Email" autocomplete="email" aria-label="Your email" required>
       <button type="submit">Join</button></div>
@@ -1173,7 +1198,7 @@ document.addEventListener("submit", async e=>{
     clubDone = true; try{ localStorage.setItem("bd-club","1"); }catch(e){}
     f.parentElement.outerHTML = clubBox();
   }catch(err){
-    msg.textContent = err.message || "That didn't go through. Try again, or call us at 262-696-4602.";
+    msg.textContent = err.message || "That didn't go through. Try again, or call us at " + PHONE + ".";
     btn.disabled = false; btn.textContent = "Join";
   }
 });

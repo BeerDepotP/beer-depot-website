@@ -24,8 +24,9 @@ function menuPhoto(f, key){
     notify:{on:true,delayMin:60,form:{title:"Email Me When Back",intro:"We'll send you one email when it's back in stock.",button:"Email Me",thanks:"Got it! We'll email you when it's back.",emailSubject:"{item} Is Back in Stock at The Beer Depot",emailHeading:"It's Back in Stock!",emailNote:"Stop in or give us a call to grab it.",emailLink:"See What's In Stock",fields:[{id:"f1",label:"Name",type:"text",required:true},{id:"f2",label:"Phone Number",type:"tel",required:false}]},items:[{key:"k:Blanton's Single Barrel 750ml",name:"Blanton's Single Barrel 750ml",count:3,people:[{email:"jim@example.com",at:"2026-11-05T15:00:00Z"},{email:"sara@example.com",at:"2026-11-05T16:10:00Z"},{email:"dave@example.com",at:"2026-11-04T12:00:00Z"}]},{key:"f:Smoked Lasagna",name:"Smoked Lasagna",count:1,people:[{email:"pat@example.com",at:"2026-11-05T17:30:00Z"}]}],sent:[{at:"2026-11-04T14:05:00Z",name:"Spotted Cow 12pk Cans",count:2}]},
     layout:{items:[],groups:["Beer - Domestic","Beer - Craft","Hard Seltzer","Whiskey","Bourbon","Vodka","Wine - Red","Wine - White","Tequila","Cigars (Not Shown)","Craft Cans","Kombucha"]},
     site:{hotHam:{on:true,day:0,from:"09:00",until:"15:00",text:"Hot Ham Available Now Until {until}"},announce:{on:true,text:"Now Taking Thanksgiving Orders: Smoked Turkeys and Hams",link:"#catering",color:"red",until:""},
-      text:{heroTitle:"See what's on our shelves",searchHint:"Search Tito's, Spotted Cow, ribs…",madeHereIntro:"Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.",cateringTitle:"Party & Catering Orders",cateringText:"Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.",cateringButton:"Call to Order"}},
+      text:{"heroTitle": "See what's on our shelves", "searchHint": "Search Tito's, Spotted Cow, ribs\u2026", "madeHereIntro": "Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.", "cateringTitle": "Party & Catering Orders", "cateringText": "Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.", "cateringButton": "Call to Order", "saleIntro": "Deals this week, while they last.", "localIntro": "Meat, cheese and bakery from local makers.", "outdoorIntro": "", "newIntro": "Just came in over the last two weeks.", "allocNote": "Hard-to-Find Bottles. Once They're Gone, They're Gone.", "allocRules": "Stock Updates Live \u00b7 First Come, First Served \u00b7 No Reservations", "clubTitle": "Join the Bourbon Club", "clubText": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubDone": "You're in! Watch for our email Thursday at 5 PM.", "requestTitle": "Don't See It? Ask Us to Bring It In.", "requestText": "Tell us what you'd like us to carry. We read every request and will call you if we get it in.", "gateTitle": "Are you 21 or older?", "gateText": "This site lists beer and spirits. You must be 21 to see them.", "gateYes": "Yes, I'm 21 or older", "gateNo": "No, just show me the food", "clubPageTitle": "Join the Bourbon Club", "clubPageLede": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubPageSub": "Hard-to-find bottles go fast. Be the first to know what's on the shelf.", "clubPageFine": "One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.", "clubPageDone": "Watch for our email Thursday at 5 PM."},info:{phone:"262-696-4602",address:"N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072"},settings:{newDays:14,thcUntil:"2026-12-11"},colors:{main:"#F26B1D",dark:"#2B1A10",light:"#F3ECE3"},images:{logo:"",icon:""}},
     activity:[{at:"2026-11-05T22:10:00Z",who:"Jake",staff:"s1",text:"Smoked Ribs: Out of Stock"},{at:"2026-11-05T20:02:00Z",who:"Jake",staff:"s1",text:"Changed a one-day hours change"},{at:"2026-11-05T18:30:00Z",who:"Owner",staff:"",text:"Put Smoked Pulled Pork on special"}],
+    rules:{hide:{"Busch Light 30pk cans":true},move:{}},
     staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true}],
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
@@ -43,14 +44,14 @@ function menuPhoto(f, key){
       if(b.check) return ok({ok:true});
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="toppings"){ f.toppings = b.list; return ok({ok:true,...f}); }
-      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.group!=null){ if(b.group) e.group = b.group; else delete e.group; } if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name.replace(/^Outdoor: /,"")); if(c) c.desc = b.desc; }
+      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.group!=null){ if(b.group) e.group = b.group; else delete e.group; } if(b.desc!=null) e.desc = b.desc; if(b.tag!=null) e.tag = b.tag; if(b.extras) e.extras = b.extras; if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name.replace(/^Outdoor: /,"")); if(c) c.desc = b.desc; }
         if(b.label) e.label = b.label; else delete e.label;
         if("photo" in b){ if(b.photo) e.photo = b.photo; else delete e.photo; }
         if(Object.keys(e).length) f.edits[b.name] = e; else delete f.edits[b.name];
         if(Array.isArray(b.prices)) f.prices[b.name] = b.prices;
         return ok({ok:true,...f}); }
       if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.outdoor?{name:n,label:b.label,outdoor:true,desc:b.desc}:b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); const k = b.outdoor?"Outdoor: "+n:n; f.prices[k] = b.prices; f.items[k] = true; return ok({ok:true,...f}); }
-      if(b.action==="maker"){ f.makers[b.key] = {name:b.name,where:b.where}; return ok({ok:true,...f}); }
+      if(b.action==="maker"){ f.makers[b.key] = {name:b.name,where:b.where,note:b.note,restock:b.restock}; return ok({ok:true,...f}); }
       if(b.action==="addMaker"){ f.newMakers.push({id:"m-"+Date.now().toString(36),name:b.name,where:b.where}); return ok({ok:true,...f}); }
       if(b.action==="deleteMaker"){ f.newMakers = f.newMakers.filter(m=>m.id!==b.key); f.custom = f.custom.filter(c=>c.maker!==b.key); return ok({ok:true,...f}); }
       if(b.action==="order"){ f.order[b.group] = b.names; return ok({ok:true,...f}); }
@@ -63,7 +64,7 @@ function menuPhoto(f, key){
       if(typeof b.inStock === "boolean"){ f.items[b.name] = b.inStock; return ok({ok:true,...f}); }
       return ok({ok:true,...f});
     }
-    if(url.startsWith("/api/stock")) return ok({items:[],updated:new Date().toISOString()});
+    if(url.startsWith("/api/stock")) return ok({items:SAMPLE_ITEMS,updated:new Date().toISOString()});
     if(url.startsWith("/api/sales")){ if(!post) return ok(DB.sales);
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="save") DB.sales = {on:!!b.on,until:b.until||"",items:b.items,updated:new Date().toISOString()};
@@ -86,9 +87,10 @@ function menuPhoto(f, key){
       if(b.action==="save") l.items = b.items.map(x=>Object.assign({},x,{name:x.name||undefined}));
       if(b.action==="reset") l.items = [];
       return ok({ok:true,items:l.items,groupNames:l.groups,groupError:"",builtin:{"made-here":"Made Here","on-sale":"On Sale","seasonal":"Seasonal","local-favorites":"Local Favorites","grilling-outdoor":"Grilling & Outdoor","new-arrivals":"New Arrivals",cocktails:"Ready to Drink Cocktails",beer:"Beer",nonalc:"Non-Alcoholic",seltzer:"Hard Seltzers",thc:"THC",whiskey:"Whiskey & Bourbon",wine:"Wine",tequila:"Tequila",vodka:"Vodka",brandy:"Brandy",gin:"Gin",rum:"Rum",liqueur:"Liqueur",mixers:"Soda & Mixers"}}); }
-    if(url.startsWith("/api/site")){ if(b.action==="save"){ for(const k of ["hotHam","announce"]) if(b[k]) DB.site[k] = Object.assign({},b[k],k==="hotHam"?{day:+b[k].day}:{}); if(b.text) for(const k in b.text) if(b.text[k].trim()) DB.site.text[k] = b.text[k]; }
+    if(url.startsWith("/api/site")){ if(b.action==="save"){ for(const k of ["hotHam","announce"]) if(b[k]) DB.site[k] = Object.assign({},b[k],k==="hotHam"?{day:+b[k].day}:{}); if(b.text) for(const k in b.text) DB.site.text[k] = b.text[k]; if(b.info) DB.site.info = b.info; if(b.settings) DB.site.settings = {newDays:+b.settings.newDays,thcUntil:b.settings.thcUntil}; if(b.colors) DB.site.colors = b.colors.reset ? {main:"#F26B1D",dark:"#2B1A10",light:"#F3ECE3"} : b.colors; }
+      if(b.action==="image"){ if(b.reset) DB.site.images[b.kind] = ""; else { const id = b.kind+Date.now().toString(36); PH[id] = b.data; DB.site.images[b.kind] = id; } }
       return ok({ok:true,...DB.site}); }
-    if(url.startsWith("/api/staff")){ const S = DB.staff, ALL = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club"];
+    if(url.startsWith("/api/staff")){ const S = DB.staff, ALL = ["food","sales","seasonal","hours","notify","layout","banners","drinks","nofind","top","requests","club"];
       const m = S.find(x=>x.on && x.pin===String(b.pin));
       if(b.action==="whoami") return ok(m ? {owner:false,name:m.name,tabs:m.tabs} : {owner:true,name:"Owner",tabs:ALL});
       if(m) return ok({error:"Your PIN doesn't have access to that. Ask the owner."},403);
@@ -97,6 +99,10 @@ function menuPhoto(f, key){
       if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); }
       if(b.action==="remove") DB.staff = S.filter(x=>x.id!==b.id);
       return ok({ok:true,members:DB.staff.map(({pin,...x})=>x),activity:DB.activity}); }
+    if(url.startsWith("/api/products")){ const R = DB.rules;
+      if(b.action==="hide"){ R.hide[b.name] = true; delete R.move[b.name]; } if(b.action==="unhide") delete R.hide[b.name];
+      if(b.action==="move") R.move[b.name] = b.section; if(b.action==="unmove") delete R.move[b.name];
+      return ok({ok:true,hide:Object.keys(R.hide),move:R.move,sections:{cocktails:"Ready to Drink Cocktails",beer:"Beer",nonalc:"Non-Alcoholic",seltzer:"Hard Seltzers",thc:"THC",whiskey:"Whiskey & Bourbon",wine:"Wine",tequila:"Tequila",vodka:"Vodka",brandy:"Brandy",gin:"Gin",rum:"Rum",liqueur:"Liqueur",mixers:"Soda & Mixers"}}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
@@ -118,8 +124,9 @@ function menuPhoto(f, key){
   };
   try{ sessionStorage.setItem("bd-pin","demo"); }catch(e){}
 })();
-""" % json.dumps(photos)
+""".replace("SAMPLE_ITEMS", json.dumps(json.loads((here / "sample-stock.json").read_text())["items"])) % json.dumps(photos)
 html = src.replace('<script src="/menu.js"></script>', "<script>\n" + menu + "\n</script>\n<script>" + fake + "</script>", 1)
+html = html.replace('return "/api/site?img=" + encodeURIComponent(id);','return PH[id] || "";').replace('const imgSrc = id => "/api/site?img=" + encodeURIComponent(id);','const imgSrc = id => PH[id] || "";')
 html = html.replace("/api/sales?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace("/api/seasonal?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace('"/api/food-stock?photo=" + encodeURIComponent(d.photo)', 'DEMO_PH(d.photo)')
 html = html.replace("/img/logo-orange.png", logo).replace("/img/favicon-32.png","").replace("/img/favicon-64.png","").replace("/img/apple-touch-icon.png","")
 html = html.replace("<title>Store Tools · The Beer Depot</title>", "<title>DEMO Store Tools · The Beer Depot</title>", 1)

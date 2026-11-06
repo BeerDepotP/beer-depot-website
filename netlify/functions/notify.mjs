@@ -7,6 +7,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin, json } from "../lib/pin.mjs";
+import { storeInfo } from "../lib/info.mjs";
 import { loadState, loadWants, isIn, cleanForm, DEFAULT_FORM, notifyEmail } from "../lib/notify.mjs";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -66,7 +67,7 @@ export default async (req) => {
   if (b.action === "settings") {
     await store.setJSON("notify-state", { ...state, on: !!b.on, delayMin: [0, 15, 30, 60, 120, 240].includes(+b.delayMin) ? +b.delayMin : state.delayMin });
   }
-  if (b.action === "previewEmail") { const m = notifyEmail("(Sample) Blanton's Single Barrel 750ml", "preview", b.form); return json({ html: m.html, subject: m.subject }); }
+  if (b.action === "previewEmail") { const m = notifyEmail("(Sample) Blanton's Single Barrel 750ml", "preview", b.form, await storeInfo(store)); return json({ html: m.html, subject: m.subject }); }
   if (b.action === "form") await store.setJSON("notify-state", { ...state, form: cleanForm(b.form) });
   if (b.action === "clear" && d.wants[b.key]) { delete d.wants[b.key]; await store.setJSON("notify", d); }
   if (b.action === "removeEmail" && d.wants[b.key]) {

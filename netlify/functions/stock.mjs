@@ -70,13 +70,15 @@ const SECTION_BY_PRODUCT = [
 // On the very first run every product that already has stock history is recorded
 // as "old", so only products that arrive after launch count as new.
 import { getStore } from "@netlify/blobs";
-const NEW_DAYS = 14;
+const NEW_DAYS = 14;     // default; Store Tools → Banners & Text → Settings can change it (Blob "site".settings.newDays)
 
 async function markNewArrivals(items) {
   let store;
   try { store = getStore({ name: "beer-depot", consistency: "strong" }); } catch { return; } // Blobs not available
   const seen = (await store.get("first-stocked", { type: "json" })) || null;
   const now = Date.now();
+  let newDays = NEW_DAYS;
+  try { const n = Number((((await store.get("site", { type: "json" })) || {}).settings || {}).newDays); if (n >= 1 && n <= 90) newDays = n; } catch {}
   if (!seen) {
     const ids = {};
     for (const it of items) ids[it.id] = 0;
@@ -90,7 +92,7 @@ async function markNewArrivals(items) {
       seen.ids[it.id] = now; changed = true;
     }
     const t = seen.ids[it.id];
-    if (t && now - t < NEW_DAYS * 86400000 && it.inStock) it.isNew = true;
+    if (t && now - t < newDays * 86400000 && it.inStock) it.isNew = true;
   }
   if (changed) await store.setJSON("first-stocked", seen);
 }
@@ -170,6 +172,8 @@ function sectionFor(groupId, groups, links = {}) {
 
 export async function buildStock() {
   const links = await groupLinks();
+  let rules = { hide: {}, move: {} };     // Store Tools → Drinks: hide a product or move it to another section
+  try { rules = { hide: {}, move: {}, ...((await getStore({ name: "beer-depot", consistency: "strong" }).get("product-rules", { type: "json" })) || {}) }; } catch {}
   // 1. Commodity groups (for sections)
   const groupList = await getAll("/commodityGroups");
   const groups = {};
@@ -208,13 +212,15 @@ export async function buildStock() {
     if (RETIRED.test(p.name || "") || groupChain(p.commodityGroup?.id, groups).some(n => RETIRED.test(n))) {
       report.skippedDoNotUse = (report.skippedDoNotUse || 0) + 1; continue;
     }
+    const pname = (p.name || "").trim();
+    if (rules.hide[pname]) { report.hiddenInStoreTools = (report.hiddenInStoreTools || 0) + 1; continue; }
     const tags = (p.tags || []).map(t => tagKey(t.name || tagNames[t.id]));
     if (tags.some(t => HIDE_TAGS.has(t))) { report.hiddenByTag = (report.hiddenByTag || 0) + 1; continue; }
     const allocated = tags.some(t => ALLOCATED_TAGS.has(t));
     const naSub = tags.map(t => NA_SUB_TAGS[t]).find(Boolean);
     const tagSection = allocated ? "whiskey" : naSub ? "nonalc" : tags.map(t => TAG_SECTIONS[t]).find(Boolean);
     const override = SECTION_BY_PRODUCT.find(([re]) => re.test(p.name || ""));
-    const section = tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups, links));
+    const section = rules.move[pname] || tagSection || (override ? override[1] : sectionFor(p.commodityGroup?.id, groups, links));
     if (tagSection) report.placedByTag = (report.placedByTag || 0) + 1;
     if (!section) {
       const gname = groups[p.commodityGroup?.id]?.name || "(no group)";

@@ -24,11 +24,11 @@ export function cleanContent(c = {}) {
   return o;
 }
 const para = (t, style) => t ? `<p style="${style}">${esc(t).replace(/\n/g, "<br>")}</p>` : "";
-const ADDRESS = "N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072";
+import { DEFAULT_INFO, telOf } from "./info.mjs";
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-export function clubEmail(bottles, token, content) {
-  const c = cleanContent(content);
+export function clubEmail(bottles, token, content, info = DEFAULT_INFO) {
+  const c = cleanContent(content), ADDRESS = info.address, PHONE = info.phone;
   const unsub = `${SITE}/api/bourbon-club?unsub=${token}`;
   const list = bottles.map(n => `<li style="padding:8px 0;border-bottom:1px solid #4E3626;font-size:17px;color:#fff">${esc(n)}</li>`).join("");
   const html = `<!doctype html><html><body style="margin:0;background:#F3EBE2;font-family:Arial,Helvetica,sans-serif">
@@ -40,13 +40,13 @@ export function clubEmail(bottles, token, content) {
   <ul style="list-style:none;margin:0;padding:0">${list}</ul>
   ${para(c.info, "margin:16px 0 6px")}
   ${para(c.bottom, "margin:6px 0 6px;color:#fff")}
-  <p style="margin:0 0 14px"><a href="${SITE}/#allocated" style="color:#fff;font-weight:bold">See What's Still In Stock</a> &nbsp;·&nbsp; <a href="tel:+12626964602" style="color:#fff;font-weight:bold">262-696-4602</a></p>
+  <p style="margin:0 0 14px"><a href="${SITE}/#allocated" style="color:#fff;font-weight:bold">See What's Still In Stock</a> &nbsp;·&nbsp; <a href="${telOf(PHONE)}" style="color:#fff;font-weight:bold">${PHONE}</a></p>
  </div>
  <p style="font-size:12px;color:#7A6B60;line-height:1.5;margin:14px 4px">The Beer Depot · ${ADDRESS}<br>
  You're getting this because you joined the Bourbon Club at beerdepotpewaukee.com. Must be 21 or older.<br>
  <a href="${unsub}" style="color:#7A6B60">Unsubscribe</a></p>
 </div></body></html>`;
-  const text = `${c.heading}\n${c.tagline}\n\n${c.top ? c.top + "\n\n" : ""}${bottles.map(n => "- " + n).join("\n")}\n\n${c.info}\n${c.bottom ? "\n" + c.bottom + "\n\n" : ""}${SITE}/#allocated · 262-696-4602\n\nThe Beer Depot · ${ADDRESS}\nUnsubscribe: ${unsub}`;
+  const text = `${c.heading}\n${c.tagline}\n\n${c.top ? c.top + "\n\n" : ""}${bottles.map(n => "- " + n).join("\n")}\n\n${c.info}\n${c.bottom ? "\n" + c.bottom + "\n\n" : ""}${SITE}/#allocated · ${PHONE}\n\nThe Beer Depot · ${ADDRESS}\nUnsubscribe: ${unsub}`;
   return { html, text, unsub, subject: c.subject };
 }
 
@@ -63,16 +63,16 @@ export async function sendMail({ to, subject, html, text, unsub }) {
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
 }
 
-async function sendOne(to, bottles, token, content) {
-  const { html, text, unsub, subject } = clubEmail(bottles, token, content);
+async function sendOne(to, bottles, token, content, info) {
+  const { html, text, unsub, subject } = clubEmail(bottles, token, content, info);
   await sendMail({ to, subject, html, text, unsub });
 }
 
 // One email per member (each has their own unsubscribe link), 10 at a time.
-export async function sendClub(members, bottles, content) {
+export async function sendClub(members, bottles, content, info) {
   let sent = 0; const failed = [];
   for (let i = 0; i < members.length; i += 10) {
-    const res = await Promise.allSettled(members.slice(i, i + 10).map(([email, m]) => sendOne(email, bottles, m.token, content)));
+    const res = await Promise.allSettled(members.slice(i, i + 10).map(([email, m]) => sendOne(email, bottles, m.token, content, info)));
     res.forEach((x, j) => x.status === "fulfilled" ? sent++ : failed.push(members[i + j][0] + ": " + x.reason.message));
     if (sent === 0 && failed.length && i === 0) throw new Error(failed[0]);    // key or sender problem: stop right away
   }
@@ -81,6 +81,6 @@ export async function sendClub(members, bottles, content) {
 }
 
 // A test copy to the owner, from Store Tools.
-export async function sendTest(to, bottles, content) {
-  await sendOne(to, bottles, "test", content);
+export async function sendTest(to, bottles, content, info) {
+  await sendOne(to, bottles, "test", content, info);
 }

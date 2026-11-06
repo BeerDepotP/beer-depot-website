@@ -111,7 +111,7 @@ export default async (req) => {
       const name = title(clean(body.name, 50));
       if (!name) return json({ error: "Give the company a name." }, 400);
       if (d.newMakers.length >= 20) return json({ error: "That's the limit of added companies." }, 400);
-      d.newMakers.push({ id: "m-" + Date.now().toString(36), name, where: clean(body.where, 50) });
+      d.newMakers.push({ id: "m-" + Date.now().toString(36), name, where: clean(body.where, 50), note: clean(body.note, 200) });
     } else {
       const key = clean(body.key, 60);
       if (!key) return json({ error: "Bad request." }, 400);
@@ -125,7 +125,9 @@ export default async (req) => {
       } else {
         const name = title(clean(body.name, 50));
         if (!name) return json({ error: "Give the company a name." }, 400);
-        d.makers[key] = { name, where: clean(body.where, 50) };
+        const r = body.restock || {}, day = Number(r.day), time = String(r.time || "");
+        d.makers[key] = { name, where: clean(body.where, 50), note: clean(body.note, 200),
+          restock: { on: !!r.on, day: day >= 0 && day <= 6 ? day : 4, time: /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time : "09:00" } };
       }
     }
     return saveData(store, d);
@@ -209,6 +211,9 @@ export default async (req) => {
     if (typeof body.label === "string") { const l = title(clean(body.label, 60)); if (l) e.label = l; else delete e.label; }
     if (typeof body.photo === "string") { const ph = body.photo.replace(/[^a-z0-9]/gi, "").slice(0, 40); if (ph) e.photo = ph; else delete e.photo; }
     if (body.photo === "none") e.photo = "none";
+    if (typeof body.desc === "string") e.desc = clean(body.desc, 160);
+    if (typeof body.tag === "string") e.tag = title(clean(body.tag, 30));
+    if (Array.isArray(body.extras)) { const x = priceRows(body.extras); if (x.length) e.extras = x; else e.extras = []; }
     if (typeof body.group === "string") { const g = clean(body.group, 40); if (g) e.group = g; else delete e.group; }
     if (Object.keys(e).length) data.edits[name] = e; else delete data.edits[name];
     if (Array.isArray(body.prices)) data.prices[name] = priceRows(body.prices);

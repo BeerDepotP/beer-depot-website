@@ -135,7 +135,8 @@ function specialOf(name){ const s = swMenu.specials[name]; if(!s || !s.on) retur
 // Order is saved under "local:<company>". A company's key never changes, even when it's renamed.
 const makerKeys = () => [...new Set(LOCAL.map(l=>l.maker)), ...swMenu.newMakers.map(m=>m.id)];
 const makerInfo = m => { const nm = swMenu.newMakers.find(x=>x.id===m), base = LOCAL.find(l=>l.maker===m) || {};
-  const e = swMenu.makers[m] || {}; return { name: e.name || (nm ? nm.name : m), where: e.where != null ? e.where : (nm ? nm.where : base.where || "") }; };
+  const e = swMenu.makers[m] || {}; return { name: e.name || (nm ? nm.name : m), where: e.where != null ? e.where : (nm ? nm.where : base.where || ""),
+    note: e.note != null ? e.note : (nm ? nm.note || "" : MAKER_NOTES[m] || "") }; };
 const localItems = (m, withRemoved) => ordered([...LOCAL.filter(l=>l.maker===m), ...swMenu.custom.filter(c=>c.maker===m)].filter(l=>withRemoved || !isRemoved(l.name)), swMenu.order["local:"+m]);
 
 // Grilling & Outdoor: built-in list + items added in Store Tools, in the saved order ("outdoor"). Removed/deleted are keyed "Outdoor: <name>".
@@ -147,3 +148,12 @@ const flavorsOf = g => swMenu.variants[outdoorKey(g.name)] || (g.variants||[]).m
 const foodGroups = () => swMenu.groups.length ? swMenu.groups : FOOD_GROUPS.map(g=>({ key:g, name:g, note: FOOD_GROUP_NOTES[g] || "" }));
 // An item's group: moved in Store Tools (edits[name].group) or its own.
 const groupOf = f => ((typeof swEdits!=="undefined" && swEdits[f.name]) || {}).group || f.group;
+
+// Description, little tag and add-ons can be changed in Store Tools for any item (edits[key].desc / .tag / .extras; "" = none).
+const menuEdit = (f, key) => (typeof swEdits!=="undefined" && swEdits[key||f.name]) || {};
+const menuDesc   = (f, key) => { const e = menuEdit(f, key); return "desc" in e ? e.desc : (f.desc || ""); };
+const menuTag    = (f, key) => { const e = menuEdit(f, key); return "tag" in e ? e.tag : (f.tag || ""); };
+const menuExtras = (f, key) => menuEdit(f, key).extras || f.extras || [];
+// Companies that switch all their items back to In Stock each week (changed in Store Tools → Edit Company).
+const RESTOCK_DEFAULTS = { "Grebe's": { on:true, day:4, time:"09:00" } };   // keep in step with tools/build.py
+const makerRestock = m => (swMenu.makers[m] && swMenu.makers[m].restock) || RESTOCK_DEFAULTS[m] || { on:false, day:4, time:"09:00" };

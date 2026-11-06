@@ -21,8 +21,10 @@ export function describe(area, b = {}) {
     case "hours": return a === "save" ? (b.weekly ? "Changed the weekly hours" : "Changed a one-day hours change") : null;
     case "notify": return ({ settings: `Back in Stock emails: ${b.on ? "On" : "Off"}, wait ${b.delayMin} min`, form: "Changed the Back in Stock pop-up and email wording",
       clear: `Cleared everyone waiting on ${nm(String(b.key || "").slice(2))}`, removeEmail: `Removed ${q(b.email)} from a Back in Stock list` })[a] || null;
+    case "drinks": return ({ hide: `Hid ${q(b.name)} from the website`, unhide: `Put ${q(b.name)} back on the website`, move: `Moved ${q(b.name)} to another section`, unmove: `Put ${q(b.name)} back in its usual section` })[a] || null;
     case "layout": return a === "save" ? "Changed the website buttons" : a === "reset" ? "Put the website buttons back to standard" : null;
-    case "banners": return a === "save" ? (b.announce ? `Announcement: ${b.announce.on ? "On" : "Off"}` : b.hotHam ? `Hot Ham banner: ${b.hotHam.on ? "On" : "Off"}` : "Changed the page wording") : null;
+    case "banners": if (a === "image") return b.reset ? `Put back the standard ${b.kind === "icon" ? "tab icon" : "logo"}` : `Uploaded a new ${b.kind === "icon" ? "tab icon" : "logo"}`;
+      return a === "save" ? (b.announce ? `Announcement: ${b.announce.on ? "On" : "Off"}` : b.hotHam ? `Hot Ham banner: ${b.hotHam.on ? "On" : "Off"}` : b.info ? "Changed the store phone or address" : b.settings ? "Changed the website settings" : b.colors ? "Changed the website colors" : "Changed the page wording") : null;
     case "insights": return a === "remove" || b.type === "remove" ? `Removed "${q(b.q || b.item)}" from ${({ top: "Top Searches", nofind: "Couldn't Find It", requests: "Requests" })[b.tab] || b.tab}` : null;
     case "club": return ({ remove: `Removed ${q(b.email)} from the Bourbon Club`, sending: `Bourbon Club weekly emails: ${b.on ? "On" : "Off"}`,
       schedule: "Changed the Bourbon Club send day and time", saveEmail: "Changed the Bourbon Club email wording", test: "Sent a Bourbon Club test email" })[a] || null;
