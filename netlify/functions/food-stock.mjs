@@ -36,14 +36,17 @@ const priceRows = rows => (Array.isArray(rows) ? rows : []).slice(0, 8).map(r =>
 //   specials: { name: { on, prices:[[label, specialPrice]], until:"YYYY-MM-DDTHH:MM" Central or "" } }
 // POST { pin, action:"addItem", label, group, desc, prices } | "removeItem"/"restoreItem"/"deleteItem" { name }
 //      | "order" { group, names } | "special" { name, on, prices, until }
+//   hot:      { name: { on, until:"YYYY-MM-DDTHH:MM" Central } }   "Hot and Fresh Off the Smoker" notice + red outline; turns itself off at until
+//      | "hot" { name, on, until }  (blank until = next 7 PM)
 const chicagoStamp = () => new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).slice(0, 16).replace(" ", "T");
 function tidy(d) {      // drop specials that have ended
   const now = chicagoStamp();
   for (const [k, sp] of Object.entries(d.specials || {})) if (!sp.on || (sp.until && sp.until <= now)) delete d.specials[k];
+  for (const [k, h] of Object.entries(d.hot || {})) if (!h.on || !h.until || h.until <= now) delete d.hot[k];
   return d;
 }
 const view = d => ({ ok: true, items: d.items || {}, prices: d.prices || {}, edits: d.edits || {}, toppings: d.toppings || null,
-  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, groups: d.groups || [], updated: d.updated });
+  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, hot: d.hot || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, groups: d.groups || [], updated: d.updated });
 async function saveData(store, d) { tidy(d); d.updated = new Date().toISOString(); await store.setJSON(KEY, d); return json(view(d)); }
 
 export default async (req) => {
@@ -173,7 +176,7 @@ export default async (req) => {
 
   if (["removeItem", "restoreItem", "deleteItem"].includes(body.action)) {
     data.removed = data.removed || {};
-    if (body.action === "removeItem") { data.removed[name] = true; if (data.specials) delete data.specials[name]; }
+    if (body.action === "removeItem") { data.removed[name] = true; if (data.specials) delete data.specials[name]; if (data.hot) delete data.hot[name]; }
     if (body.action === "restoreItem") delete data.removed[name];
     if (body.action === "deleteItem") {
       const id = name.replace(/^Outdoor: /, "");
@@ -183,7 +186,7 @@ export default async (req) => {
       }
       data.custom = (data.custom || []).filter(c => c.name !== id);
       if (data.variants) delete data.variants[name];
-      for (const k of ["removed", "prices", "edits", "specials", "items"]) if (data[k]) delete data[k][name];
+      for (const k of ["removed", "prices", "edits", "specials", "hot", "items"]) if (data[k]) delete data[k][name];
       for (const g of Object.keys(data.order || {})) data.order[g] = data.order[g].filter(n => n !== name);
     }
     return saveData(store, data);
@@ -200,6 +203,20 @@ export default async (req) => {
     if (until && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(until)) return json({ error: "Pick a day and time for the special to end." }, 400);
     if (until && until <= chicagoStamp()) return json({ error: "The end time has already passed." }, 400);
     data.specials[name] = { on: true, prices: rows, until };
+    return saveData(store, data);
+  }
+
+  if (body.action === "hot") {
+    data.hot = data.hot || {};
+    if (!body.on) { delete data.hot[name]; return saveData(store, data); }
+    let until = String(body.until || "");
+    if (!until) {       // default: the next 7 PM store time
+      const now = chicagoStamp(), today = now.slice(0, 10) + "T19:00";
+      until = today > now ? today : new Date(Date.parse(now.slice(0, 10) + "T12:00:00Z") + 86400000).toISOString().slice(0, 10) + "T19:00";
+    }
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(until)) return json({ error: "Pick a day and time for it to turn off." }, 400);
+    if (until <= chicagoStamp()) return json({ error: "That turn-off time has already passed." }, 400);
+    data.hot[name] = { on: true, until };
     return saveData(store, data);
   }
 

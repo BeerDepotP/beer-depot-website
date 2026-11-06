@@ -17,7 +17,7 @@ function menuPhoto(f, key){
   return f.photo ? (FOOD_PHOTOS[f.photo] || "") : "";
 }
 (function(){
-  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},makers:{},newMakers:[],variants:{},deleted:{},groups:[],removed:{"Ribeye":true},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
+  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},makers:{},newMakers:[],variants:{},deleted:{},groups:[],removed:{"Ribeye":true},hot:{},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
@@ -60,6 +60,7 @@ function menuPhoto(f, key){
       if(b.action==="deleteItem"){ const id = b.name.replace(/^Outdoor: /,""); if(!id.startsWith("c-")) f.deleted[b.name] = true; f.custom = f.custom.filter(x=>x.name!==id); delete f.removed[b.name]; return ok({ok:true,...f}); }
       if(b.action==="groups"){ f.groups = b.list.map((g,i)=>Object.assign({},g,{key:g.key||("g-"+Date.now().toString(36)+i)})); return ok({ok:true,...f}); }
       if(b.action==="variants"){ f.variants[b.name] = b.list; return ok({ok:true,...f}); }
+      if(b.action==="hot"){ f.hot = f.hot||{}; if(!b.on) delete f.hot[b.name]; else { let u = b.until; if(!u){ const n = new Date(), p = x=>String(x).padStart(2,"0"), d0 = n.getFullYear()+"-"+p(n.getMonth()+1)+"-"+p(n.getDate()); u = d0+"T19:00"; } f.hot[b.name] = {on:true,until:u}; } return ok({ok:true,...f}); }
       if(b.action==="special"){ if(!b.on) delete f.specials[b.name]; else { if(!b.prices.length) return ok({error:"Enter a special price."},400); f.specials[b.name] = {on:true,prices:b.prices,until:b.until}; } return ok({ok:true,...f}); }
       if(typeof b.inStock === "boolean"){ f.items[b.name] = b.inStock; return ok({ok:true,...f}); }
       return ok({ok:true,...f});

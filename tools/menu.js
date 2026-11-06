@@ -113,8 +113,8 @@ function menuPhoto(f, key){
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
 
 // Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
-let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[], variants:{}, deleted:{}, groups:[] };
-function setMenu(d){ d = d || {}; swMenu = { groups: d.groups||[], custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
+let swMenu = { custom:[], order:{}, removed:{}, specials:{}, hot:{}, makers:{}, newMakers:[], variants:{}, deleted:{}, groups:[] };
+function setMenu(d){ d = d || {}; swMenu = { groups: d.groups||[], custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, hot: d.hot||{}, makers: d.makers||{}, newMakers: d.newMakers||[], variants: d.variants||{}, deleted: d.deleted||{} }; }
 const isRemoved = name => !!(swMenu.removed[name] || swMenu.deleted[name]);
 const isDeleted = name => !!swMenu.deleted[name];
 const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker && !c.outdoor)];
@@ -130,6 +130,12 @@ function ordered(list, ord){
 const chicagoStamp = () => new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
 // The special for an item if it's on now (it turns itself off at its end day and time, store time).
 function specialOf(name){ const s = swMenu.specials[name]; if(!s || !s.on) return null; if(s.until && chicagoStamp() >= s.until) return null; return s; }
+
+// "Hot and Fresh Off the Smoker": on until its turn-off time (store time). hotText gives the red notice wording, e.g. "Hot and Fresh Off the Smoker Until 7 PM".
+function hotOf(name){ const h = swMenu.hot[name]; if(!h || !h.on || !h.until || chicagoStamp() >= h.until) return null; return h; }
+function hotText(h){ const t = h.until.slice(11), hr = +t.slice(0,2), mn = t.slice(3,5), clock = ((hr%12)||12) + (mn==="00" ? "" : ":"+mn) + (hr<12 ? " AM" : " PM");
+  const day = h.until.slice(0,10) === chicagoStamp().slice(0,10) ? "" : new Date(h.until.slice(0,10)+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"}) + " ";
+  return "Hot and Fresh Off the Smoker Until " + day + clock; }
 
 // Local Favorites: companies (built-in + added in Store Tools), their names and cities as edited, and their items in order.
 // Order is saved under "local:<company>". A company's key never changes, even when it's renamed.

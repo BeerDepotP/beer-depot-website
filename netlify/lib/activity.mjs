@@ -13,7 +13,7 @@ export function describe(area, b) {
       if (typeof b.inStock === "boolean") return `${nm(b.name)}: ${b.inStock ? "In Stock" : "Out of Stock"}`;
       return ({ edit: `Edited ${nm(b.label || b.name)}`, toppings: "Changed the pizza toppings", addItem: `Added ${nm(b.label)}`,
         order: "Changed the order of items", removeItem: `Removed ${nm(b.name)} from the website`, restoreItem: `Put ${nm(b.name)} back on the website`,
-        deleteItem: `Deleted ${nm(b.name)} forever`, special: b.on ? `Put ${nm(b.name)} on special` : `Took ${nm(b.name)} off special`,
+        deleteItem: `Deleted ${nm(b.name)} forever`, hot: b.on ? `Turned on Hot and Fresh for ${nm(b.name)}` : `Turned off Hot and Fresh for ${nm(b.name)}`, special: b.on ? `Put ${nm(b.name)} on special` : `Took ${nm(b.name)} off special`,
         maker: `Edited the company ${nm(b.name)}`, addMaker: `Added the company ${nm(b.name)}`, deleteMaker: "Deleted a company",
         variants: `Changed the flavors of ${nm(b.name)}`, groups: "Changed the Made Here groups" })[a]
         || (Array.isArray(b.prices) ? `Changed prices for ${nm(b.name)}` : null);
