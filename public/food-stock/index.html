@@ -23,12 +23,15 @@
   .top{position:sticky;top:0;z-index:3;background:var(--glass)}
   header{color:#fff;padding:12px 16px 8px;display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}
   header img{width:92px}
+  @media (max-width:560px){ header{padding:8px 14px 4px} header img{width:64px} header h1{font-size:22px} }
   header h1{font-family:var(--display);font-weight:900;font-size:28px;margin:0;line-height:1}
   header .lockbtn{margin-left:auto;background:transparent;color:#E8D9CC;border:0;font:600 15px var(--body);text-decoration:underline;cursor:pointer}
-  nav.tabs{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:8px;padding:8px 14px 12px;max-width:760px;margin:0 auto}
-  @media (max-width:560px){nav.tabs{grid-template-columns:1fr 1fr}}
-  @media (min-width:561px){nav.tabs{grid-template-columns:repeat(5,auto)}}
-  .tab{position:relative;font:700 15px var(--body);color:#fff;background:transparent;border:2px solid #5A4537;border-radius:999px;padding:8px 14px;cursor:pointer}
+  /* tabs: one row that slides sideways, so the dark bar stays short on phones */
+  nav.tabs{display:flex;gap:8px;padding:10px 14px 10px;max-width:760px;margin:0 auto;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs[hidden]{display:none}
+  .tab{flex:none;white-space:nowrap;position:relative;font:700 15px var(--body);color:#fff;background:transparent;border:2px solid #5A4537;border-radius:999px;padding:8px 14px;cursor:pointer}
   .tab[aria-selected="true"]{background:var(--orange);border-color:var(--orange)}
   .badge{position:absolute;top:-7px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;
          font:700 13px/22px var(--body);text-align:center;box-shadow:0 0 0 2px var(--glass)}
@@ -1414,6 +1417,7 @@ async function openTab(name){
   if(!TABS.includes(name) || !can(name)) name = TABS.find(can) || "food";
   tab = name;
   $$(".tab").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
+  const cur = document.querySelector(`.tab[data-tab="${name}"]`); if(cur) try{ cur.scrollIntoView({block:"nearest", inline:"center"}); }catch(e){}
   TABS.forEach(t=>$("#p-"+t).hidden = t!==name);
   try{ history.replaceState(null,"","#"+name); }catch(e){}
   window.scrollTo(0,0);
