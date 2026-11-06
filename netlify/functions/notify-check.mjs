@@ -24,7 +24,7 @@ export async function checkNotify(store) {
     if (now - since < state.delayMin * 60000) { inSince[key] = since; continue; }                       // not In Stock long enough yet
     const w = d.wants[key]; let n = 0;
     for (const email of Object.keys(w.people)) {
-      try { const m = notifyEmail(w.name, d.tokens[email], form, info); await sendMail({ to: email, subject: m.subject, html: m.html, text: m.text, unsub: m.unsub }); n++; delete w.people[email]; }
+      try { const m = notifyEmail(w.name, d.tokens[email], form, info); await sendMail({ to: email, subject: m.subject, html: m.html, text: m.text, unsub: m.unsub, info }); n++; delete w.people[email]; }
       catch (e) { console.error("Back in stock email failed", email, e.message); if (n === 0 && /BREVO_API_KEY|Brevo 40/.test(e.message)) break; }
     }
     if (n) { sentLog.push({ at: new Date().toISOString(), name: w.name, count: n }); emails += n; }

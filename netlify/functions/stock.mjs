@@ -172,6 +172,8 @@ function sectionFor(groupId, groups, links = {}) {
 
 export async function buildStock() {
   const links = await groupLinks();
+  let sodaAlwaysIn = true;   // Store Tools → Banners & Text → Settings can turn this off
+  try { const st = (((await getStore({ name: "beer-depot", consistency: "strong" }).get("site", { type: "json" })) || {}).settings || {}); if (st.sodaAlwaysIn === false) sodaAlwaysIn = false; } catch {}
   let rules = { hide: {}, move: {} };     // Store Tools → Drinks: hide a product or move it to another section
   try { rules = { hide: {}, move: {}, ...((await getStore({ name: "beer-depot", consistency: "strong" }).get("product-rules", { type: "json" })) || {}) }; } catch {}
   // 1. Commodity groups (for sections)
@@ -249,7 +251,7 @@ export async function buildStock() {
       }
     }
     // Soda always shows In Stock (and shows even without stock history in KORONA)
-    const alwaysIn = section === "mixers" && sub === "soda";
+    const alwaysIn = sodaAlwaysIn && section === "mixers" && sub === "soda";
     if (!everStocked && !alwaysIn) { report.skippedNeverStocked++; continue; }
     items.push({ id: p.id, name: (p.name || "").trim(), section, inStock: alwaysIn || onHand > 0, ...(allocated ? { allocated: true } : {}), ...(sub ? { sub } : {}) });
     tally(gname, section, "shown");

@@ -6,7 +6,7 @@ import { checkPin, json } from "../lib/pin.mjs";
 import { DEFAULT_INFO } from "../lib/info.mjs";
 
 export const DEFAULTS = {
-  hotHam: { on: true, day: 0, from: "09:00", until: "15:00", text: "Hot Ham Available Now Until {until}" },
+  hotHam: { on: true, day: 0, days: [0], from: "09:00", until: "15:00", text: "Hot Ham Available Now Until {until}" },
   announce: { on: false, text: "", link: "", color: "red", until: "" },
   text: {
     heroTitle: "See what's on our shelves",
@@ -37,7 +37,9 @@ export const DEFAULTS = {
     clubPageDone: "Watch for our email Thursday at 5 PM.",
   },
   info: { ...DEFAULT_INFO },
-  settings: { newDays: 14, thcUntil: "2026-12-11" },
+  settings: { newDays: 14, thcUntil: "2026-12-11", showCount: 20, allocCount: 10, sodaAlwaysIn: true },
+  email: { fromName: "The Beer Depot", replyTo: "bourbon@beerdepotpewaukee.com", footer: "" },
+  social: { on: false, facebook: "", instagram: "", tiktok: "", x: "", youtube: "" },
   colors: { main: "#F26B1D", dark: "#2B1A10", light: "#F3ECE3" },
   images: { logo: "", icon: "" },      // uploaded logo / browser tab icon ("" = the built-in ones)
 };
@@ -53,7 +55,8 @@ const nowCT = () => new Date().toLocaleString("sv-SE", { timeZone: "America/Chic
 function merged(d = {}) {
   return { hotHam: { ...DEFAULTS.hotHam, ...(d.hotHam || {}) }, announce: { ...DEFAULTS.announce, ...(d.announce || {}) }, text: { ...DEFAULTS.text, ...(d.text || {}) },
     info: { ...DEFAULTS.info, ...(d.info || {}) }, settings: { ...DEFAULTS.settings, ...(d.settings || {}) },
-    colors: { ...DEFAULTS.colors, ...(d.colors || {}) }, images: { ...DEFAULTS.images, ...(d.images || {}) } };
+    colors: { ...DEFAULTS.colors, ...(d.colors || {}) }, images: { ...DEFAULTS.images, ...(d.images || {}) },
+    email: { ...DEFAULTS.email, ...(d.email || {}) }, social: { ...DEFAULTS.social, ...(d.social || {}) } };
 }
 
 export default async (req) => {
@@ -95,9 +98,9 @@ export default async (req) => {
   if (b.action === "save") {
     const next = merged(cur);
     if (b.hotHam) {
-      const h = b.hotHam, day = Number(h.day);
-      if (!(day >= 0 && day <= 6) || !T.test(h.from || "") || !T.test(h.until || "") || h.from >= h.until) return json({ error: "Hot Ham needs a day and a start time before the end time." }, 400);
-      next.hotHam = { on: !!h.on, day, from: h.from, until: h.until, text: one(h.text, 80) || DEFAULTS.hotHam.text };
+      const h = b.hotHam, days = [...new Set((Array.isArray(h.days) ? h.days : [h.day]).map(Number).filter(d => d >= 0 && d <= 6))].sort();
+      if (!days.length || !T.test(h.from || "") || !T.test(h.until || "") || h.from >= h.until) return json({ error: "Hot Ham needs at least one day and a start time before the end time." }, 400);
+      next.hotHam = { on: !!h.on, day: days[0], days, from: h.from, until: h.until, text: one(h.text, 80) || DEFAULTS.hotHam.text };
     }
     if (b.announce) {
       const a = b.announce, until = DT.test(a.until || "") ? a.until : "";
@@ -129,12 +132,29 @@ export default async (req) => {
       if (until) c.until = until;     // after this, the website goes back to the standard colors by itself
       next.colors = c;
     }
+    if (b.email) {
+      const reply = one(b.email.replyTo, 120).toLowerCase();
+      if (reply && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(reply)) return json({ error: "Enter a valid reply-to email." }, 400);
+      next.email = { fromName: one(b.email.fromName, 60) || DEFAULTS.email.fromName, replyTo: reply || DEFAULTS.email.replyTo, footer: one(b.email.footer, 300) };
+    }
+    if (b.social) {
+      const soc = { on: !!b.social.on };
+      for (const k of ["facebook", "instagram", "tiktok", "x", "youtube"]) {
+        let u = one(b.social[k], 200);
+        if (u && !/^https?:\/\//i.test(u)) u = "https://" + u;
+        if (u && !/^https:\/\/[^\s<>"]+$/i.test(u.replace(/^http:/i, "https:"))) return json({ error: "That link doesn't look right: " + u }, 400);
+        soc[k] = u.replace(/^http:/i, "https:");
+      }
+      next.social = soc;
+    }
     if (b.settings) {
       const n = Math.round(Number(b.settings.newDays));
       if (!(n >= 1 && n <= 90)) return json({ error: "New Arrivals days must be 1 to 90." }, 400);
       const thc = String(b.settings.thcUntil || "");
       if (thc && !/^\d{4}-\d{2}-\d{2}$/.test(thc)) return json({ error: "Pick a date for the THC section." }, 400);
-      next.settings = { newDays: n, thcUntil: thc };
+      const sc = Math.round(Number(b.settings.showCount ?? next.settings.showCount)), ac = Math.round(Number(b.settings.allocCount ?? next.settings.allocCount));
+      if (!(sc >= 5 && sc <= 200) || !(ac >= 3 && ac <= 100)) return json({ error: "Show More counts must be 5 to 200 (Allocated: 3 to 100)." }, 400);
+      next.settings = { newDays: n, thcUntil: thc, showCount: sc, allocCount: ac, sodaAlwaysIn: b.settings.sodaAlwaysIn === undefined ? next.settings.sodaAlwaysIn : !!b.settings.sodaAlwaysIn };
     }
     next.updated = new Date().toISOString();
     await store.setJSON("site", next);

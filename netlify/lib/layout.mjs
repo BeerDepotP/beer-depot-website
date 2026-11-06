@@ -19,6 +19,7 @@ export function cleanLayout(input) {
     const it = { id };
     const name = title(one(x.name, 40));
     if (custom) { if (!name) return { error: "Each new button needs a name." }; it.custom = true; it.open = !!x.open; }
+    else if (id in DRINKS && typeof x.open === "boolean") it.open = x.open;     // built-in drink section: shown to under 21 too?
     if (name) it.name = name;
     if (id === "seasonal") delete it.name;                      // named in the Seasonal tab
     if (x.off) it.off = true;

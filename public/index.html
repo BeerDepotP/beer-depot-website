@@ -358,6 +358,9 @@
   footer img{width:120px}
   footer strong{color:#fff}
   footer p{margin:4px 0;max-width:46ch}
+  .social{display:flex;gap:10px;flex-wrap:wrap;flex-basis:100%} .social[hidden]{display:none}
+  .social a{color:#fff;text-decoration:none;font-weight:700;border:2px solid var(--orange);border-radius:999px;padding:7px 16px}
+  .social a:hover{background:var(--orange)}
 
   /* ---------- age gate ---------- */
   .gate{position:fixed;inset:0;z-index:50;background:var(--glass);display:flex;align-items:center;justify-content:center;padding:24px}
@@ -567,6 +570,7 @@
       <p>Stock updates from our register every minute. Supplies move fast on weekends, so call ahead if you're coming for something specific.</p>
       <p>You must be 21 to buy alcohol. We check ID in store.</p>
     </div>
+    <div class="social" id="social" hidden></div>
   </div>
 </footer>
 
@@ -578,8 +582,8 @@ const HOURS_URL = STOCK_URL ? "/api/hours" : null;   // weekly hours + one-day c
 const SEASONAL_URL = STOCK_URL ? "/api/seasonal" : null;   // Seasonal section (edited in Store Tools → Seasonal)
 const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edited in Store Tools → Sales)
 const REFRESH_SECONDS = 60;
-const SECTION_LIMIT = 20;
-const ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
+let SECTION_LIMIT = 20;               // changed in Store Tools → Banners & Text → Settings
+let ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
 // Store info
@@ -636,7 +640,8 @@ function layoutOrder(){
 function applyLayoutSections(){
   const base = new Map(DEFAULT_SECTIONS.map(s=>[s.id,s]));
   for(const c of (LAYOUT||[]).filter(x=>x.custom)) base.set(c.id,{id:c.id,name:c.name,open:!!c.open});
-  SECTIONS = layoutOrder().filter(id=>base.has(id) && !layoutOf(id).off).map(id=>({...base.get(id), name: navName(id, base.get(id).name)}));
+  SECTIONS = layoutOrder().filter(id=>base.has(id) && !layoutOf(id).off).map(id=>{ const l = layoutOf(id);
+    return {...base.get(id), name: navName(id, base.get(id).name), ...(!l.custom && typeof l.open === "boolean" ? { open: l.open } : {})}; });
 }
 // Puts the page's sections in the same order as the buttons, hides removed ones, applies new names.
 if(LAYOUT_URL){ try{ LAYOUT = JSON.parse(localStorage.getItem("bd-layout")||"null"); applyLayoutSections(); }catch(e){} }   // last-known layout, so the page doesn't jump on load
@@ -665,6 +670,12 @@ function applySite(d){
   if(d.images){ const src = id => SITE_URL + "?img=" + encodeURIComponent(id);
     if(d.images.logo) document.querySelectorAll("img.site-logo").forEach(i=>{ i.src = src(d.images.logo); });
     if(d.images.icon) document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(l=>{ l.href = src(d.images.icon); }); }
+  if(d.settings){ const n = +d.settings.showCount, a = +d.settings.allocCount; if(n >= 5) SECTION_LIMIT = n; if(a >= 3) ALLOCATED_LIMIT = a; }
+  // social media links at the bottom (Store Tools → Banners & Text → Social Media, with its own on/off switch)
+  if(d.social){ const so = d.social, names = { facebook:"Facebook", instagram:"Instagram", tiktok:"TikTok", x:"X", youtube:"YouTube" };
+    const links = Object.keys(names).filter(k=>so[k] && /^https:\/\//.test(so[k]));
+    const el = document.getElementById("social"); el.hidden = !(so.on && links.length);
+    el.innerHTML = so.on ? links.map(k=>`<a href="${esc(so[k])}" target="_blank" rel="noopener">${names[k]}</a>`).join("") : ""; }
   if(d.settings && "thcUntil" in d.settings){ const thc = DEFAULT_SECTIONS.find(x=>x.id==="thc"); if(thc){ if(d.settings.thcUntil) thc.until = d.settings.thcUntil; else delete thc.until; applyLayoutSections(); } }
   if(typeof render === "function" && stock) try{ render(); }catch(e){}
   set("hero-title", t.heroTitle); set("made-intro", t.madeHereIntro); set("cat-title", t.cateringTitle); set("cat-text", t.cateringText); set("cat-btn", t.cateringButton);
@@ -1229,7 +1240,7 @@ function renderHours(){
     + (OVERRIDES.some(x=>x.date>=chicagoDate(0) && x.date<=chicagoDate(6)) ? '<li class="hrs-fn"><span>* Special hours this week</span></li>' : "");
   $("#addr").textContent = ADDRESS; $("#dir").href = mapsUrl();
   $("#ham-text").textContent = HOT_HAM.text.replace(/\{until\}/gi, fmtTime(HOT_HAM.until));
-  $("#ham-banner").hidden = !HOT_HAM.on || !(day === HOT_HAM.day && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
+  $("#ham-banner").hidden = !HOT_HAM.on || !((HOT_HAM.days || [HOT_HAM.day]).includes(day) && mins >= toMins(HOT_HAM.from) && mins < toMins(HOT_HAM.until)) || !hoursFor(0)[1];
   // Notice bar for a one-day change today or in the next 14 days
   const note = $("#hours-note"), lines = [];
   for(let i=0;i<=14;i++){ const [n,o,c,ov] = hoursFor(i); if(!ov) continue;

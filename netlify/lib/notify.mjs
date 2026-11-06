@@ -53,8 +53,8 @@ export function notifyEmail(name, token, form, info = DEFAULT_INFO) {
   ${f.emailNote ? `<p style="margin:0 0 14px">${esc(f.emailNote).replace(/\n/g, "<br>")}</p>` : ""}
   <p style="margin:0"><a href="${SITE}" style="color:#fff;font-weight:bold">${esc(f.emailLink)}</a> &nbsp;·&nbsp; <a href="${telOf(info.phone)}" style="color:#fff;font-weight:bold">${esc(info.phone)}</a></p>
  </div>
- <p style="font-size:12px;color:#7A6B60;line-height:1.5;margin:14px 4px">The Beer Depot · ${info.address}<br>You asked us to email you when this item came back. This is the only email you'll get about it. Must be 21 or older for alcohol.<br><a href="${unsub}" style="color:#7A6B60">Unsubscribe</a></p>
+ <p style="font-size:12px;color:#7A6B60;line-height:1.5;margin:14px 4px">The Beer Depot · ${info.address}<br>You asked us to email you when this item came back. This is the only email you'll get about it. Must be 21 or older for alcohol.<br>${info.footer ? esc(info.footer) + "<br>" : ""}<a href="${unsub}" style="color:#7A6B60">Unsubscribe</a></p>
 </div></body></html>`;
-  const text = `${f.emailHeading}\n${name}\n\n${f.emailNote ? f.emailNote + "\n\n" : ""}${SITE} · ${info.phone}\n\nThe Beer Depot · ${info.address}\nUnsubscribe: ${unsub}`;
+  const text = `${f.emailHeading}\n${name}\n\n${f.emailNote ? f.emailNote + "\n\n" : ""}${SITE} · ${info.phone}\n\nThe Beer Depot · ${info.address}${info.footer ? "\n" + info.footer : ""}\nUnsubscribe: ${unsub}`;
   return { subject: f.emailSubject.replace(/\{item\}/gi, name), html, text, unsub };
 }

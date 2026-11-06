@@ -408,8 +408,8 @@
     <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show the Hot Ham Banner</span><span class="st" id="hh-st"></span></span>
       <button class="sw bt-sw" role="switch" aria-checked="true" aria-label="Show the Hot Ham banner" id="hh-on"></button></li></ul>
     <div class="card sp-card bt-card">
-      <label class="help" for="hh-day">Day</label>
-      <select id="hh-day"><option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option><option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option></select>
+      <span class="help" style="margin:0">Days</span>
+      <div class="stf-tabs" id="hh-days"></div>
       <div class="hr-times"><label>From <input id="hh-from" type="time"></label><label>Until <input id="hh-until" type="time"></label></div>
       <label class="help" for="hh-text">Wording</label><input id="hh-text" maxlength="80">
       <button class="btn" type="button" id="hh-save">Save Hot Ham Banner</button>
@@ -449,10 +449,38 @@
       <p class="sp-status" id="in-status" role="status"></p>
     </div>
 
+    <h2 class="sec" style="margin-top:28px">Social Media Links</h2>
+    <p class="help">Buttons at the bottom of the website. Only the ones you fill in show.</p>
+    <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Show Social Media Links</span><span class="st" id="so-st"></span></span>
+      <button class="sw bt-sw" role="switch" aria-checked="false" aria-label="Show social media links" id="so-on"></button></li></ul>
+    <div class="card sp-card bt-card">
+      <label class="help" for="so-facebook">Facebook Link</label><input id="so-facebook" maxlength="200" placeholder="https://facebook.com/…">
+      <label class="help" for="so-instagram">Instagram Link</label><input id="so-instagram" maxlength="200" placeholder="https://instagram.com/…">
+      <label class="help" for="so-tiktok">TikTok Link</label><input id="so-tiktok" maxlength="200" placeholder="https://tiktok.com/@…">
+      <label class="help" for="so-x">X (Twitter) Link</label><input id="so-x" maxlength="200" placeholder="https://x.com/…">
+      <label class="help" for="so-youtube">YouTube Link</label><input id="so-youtube" maxlength="200" placeholder="https://youtube.com/@…">
+      <button class="btn" type="button" id="so-save">Save Links</button>
+      <p class="sp-status" id="so-status" role="status"></p>
+    </div>
+
+    <h2 class="sec" style="margin-top:28px">Emails</h2>
+    <p class="help">For the Bourbon Club and Back in Stock emails.</p>
+    <div class="card sp-card bt-card">
+      <label class="help" for="em-from">"From" Name</label><input id="em-from" maxlength="60">
+      <label class="help" for="em-reply">When People Reply, Send It To</label><input id="em-reply" type="email" maxlength="120">
+      <label class="help" for="em-footer">Extra Line at the Bottom of Every Email (Optional)</label><textarea id="em-footer" rows="2" maxlength="300"></textarea>
+      <p class="help" style="margin:0">Emails still come from bourbon@beerdepotpewaukee.com so they don't land in spam.</p>
+      <button class="btn" type="button" id="em-save">Save Email Settings</button>
+      <p class="sp-status" id="em-status" role="status"></p>
+    </div>
+
     <h2 class="sec" style="margin-top:28px">Settings</h2>
     <div class="card sp-card bt-card">
       <label class="help" for="st-newdays">New Arrivals: How Many Days an Item Counts as New</label><input id="st-newdays" type="number" min="1" max="90">
       <label class="help" for="st-thc">THC Section Turns Off On (Leave Blank to Keep It On)</label><input id="st-thc" type="date">
+      <label class="help" for="st-show">Drinks Shown in Each Section Before "Show More"</label><input id="st-show" type="number" min="5" max="200">
+      <label class="help" for="st-alloc">Bottles Shown in the Allocated Bourbon Box Before "Show More"</label><input id="st-alloc" type="number" min="3" max="100">
+      <label class="help" style="margin:0;display:flex;gap:8px;align-items:center;font-weight:700"><input type="checkbox" id="st-soda" style="width:auto;margin:0"> Always Show Soda as In Stock (Even When KORONA Says Out)</label>
       <button class="btn" type="button" id="st-save">Save Settings</button>
       <p class="sp-status" id="st-status" role="status"></p>
     </div>
@@ -1178,8 +1206,9 @@ let ly = null;   // { rows:[{id,name,def,off,custom,open,groups}], groupNames, b
 const lyIsStatic = id => ["made-here","on-sale","seasonal","local-favorites","grilling-outdoor","new-arrivals"].includes(id);
 function lyBuild(j){
   const builtin = j.builtin || {}, saved = (j.items||[]).filter(x=>x.custom || x.id in builtin);
-  const rows = saved.map(x=>({ id:x.id, name:x.name||"", def: x.custom ? "" : builtin[x.id], off:!!x.off, custom:!!x.custom, open:!!x.open, groups:(x.groups||[]).slice() }));
-  for(const id of Object.keys(builtin)) if(!rows.some(r=>r.id===id)) rows.push({ id, name:"", def:builtin[id], off:false, custom:false, open:false, groups:[] });
+  const defOpen = id => id==="mixers";      // built-in sections shown to under 21 by default
+  const rows = saved.map(x=>({ id:x.id, name:x.name||"", def: x.custom ? "" : builtin[x.id], off:!!x.off, custom:!!x.custom, open: typeof x.open==="boolean" ? x.open : defOpen(x.id), groups:(x.groups||[]).slice() }));
+  for(const id of Object.keys(builtin)) if(!rows.some(r=>r.id===id)) rows.push({ id, name:"", def:builtin[id], off:false, custom:false, open:defOpen(id), groups:[] });
   ly = { rows, groupNames: j.groupNames||[], groupError: j.groupError||"", builtin };
   $("#ly-groups").innerHTML = ly.groupNames.map(n=>`<option value="${esc(n)}">`).join("");
 }
@@ -1189,7 +1218,7 @@ function lyRender(){
       ${r.id==="seasonal" ? `<input value="Named in the Seasonal tab" disabled aria-label="Name">` : `<input data-k="name" value="${esc(r.name)}" placeholder="${esc(r.def||"Button name")}" maxlength="40" aria-label="Button name">`}
       <button class="sw ly-sw" role="switch" aria-checked="${!r.off}" aria-label="Show this button" data-sw="${i}"></button></div>
     <div class="ly-sub"><span class="help" style="margin:0">${r.off?"Off · Hidden from the website":"On"}${r.custom?" · New Button":""}</span>
-      ${r.custom?`<label style="font-size:14px"><input type="checkbox" data-k="open"${r.open?" checked":""}> Show to Under 21 Too</label><button class="btn ghost" type="button" data-rm="${i}">Remove</button>`:""}</div>
+      ${!lyIsStatic(r.id)?`<label style="font-size:14px"><input type="checkbox" data-k="open"${r.open?" checked":""}> Show to Under 21 Too</label>`:""}${r.custom?`<button class="btn ghost" type="button" data-rm="${i}">Remove</button>`:""}</div>
     ${lyIsStatic(r.id) ? "" : `<details class="ly-gl"${r.groups.length||r.custom?" open":""}><summary>KORONA Groups (${r.groups.length})</summary>
       <div class="ly-tags">${r.groups.length ? r.groups.map((g,gi)=>`<span class="ly-tag">${esc(g)}<button type="button" data-gx="${i}:${gi}" aria-label="Remove ${esc(g)}">×</button></span>`).join("") : '<span class="help" style="margin:0">Standard sorting. Add a group to show its products here.</span>'}</div>
       <div class="ly-gadd"><input list="ly-groups" data-gin="${i}" placeholder="Pick or Type a KORONA Group" aria-label="KORONA group"><button class="btn ghost" type="button" data-gadd="${i}">Add</button></div></details>`}
@@ -1218,7 +1247,7 @@ $("#ly-add").onclick = ()=>{ const n=$("#ly-new").value.trim(); if(!n){ toast("T
   ly.rows.push({ id:lyId(), name:n, def:"", off:false, custom:true, open:false, groups:[] }); $("#ly-new").value=""; lyRender(); $("#ly-status").textContent="Added at the bottom. Move it, link KORONA groups, then tap Save Layout.";
   const last=$$("#ly-list .ly-row").pop(); if(last) last.scrollIntoView({block:"center"}); };
 $("#ly-save").onclick = async ()=>{
-  const items = ly.rows.map(r=>({ id:r.id, name: r.custom || (r.name.trim() && r.name.trim()!==r.def) ? r.name.trim() : "", off:r.off, custom:r.custom, open:r.open, groups:r.groups }));
+  const items = ly.rows.map(r=>({ id:r.id, name: r.custom || (r.name.trim() && r.name.trim()!==r.def) ? r.name.trim() : "", off:r.off, custom:r.custom, open:!!r.open, groups:r.groups }));
   try{ lyBuild(await api("/api/layout",{action:"save", items})); lyRender(); $("#ly-status").textContent = "Saved. The buttons and sections update within a minute; KORONA group links apply in about a minute."; }catch(err){ toast(err.message,true); }
 };
 $("#ly-reset").onclick = async ()=>{ if(!(await askYes("Put all the buttons back to the standard order and names? New buttons and group links are removed."))) return;
@@ -1235,8 +1264,9 @@ function renderSite(){
   $("#an-link").innerHTML = LINKS.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
   $("#an-link").value = known ? (a.link||"") : "url"; $("#an-url").hidden = known; $("#an-url").value = known ? "" : (a.link||"");
   anPreview();
-  $("#hh-on").setAttribute("aria-checked", !!h.on); $("#hh-st").className = "st" + (h.on?" on":""); $("#hh-st").textContent = h.on ? "On · Shows " + DAYN[h.day] + "s " + hrT(h.from) + " – " + hrT(h.until) : "Off";
-  $("#hh-day").value = h.day; $("#hh-from").value = h.from; $("#hh-until").value = h.until; $("#hh-text").value = h.text;
+  $("#hh-on").setAttribute("aria-checked", !!h.on); $("#hh-st").className = "st" + (h.on?" on":""); $("#hh-st").textContent = h.on ? "On · Shows " + (h.days || [h.day]).map(i=>DAYN[i].slice(0,3)).join(", ") + " " + hrT(h.from) + " – " + hrT(h.until) : "Off";
+  const hd = h.days || [h.day];
+  $("#hh-days").innerHTML = DAYN.map((dn,i)=>`<label><input type="checkbox" value="${i}"${hd.includes(i)?" checked":""}> ${dn}</label>`).join(""); $("#hh-from").value = h.from; $("#hh-until").value = h.until; $("#hh-text").value = h.text;
   $$("[data-tx]").forEach(i=>{ i.value = site.text[i.dataset.tx] || ""; });
   $("#cl-until").value = site.colors.until || "";
   $("#cl-main").value = site.colors.main; $("#cl-dark").value = site.colors.dark; $("#cl-light").value = site.colors.light; clPreview();
@@ -1244,6 +1274,10 @@ function renderSite(){
   $("#lg-prev").innerHTML = `<img src="${site.images.logo ? imgSrc(site.images.logo) : "/img/logo-orange.png"}" alt="Current logo">`;
   $("#ic-prev").innerHTML = `<img src="${site.images.icon ? imgSrc(site.images.icon) : "/img/favicon-64.png"}" alt="Current tab icon">`;
   $("#in-phone").value = site.info.phone; $("#in-address").value = site.info.address;
+  $("#st-show").value = site.settings.showCount; $("#st-alloc").value = site.settings.allocCount; $("#st-soda").checked = site.settings.sodaAlwaysIn !== false;
+  $("#em-from").value = site.email.fromName; $("#em-reply").value = site.email.replyTo; $("#em-footer").value = site.email.footer || "";
+  const so = site.social; $("#so-on").setAttribute("aria-checked", !!so.on); $("#so-st").className = "st" + (so.on?" on":""); $("#so-st").textContent = so.on ? "On · Showing at the bottom of the website" : "Off · Hidden";
+  ["facebook","instagram","tiktok","x","youtube"].forEach(k=>{ $("#so-"+k).value = so[k] || ""; });
   $("#st-newdays").value = site.settings.newDays; $("#st-thc").value = site.settings.thcUntil || "";
 }
 function anPreview(){ const t = $("#an-text").value.trim(); $("#an-preview").innerHTML = t ? `<p class="help" style="margin:4px 0">Preview:</p><span class="an-prev ${esc($("#an-color").value)}">${esc(t)}</span>` : ""; }
@@ -1253,12 +1287,16 @@ async function siteSave(body, st, msg){ try{ site = await api("/api/site",{actio
 const anBody = on => ({ announce:{ on, text:$("#an-text").value, link: $("#an-link").value==="url" ? $("#an-url").value.trim() : $("#an-link").value, color:$("#an-color").value, until:$("#an-until").value } });
 $("#an-save").onclick = ()=>siteSave(anBody(site.announce.on), "#an-status", "Saved. It shows on the website within a minute.");
 $("#an-on").onclick = ()=>siteSave(anBody(!site.announce.on), "#an-status", site.announce.on ? "Announcement turned off." : "Announcement is on.");
-const hhBody = on => ({ hotHam:{ on, day:$("#hh-day").value, from:$("#hh-from").value, until:$("#hh-until").value, text:$("#hh-text").value } });
+const hhBody = on => ({ hotHam:{ on, days: $$("#hh-days input:checked").map(i=>+i.value), from:$("#hh-from").value, until:$("#hh-until").value, text:$("#hh-text").value } });
 $("#hh-save").onclick = ()=>siteSave(hhBody(site.hotHam.on), "#hh-status", "Saved.");
 $("#hh-on").onclick = ()=>siteSave(hhBody(!site.hotHam.on), "#hh-status", site.hotHam.on ? "Hot Ham banner turned off." : "Hot Ham banner is on.");
 $("#tx-save").onclick = ()=>siteSave({ text: Object.fromEntries($$("[data-tx]").map(i=>[i.dataset.tx, i.value])) }, "#tx-status", "Saved. The website shows it within a minute.");
 $("#in-save").onclick = ()=>siteSave({ info:{ phone:$("#in-phone").value, address:$("#in-address").value } }, "#in-status", "Saved. The website and emails use it within a minute.");
-$("#st-save").onclick = ()=>siteSave({ settings:{ newDays:$("#st-newdays").value, thcUntil:$("#st-thc").value } }, "#st-status", "Saved.");
+$("#st-save").onclick = ()=>siteSave({ settings:{ newDays:$("#st-newdays").value, thcUntil:$("#st-thc").value, showCount:$("#st-show").value, allocCount:$("#st-alloc").value, sodaAlwaysIn:$("#st-soda").checked } }, "#st-status", "Saved.");
+$("#em-save").onclick = ()=>siteSave({ email:{ fromName:$("#em-from").value, replyTo:$("#em-reply").value, footer:$("#em-footer").value } }, "#em-status", "Saved. Every email from now on uses this.");
+const soBody = on => ({ social: Object.assign({ on }, Object.fromEntries(["facebook","instagram","tiktok","x","youtube"].map(k=>[k, $("#so-"+k).value]))) });
+$("#so-save").onclick = ()=>siteSave(soBody(site.social.on), "#so-status", "Saved.");
+$("#so-on").onclick = ()=>siteSave(soBody(!site.social.on), "#so-status", site.social.on ? "Social media links are hidden." : "Social media links are showing.");
 function clPreview(){ const m = $("#cl-main").value, d = $("#cl-dark").value, l = $("#cl-light").value;
   $("#cl-prev .p-dark").style.background = d; $("#cl-prev .p-btn").style.background = m; $("#cl-prev .p-light").style.background = l; $("#cl-prev u").style.textDecorationColor = m; $("#cl-prev .p-light").style.color = "#22160F"; }
 ["#cl-main","#cl-dark","#cl-light"].forEach(id=>$(id).addEventListener("input", clPreview));

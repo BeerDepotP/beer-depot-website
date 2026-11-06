@@ -43,21 +43,23 @@ export function clubEmail(bottles, token, content, info = DEFAULT_INFO) {
   <p style="margin:0 0 14px"><a href="${SITE}/#allocated" style="color:#fff;font-weight:bold">See What's Still In Stock</a> &nbsp;·&nbsp; <a href="${telOf(PHONE)}" style="color:#fff;font-weight:bold">${PHONE}</a></p>
  </div>
  <p style="font-size:12px;color:#7A6B60;line-height:1.5;margin:14px 4px">The Beer Depot · ${ADDRESS}<br>
- You're getting this because you joined the Bourbon Club at beerdepotpewaukee.com. Must be 21 or older.<br>
+ You're getting this because you joined the Bourbon Club at beerdepotpewaukee.com. Must be 21 or older.<br>${info.footer ? esc(info.footer) + "<br>" : ""}
  <a href="${unsub}" style="color:#7A6B60">Unsubscribe</a></p>
 </div></body></html>`;
-  const text = `${c.heading}\n${c.tagline}\n\n${c.top ? c.top + "\n\n" : ""}${bottles.map(n => "- " + n).join("\n")}\n\n${c.info}\n${c.bottom ? "\n" + c.bottom + "\n\n" : ""}${SITE}/#allocated · ${PHONE}\n\nThe Beer Depot · ${ADDRESS}\nUnsubscribe: ${unsub}`;
+  const text = `${c.heading}\n${c.tagline}\n\n${c.top ? c.top + "\n\n" : ""}${bottles.map(n => "- " + n).join("\n")}\n\n${c.info}\n${c.bottom ? "\n" + c.bottom + "\n\n" : ""}${SITE}/#allocated · ${PHONE}\n\nThe Beer Depot · ${ADDRESS}${info.footer ? "\n" + info.footer : ""}\nUnsubscribe: ${unsub}`;
   return { html, text, unsub, subject: c.subject };
 }
 
 // One email through Brevo (also used by the Back in Stock emails).
-export async function sendMail({ to, subject, html, text, unsub }) {
+// info (optional): from storeInfo() — fromName and replyTo set in Store Tools → Banners & Text → Emails.
+export async function sendMail({ to, subject, html, text, unsub, info = {} }) {
+  const from = { ...FROM(), name: info.fromName || FROM().name }, reply = { email: info.replyTo || from.email, name: from.name };
   const key = process.env.BREVO_API_KEY;
   if (!key) throw new Error("BREVO_API_KEY isn't set in Netlify yet.");
   const r = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
-    body: JSON.stringify({ sender: FROM(), replyTo: FROM(), to: [{ email: to }], subject, htmlContent: html, textContent: text,
+    body: JSON.stringify({ sender: from, replyTo: reply, to: [{ email: to }], subject, htmlContent: html, textContent: text,
       headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
   });
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
@@ -65,7 +67,7 @@ export async function sendMail({ to, subject, html, text, unsub }) {
 
 async function sendOne(to, bottles, token, content, info) {
   const { html, text, unsub, subject } = clubEmail(bottles, token, content, info);
-  await sendMail({ to, subject, html, text, unsub });
+  await sendMail({ to, subject, html, text, unsub, info });
 }
 
 // One email per member (each has their own unsubscribe link), 10 at a time.
