@@ -30,6 +30,10 @@
   nav.tabs{display:flex;gap:8px;padding:10px 14px 10px;max-width:760px;margin:0 auto;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
   nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs.open .all-tabs{position:static;box-shadow:none}
+  nav.tabs.open{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
+  .all-tabs{position:sticky;left:0;z-index:2;box-shadow:6px 0 8px var(--glass);flex:none;font:700 15px var(--body);color:var(--glass);background:#fff;border:2px solid #fff;border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+  .all-tabs[aria-expanded="true"]{background:transparent;color:#fff}
   nav.tabs[hidden]{display:none}
   .tab{flex:none;white-space:nowrap;position:relative;font:700 15px var(--body);color:#fff;background:transparent;border:2px solid #5A4537;border-radius:999px;padding:8px 14px;cursor:pointer}
   .tab[aria-selected="true"]{background:var(--orange);border-color:var(--orange)}
@@ -228,6 +232,7 @@
 <div class="top">
   <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><span class="who" id="who" hidden></span><button class="lockbtn" id="lock" hidden>Lock</button></header>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
+    <button class="all-tabs" id="all-tabs" type="button" aria-expanded="false" aria-controls="tabs">All ▾</button>
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
     <button class="tab" role="tab" data-tab="seasonal" aria-selected="false">Seasonal</button>
@@ -1412,11 +1417,15 @@ $("#find-res").addEventListener("click", e=>{ const b = e.target.closest("[data-
 document.addEventListener("click", e=>{ if(!e.target.closest("#find")) $("#find-res").hidden = true; });
 
 /* ---------- tabs ---------- */
+// "All Tabs" shows every tab at once; tap again (or pick a tab) to fold them back into one row.
+function setAllTabs(open){ $("#tabs").classList.toggle("open", open); $("#all-tabs").setAttribute("aria-expanded", open); $("#all-tabs").textContent = open ? "Less ▴" : "All ▾"; }
+$("#all-tabs").onclick = ()=>setAllTabs(!$("#tabs").classList.contains("open"));
 async function openTab(name){
   const can = t => me && (t==="staff" ? me.owner : me.tabs.includes(t));
   if(!TABS.includes(name) || !can(name)) name = TABS.find(can) || "food";
   tab = name;
   $$(".tab").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
+  setAllTabs(false);
   const cur = document.querySelector(`.tab[data-tab="${name}"]`); if(cur) try{ cur.scrollIntoView({block:"nearest", inline:"center"}); }catch(e){}
   TABS.forEach(t=>$("#p-"+t).hidden = t!==name);
   try{ history.replaceState(null,"","#"+name); }catch(e){}
@@ -1532,7 +1541,7 @@ async function unlock(p){
   clearInterval(unlock.t); unlock.t = setInterval(refreshBadges, 60000);
 }
 function lockPage(message){
-  $("#find").hidden = true; pin=""; me = null; ss.set("bd-pin",""); clearInterval(unlock.t); $("#who").hidden = true;
+  $("#find").hidden = true; setAllTabs(false); pin=""; me = null; ss.set("bd-pin",""); clearInterval(unlock.t); $("#who").hidden = true;
   TABS.forEach(t=>$("#p-"+t).hidden = true); $("#tabs").hidden = true; $("#lock").hidden = true; $("#pin-form").hidden = false;
   $("#pin").value=""; $("#pin-msg").textContent = message || ""; $("#pin").focus();
 }
