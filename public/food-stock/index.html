@@ -109,6 +109,17 @@
   .nf-row label{font-size:15px;display:flex;gap:6px;align-items:center;white-space:nowrap}
   .nf-row .btn{width:auto;margin:0;padding:6px 12px;grid-column:1/-1;justify-self:start;font-size:14px}
   .nf-add{display:flex;gap:8px;flex-wrap:wrap} .nf-add .btn{width:auto;margin:0;padding:8px 14px;font-size:15px}
+  .mv{display:inline-flex;flex-direction:column;gap:2px;margin-right:6px;flex:none} .mv button{width:34px;height:22px;border:1.5px solid #CFC6BE;background:#fff;border-radius:6px;font-size:11px;padding:0;cursor:pointer}
+  .sp-badge{display:inline-block;background:#C8102E;color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:2px 8px;margin-left:6px;vertical-align:middle}
+  .ep-sp{border:2px solid #C8102E;border-radius:12px;padding:10px;display:grid;gap:8px}
+  .ep-sp .sp-row{display:grid;grid-template-columns:1fr auto 110px;gap:8px;align-items:center;font-size:15px}
+  .ep-sp input[type=text],.ep-sp input[type=datetime-local]{font:600 16px var(--body);padding:8px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
+  .ep-rm{color:#C8102E;border-color:#C8102E}
+  .add-item{margin:6px 0 14px} .add-item summary{cursor:pointer;font-weight:700;color:var(--orange)}
+  .add-item .ai{display:grid;gap:8px;margin-top:8px} .add-item input{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
+  .add-item .ai-p{display:grid;grid-template-columns:1fr 110px;gap:8px}
+  .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
+  .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
   .ly-top input{font:700 17px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0;width:100%;box-sizing:border-box}
   .ly-arrows{display:flex;flex-direction:column;gap:4px} .ly-arrows button{width:42px;height:30px;border:2px solid #CFC6BE;background:#fff;border-radius:8px;font-size:15px;cursor:pointer;padding:0}
@@ -136,6 +147,8 @@
   @media (max-width:480px){.hr-row{grid-template-columns:1fr auto}.hr-row .nm{grid-column:1/-1}}
   .sp-status{margin:0;color:var(--muted);font-size:15px}
   ul.sw-list li{flex-wrap:wrap}
+  ul.sw-list li > span:not(.mv){flex:1 1 0;min-width:0}
+  .nm .sp-badge{display:table;margin:3px 0 0;max-width:100%}
   .ebtn{flex:none;margin-left:auto;font:700 14px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
   .ebtn[aria-expanded="true"]{background:var(--glass);border-color:var(--glass);color:#fff}
   .edit-panel{flex-basis:100%;display:flex;flex-direction:column;gap:10px;background:#FBF7F3;border:2px solid var(--line);border-radius:12px;padding:12px;margin-top:4px}
@@ -198,12 +211,16 @@
     <nav class="jump" id="jump" aria-label="Jump to"></nav>
     <p class="help">Green means In Stock on the website. Each switch saves as soon as you tap it. Tap Edit on any item to change its name, price or picture.</p>
     <h2 class="sec">Made Here</h2>
+    <p class="help">Use the arrows to change the order. Tap Edit to change the name, price or picture, put an item On Special, or remove it from the website.</p>
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
     <div id="local"></div>
     <h2 class="sec more" id="j-gear">Grilling &amp; Outdoor</h2>
     <p class="help">Switch an item off to show Out of Stock. Tap Edit on any item to change its name, price or picture.</p>
     <div id="gear"></div>
+    <h2 class="sec more" id="j-removed">Removed From the Website</h2>
+    <p class="help">Made Here items you removed. They don't show on the website. Tap Put Back to show one again.</p>
+    <div id="removed"></div>
   </section>
 
 
@@ -409,6 +426,33 @@ function current(item, section){
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
+function applyFood(j){
+  if(!j) return;
+  switches = j.items || switches; swPrices = j.prices || swPrices; swEdits = j.edits || swEdits;
+  if("toppings" in j) swToppings = j.toppings || null;
+  setMenu(j);
+}
+document.addEventListener("click", async e=>{
+  const m = e.target.closest("[data-mv]");
+  if(m){ const key = m.dataset.key, f = ITEMS[key].item, g = f.group, list = foodItems(g).map(x=>x.name), i = list.indexOf(key), j = i + +m.dataset.mv;
+    if(j<0 || j>=list.length) return; [list[i], list[j]] = [list[j], list[i]];
+    swMenu.order[g] = list; renderFood();
+    const again = document.querySelector(`[data-mv="${m.dataset.mv}"][data-key="${CSS.escape(key)}"]`); if(again) again.focus();
+    try{ applyFood(await api("/api/food-stock",{ action:"order", group:g, names:list })); }catch(err){ toast(err.message,true); }
+    return; }
+  const ad = e.target.closest("[data-additem]");
+  if(ad){ const box = ad.closest(".add-item"), v = k => box.querySelector(`[data-ai="${k}"]`).value.trim();
+    if(!v("label")){ toast("Give the item a name.",true); return; }
+    ad.disabled = true;
+    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
+    catch(err){ ad.disabled = false; toast(err.message,true); }
+    return; }
+  const rs = e.target.closest("[data-restore]");
+  if(rs){ try{ applyFood(await api("/api/food-stock",{ action:"restoreItem", name:rs.dataset.restore })); renderFood(); toast("Back on the Website"); }catch(err){ toast(err.message,true); } return; }
+  const dl = e.target.closest("[data-delete]");
+  if(dl){ if(!confirm("Delete this item forever? This can't be undone.")) return;
+    try{ applyFood(await api("/api/food-stock",{ action:"deleteItem", name:dl.dataset.delete })); renderFood(); toast("Deleted"); }catch(err){ toast(err.message,true); } return; }
+});
 /* ----- Edit drop-down (name, price, picture) ----- */
 let drafts = {};                    // key -> unsaved edit in progress { label, prices, photo, preview }
 const ITEMS = {};                   // key -> { item, base:{label, prices, photo} }
@@ -431,17 +475,33 @@ function editPanel(key){
       <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
         ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
         ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
+    ${ITEMS[key].section==="food" ? foodExtras(key, d) : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
+}
+const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
+// Made Here only: description (added items), On Special, Remove From Website
+function foodExtras(key, d){
+  const sp = d.sp;
+  return `${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}
+    <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows at the Top of Made Here)</label>
+    ${sp.on ? d.prices.filter(r=>String(r[0]).trim()).map((r,i)=>`<div class="sp-row"><span>${esc(r[0])}</span><span class="help" style="margin:0">Regular ${r[1]?"$"+esc(r[1]):"–"}</span><input type="text" inputmode="decimal" data-f="spp" data-l="${esc(r[0])}" value="${esc(sp.prices[r[0]]||"")}" placeholder="Special $" aria-label="Special price for ${esc(r[0])}"></div>`).join("")
+      + `<label class="help" style="margin:0">Special Ends (Optional, Store Time)<input type="datetime-local" data-f="spuntil" value="${esc(sp.until||"")}"></label><p class="help" style="margin:0">It turns itself off then. Leave blank to keep it on until you turn it off.</p>` : ""}</div>
+    <button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>`;
 }
 function openDraft(key){
   const b = ITEMS[key].base;
   drafts[key] = { label: (swEdits[key]||{}).label || b.label, prices: (swPrices[key] || b.prices).map(r=>[r[0], r[1]||""]) };
+  const cur = specialOf(key);
+  drafts[key].sp = { on: !!cur, was: !!cur, until: cur ? cur.until : "", prices: Object.fromEntries(cur ? cur.prices : []) };
+  drafts[key].desc = ITEMS[key].item.desc || "";
   if(!drafts[key].prices.length) drafts[key].prices = [["Each",""]];
 }
 function swRow(item, section){
   const on = current(item, section);
-  ITEMS[item.name] = { item, base:{ label: item.label||item.name, prices: item.prices||[] } };
-  return `<li><span><span class="nm">${esc(menuLabel(item))}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+  ITEMS[item.name] = { item, section, base:{ label: item.label||item.name, prices: item.prices||[] } };
+  const sp = section==="food" && specialOf(item.name);
+  const mv = section==="food" ? `<span class="mv"><button type="button" data-mv="-1" data-key="${esc(item.name)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(item.name)}" aria-label="Move down">▼</button></span>` : "";
+  return `<li>${mv}<span><span class="nm">${esc(menuLabel(item))}${sp?`<span class="sp-badge">Special${sp.until?" · Ends "+esc(spEnd(sp.until)):""}</span>`:""}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     ${editBtn(item.name)}
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(menuLabel(item))}"></button>${editPanel(item.name)}</li>`;
 }
@@ -452,13 +512,13 @@ function topRow(tp){
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(tp)} in stock" data-name="${esc(toppingKey(tp))}" data-label="${esc(tp)}"></button></li>`;
 }
 async function saveToppings(list, msg){
-  try{ const j = await api("/api/food-stock",{ action:"toppings", list }); swToppings = j.toppings || list; renderFood(); toast(msg); }
+  try{ const j = await api("/api/food-stock",{ action:"toppings", list }); applyFood(j); renderFood(); toast(msg); }
   catch(err){ toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
 }
 const jid = s => "j-" + String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
 function renderJump(){
   const makers = [...new Set(LOCAL.map(l=>l.maker))];
-  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), m]), ["j-gear","Grilling & Outdoor"]]
+  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), m]), ["j-gear","Grilling & Outdoor"], ["j-removed","Removed"]]
     .map(([id,label])=>`<a href="#${id}" data-jump="${id}">${esc(label)}</a>`).join("");
 }
 document.addEventListener("click", e=>{
@@ -470,7 +530,12 @@ document.addEventListener("click", e=>{
 });
 function renderFood(){
   renderJump();
-  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp" id="${jid(g)}">${esc(g)}</h3><ul class="sw-list">${FOOD.filter(f=>f.group===g).map(f=>swRow(f,"food")).join("")}</ul>`
+  $("#food").innerHTML = FOOD_GROUPS.map(g=>`<h3 class="grp" id="${jid(g)}">${esc(g)}</h3><ul class="sw-list">${foodItems(g).map(f=>swRow(f,"food")).join("")}</ul>`
+    + `<details class="add-item" data-group="${esc(g)}"><summary>+ Add an Item to ${esc(g)}</summary><div class="ai">
+        <input data-ai="label" maxlength="60" placeholder="Name (Example: Smoked Brisket)" aria-label="New item name">
+        <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
+        <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price" aria-label="Price"></div>
+        <button class="btn" type="button" data-additem="${esc(g)}">Add Item</button></div></details>`
     + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
         <ul class="sw-list">${toppingList().map(topRow).join("")}<li class="top-add"><input id="top-new" maxlength="30" placeholder="New Topping (e.g. Pineapple)" aria-label="New topping name" autocomplete="off"><button class="btn" type="button" id="top-add">Add</button></li></ul></details>` : "")).join("");
   const det = document.querySelector("details.toppings"); if(det) det.addEventListener("toggle", ()=>{ toppingsOpen = det.open; });
@@ -484,6 +549,9 @@ function renderFood(){
         return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span></span>
         <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul></div>`;
   }).join("");
+  const gone = FOOD_GROUPS.flatMap(g=>foodItems(g,true).filter(f=>isRemoved(f.name)));
+  $("#removed").innerHTML = gone.length ? gone.map(f=>`<div class="rm-row"><span><b>${esc(menuLabel(f))}</b><br><span class="help">${esc(f.group)}</span></span><span>
+    <button class="btn" type="button" data-restore="${esc(f.name)}">Put Back</button>${f.name.startsWith("c-")?`<button class="btn ghost" type="button" data-delete="${esc(f.name)}">Delete Forever</button>`:""}</span></div>`).join("") : '<p class="help">Nothing removed.</p>';
   $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp" id="${jid(m)}">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
 }
 
@@ -502,12 +570,21 @@ document.addEventListener("click", async e=>{
   else if(act==="nophoto"){ d.photo = "none"; d.preview = ""; renderFood(); }
   else if(act==="origphoto"){ d.photo = ""; d.preview = ""; renderFood(); }
   else if(act==="cancel"){ delete drafts[key]; renderFood(); }
+  else if(act==="removeitem"){ if(!confirm("Remove " + (d.label||key) + " from the website? It moves to the bottom of this page, where you can put it back.")) return;
+    try{ applyFood(await api("/api/food-stock",{ action:"removeItem", name:key })); delete drafts[key]; renderFood(); toast((d.label||key) + ": Removed From the Website"); }catch(err){ toast(err.message,true); } }
   else if(act==="save"){
     const base = ITEMS[key].base, label = String(d.label||"").trim();
     const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
     if(d.photo !== undefined) body.photo = d.photo;
+    if(key.startsWith("c-")) body.desc = d.desc || "";
     a.disabled = true;
-    try{ const j = await api("/api/food-stock", body); swEdits = j.edits || {}; swPrices = j.prices || swPrices; delete drafts[key]; renderFood(); toast((label||base.label) + ": Saved"); }
+    try{ let j = await api("/api/food-stock", body);
+      if(ITEMS[key].section==="food" && (d.sp.on || d.sp.was)){
+        const rows = d.prices.filter(r=>String(r[0]).trim()).map(r=>[r[0], d.sp.prices[r[0]]||""]).filter(r=>String(r[1]).trim());
+        try{ j = await api("/api/food-stock",{ action:"special", name:key, on:d.sp.on, prices:rows, until:d.sp.until||"" }); }
+        catch(err){ applyFood(j); a.disabled = false; toast(err.message,true); return; }
+      }
+      applyFood(j); delete drafts[key]; renderFood(); toast((label||base.label) + ": Saved"); }
     catch(err){ a.disabled = false; toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
@@ -515,6 +592,10 @@ document.addEventListener("input", e=>{
   const panel = e.target.closest && e.target.closest(".edit-panel"); if(!panel || !drafts[panel.dataset.key]) return;
   const d = drafts[panel.dataset.key], f = e.target.dataset.f; if(!f) return;
   if(f==="label") d.label = e.target.value;
+  else if(f==="desc") d.desc = e.target.value;
+  else if(f==="spp") d.sp.prices[e.target.dataset.l] = e.target.value;
+  else if(f==="spuntil") d.sp.until = e.target.value;
+  else if(f==="spon"){ d.sp.on = e.target.checked; renderFood(); }
   else { const i = +e.target.closest(".gp-row").dataset.i; d.prices[i][f==="pl"?0:1] = e.target.value; }
 });
 document.addEventListener("change", async e=>{
@@ -865,7 +946,7 @@ document.addEventListener("click", async e=>{
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
-    try{ const j = await api("/api/food-stock",{ name, inStock: next }); switches = j.items || switches; swPrices = j.prices || swPrices; swEdits = j.edits || swEdits; swToppings = j.toppings || swToppings; renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
+    try{ const j = await api("/api/food-stock",{ name, inStock: next }); applyFood(j); renderFood(); toast(`${sw.dataset.label||name}: ${next?"In Stock":"Out of Stock"}`); }
     catch(err){ sw.disabled = false; toast(err.message, true); if(err.status===401||err.status===429) lockPage(err.message); }
   }
 });
@@ -940,7 +1021,7 @@ async function unlock(p){
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
   ]);
-  switches = sw.items || {}; swPrices = sw.prices || {}; swEdits = sw.edits || {}; swToppings = sw.toppings || null; stock = st.items || [];
+  applyFood(sw); stock = st.items || [];
   renderFood();
   $("#pin-form").hidden = true; $("#tabs").hidden = false; $("#lock").hidden = false;
   refreshBadges();

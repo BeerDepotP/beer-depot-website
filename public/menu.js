@@ -111,3 +111,18 @@ function menuPhoto(f, key){
   return f.photo ? ((typeof FOOD_PHOTOS!=="undefined" && FOOD_PHOTOS[f.photo]) || "/img/food/" + f.photo) : "";
 }
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
+
+// Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
+let swMenu = { custom:[], order:{}, removed:{}, specials:{} };
+function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{} }; }
+const isRemoved = name => !!swMenu.removed[name];
+const allFood = () => [...FOOD, ...swMenu.custom];
+// Items in one Made Here group, in the saved order (new items go to the bottom until moved).
+function foodItems(group, withRemoved){
+  const list = allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name)));
+  const ord = swMenu.order[group] || [], pos = (f,i) => { const x = ord.indexOf(f.name); return x<0 ? 1e6+i : x; };
+  return list.map((f,i)=>[f,pos(f,i)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+}
+const chicagoStamp = () => new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
+// The special for an item if it's on now (it turns itself off at its end day and time, store time).
+function specialOf(name){ const s = swMenu.specials[name]; if(!s || !s.on) return null; if(s.until && chicagoStamp() >= s.until) return null; return s; }

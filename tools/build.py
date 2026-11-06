@@ -36,6 +36,7 @@ preview = (tpl
     .replace("__SAMPLE_HOURS__", "const SAMPLE_HOURS = " + json.dumps([
         {"date":(datetime.date.today()+datetime.timedelta(days=2)).isoformat(),"closed":False,"open":"09:00","close":"15:00","note":"Short hours, staff party"},
         {"date":"2026-12-25","closed":True,"open":"","close":"","note":"Merry Christmas! See you Friday"}]) + ";")
+    .replace("__SAMPLE_MENU__", "setMenu(" + json.dumps({"specials":{"Smoked Pulled Pork":{"on":True,"prices":[["Per lb","7.99"]],"until":(datetime.date.today()+datetime.timedelta(days=3)).isoformat()+"T20:00"}}}) + ");")
     .replace("__FOOD_PHOTOS__", "const FOOD_PHOTOS = " + json.dumps({f.name: "data:image/jpeg;base64," + base64.b64encode(f.read_bytes()).decode() for f in (root / "public/img/food").glob("*.jpg")}) + ";")
     .replace("__PREVIEW_FLAG__", '<div class="preview-flag">Preview with sample stock. Live KORONA stock gets connected next.</div>'))
 (root / "preview.html").write_text(preview)
@@ -52,6 +53,7 @@ live = (tpl
     .replace("__SAMPLE_SALES__", "const SAMPLE_SALES = [];")
     .replace("__SAMPLE_SEASONAL__", "const SAMPLE_SEASONAL = null;")
     .replace("__SAMPLE_HOURS__", "")
+    .replace("__SAMPLE_MENU__", "")
     .replace("__PREVIEW_FLAG__", ""))
 (root / "public/index.html").write_text(live)
 print("built preview.html and public/index.html")

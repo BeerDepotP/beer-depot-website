@@ -210,6 +210,12 @@
   .dish .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
   .dish h3{margin:0;font-size:19px;line-height:1.2}
   .dish p{margin:0;color:var(--muted);font-size:15px}
+  .dish{position:relative}
+  .dish.special{outline:3px solid #C8102E;outline-offset:-3px}
+  .sp-flag{position:absolute;top:10px;left:10px;z-index:2;background:#C8102E;color:#fff;font-weight:800;font-size:14px;padding:4px 10px;border-radius:999px}
+  .sp-grp{color:#C8102E}
+  .pr.sp-pr s{color:var(--muted);font-weight:600;margin-right:4px} .pr.sp-pr b{color:#C8102E}
+  .save-tag{background:#C8102E;color:#fff;font-weight:800;font-size:14px;padding:3px 10px;border-radius:999px}
   .dish .foot{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
   .tag{font-size:13px;font-weight:700;color:var(--glass);background:#FFE2CF;padding:3px 9px;border-radius:999px}
   .dish.dim{opacity:.55}
@@ -651,6 +657,7 @@ __SAMPLE_DATA__
 __SAMPLE_SALES__
 __SAMPLE_SEASONAL__
 __SAMPLE_HOURS__
+__SAMPLE_MENU__
 __FOOD_PHOTOS__
 __PREVIEW_ALL_IN__
 
@@ -706,10 +713,10 @@ function renderSales(list){
   }).join("");
 }
 function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
-function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, swp: swPrices, swe: swEdits, swt: swToppings })); }catch(e){} }
+function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, swp: swPrices, swe: swEdits, swt: swToppings, swm: swMenu })); }catch(e){} }
 if(STOCK_URL){ try{ renderSales(JSON.parse(localStorage.getItem("bd-sales")||"[]")); }catch(e){} try{ renderSeasonal(JSON.parse(localStorage.getItem("bd-seasonal")||"null")); }catch(e){} }
 else { renderSales(SAMPLE_SALES); renderSeasonal(SAMPLE_SEASONAL); }
-if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; swEdits = c.swe || {}; swToppings = c.swt || null; } }
+if(STOCK_URL){ const c = cached(); if(c && c.data && c.data.items){ stock = c.data.items; updatedAt = new Date(c.data.updated); switches = c.sw || {}; swPrices = c.swp || {}; swEdits = c.swe || {}; swToppings = c.swt || null; setMenu(c.swm); } }
 
 async function load(){
   if(LAYOUT_URL) fetch(LAYOUT_URL,{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return; LAYOUT = (j.items && j.items.length) ? j.items : null; try{ localStorage.setItem("bd-layout", JSON.stringify(LAYOUT)); }catch(e){} applyLayoutSections(); render(); }).catch(()=>{});
@@ -723,7 +730,7 @@ async function load(){
     else { data = SAMPLE; }
     stock = data.items || []; updatedAt = data.updated ? new Date(data.updated) : new Date(); loadError=false;
   }catch(e){ loadError = !stock; }
-  const sw = await swJob; if(sw){ switches = sw.items || {}; swPrices = sw.prices || {}; swEdits = sw.edits || {}; swToppings = sw.toppings || null; }
+  const sw = await swJob; if(sw){ switches = sw.items || {}; swPrices = sw.prices || {}; swEdits = sw.edits || {}; swToppings = sw.toppings || null; setMenu(sw); }
   if(data && STOCK_URL) saveCache(data, switches);
   render();
 }
@@ -788,25 +795,36 @@ function render(){
   // food
   let foodShown=0, menuHtml="";
   const priceRows = rows => rows.map(([l,v])=>`<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`).join("");
+  // Specials (Store Tools → Food Stock → Edit → On Special): special price, the regular price crossed out, and how much they save
+  const spRows = (f, sp) => { const reg = menuPrices(f); let best = 0;
+    const html = reg.map(([l,v],i)=>{ const hit = sp.prices.find(r=>r[0].toLowerCase()===String(l).toLowerCase()) || (reg.length===1 ? sp.prices[0] : null);
+      if(!hit || !(+hit[1] < +v)) return `<div class="pr"><span>${esc(l)}</span><b>$${esc(v)}</b></div>`;
+      const save = (+v - +hit[1]); best = Math.max(best, save);
+      return `<div class="pr sp-pr"><span>${esc(l)}</span><span><s>$${esc(v)}</s> <b>$${(+hit[1]).toFixed(2)}</b></span></div>`; }).join("");
+    return { html, best }; };
   const card = (f, section) => {
       const st = itemStatus(f, section);
+      const sp = section==="food" ? specialOf(f.name) : null, spr = sp ? spRows(f, sp) : null;
       if(!matches(f.name+" "+menuLabel(f)+" "+(f.desc||"")+" "+(f.extras||[]).map(e=>e[0]).join(" "), qRaw)) return "";
       if(onlyIn && st===false) return "";
       foodShown++;
       const status = st===true ? '<span class="status in">In Stock</span>' : st===false ? '<span class="status out">Out of Stock</span>' : '<span class="status out">Out of Stock</span>';
       const photo = menuPhoto(f), prices = menuPrices(f);
       const img = photo ? `<img src="${esc(photo)}" alt="${esc(menuLabel(f))}" loading="lazy">` : "";
-      return `<article class="dish ${st===false?"dim":""}">
+      return `<article class="dish ${st===false?"dim":""}${sp?" special":""}">${sp?'<span class="sp-flag">Special</span>':""}
         <div class="ph ${photo?"has-img":""}">${img}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5.7s.7 2.6.7 4.7c0 2-1.3 3.6-3.3 3.6S7.4 7.4 7.4 5.4l.03-.36C5.4 7.4 4.2 10.5 4.2 13.8a7.8 7.8 0 0 0 15.6 0C19.8 8.5 17.3 3.8 13.5.7zM11.7 20.8c-1.8 0-3.2-1.4-3.2-3.1 0-1.6 1-2.7 2.8-3.1 1.8-.4 3.6-1.2 4.6-2.6.4 1.3.6 2.6.6 4 0 2.6-2.1 4.8-4.8 4.8z"/></svg></div>
         <div class="body"><h3>${highlight(menuLabel(f),qRaw)}</h3>${f.desc?`<p>${esc(f.desc)}</p>`:""}
-        ${prices.length?`<div class="prices">${priceRows(prices)}</div>`:""}
+        ${spr ? `<div class="prices">${spr.html}</div>` : prices.length?`<div class="prices">${priceRows(prices)}</div>`:""}
         ${f.extras?`<details class="extras"><summary>Add-Ons</summary>${priceRows(f.extras)}</details>`:""}
         ${f.toppings?(()=>{ const on = toppingList().filter(tp => switches[toppingKey(tp)] !== false);
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
-        <div class="foot">${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
+        <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
+  const specials = FOOD_GROUPS.flatMap(g=>foodItems(g)).filter(f=>specialOf(f.name));
+  const spCards = specials.map(f=>card(f,"food")).join("");
+  if(spCards) menuHtml += `<h3 class="grp sp-grp">Specials</h3><div class="menu">${spCards}</div>`;
   for(const grp of FOOD_GROUPS){
-    const cards = FOOD.filter(f=>f.group===grp).map(f=>card(f,"food")).join("");
+    const cards = foodItems(grp).filter(f=>!specialOf(f.name)).map(f=>card(f,"food")).join("");
     const note = FOOD_GROUP_NOTES[grp] || "";
     if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
