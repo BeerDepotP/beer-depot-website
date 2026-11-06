@@ -46,7 +46,7 @@ function tidy(d) {      // drop specials that have ended
   return d;
 }
 const view = d => ({ ok: true, items: d.items || {}, prices: d.prices || {}, edits: d.edits || {}, toppings: d.toppings || null,
-  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, hot: d.hot || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, groups: d.groups || [], updated: d.updated });
+  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, hot: d.hot || {}, hotTime: d.hotTime || {}, makers: d.makers || {}, newMakers: d.newMakers || [], variants: d.variants || {}, deleted: d.deleted || {}, groups: d.groups || [], updated: d.updated });
 async function saveData(store, d) { tidy(d); d.updated = new Date().toISOString(); await store.setJSON(KEY, d); return json(view(d)); }
 
 export default async (req) => {
@@ -176,7 +176,7 @@ export default async (req) => {
 
   if (["removeItem", "restoreItem", "deleteItem"].includes(body.action)) {
     data.removed = data.removed || {};
-    if (body.action === "removeItem") { data.removed[name] = true; if (data.specials) delete data.specials[name]; if (data.hot) delete data.hot[name]; }
+    if (body.action === "removeItem") { data.removed[name] = true; if (data.specials) delete data.specials[name]; if (data.hot) delete data.hot[name]; if (data.hotTime) delete data.hotTime[name]; }
     if (body.action === "restoreItem") delete data.removed[name];
     if (body.action === "deleteItem") {
       const id = name.replace(/^Outdoor: /, "");
@@ -209,10 +209,12 @@ export default async (req) => {
   if (body.action === "hot") {
     data.hot = data.hot || {};
     if (!body.on) { delete data.hot[name]; return saveData(store, data); }
+    data.hotTime = data.hotTime || {};
+    if (/^\d{2}:\d{2}$/.test(String(body.time || ""))) data.hotTime[name] = body.time;
     let until = String(body.until || "");
-    if (!until) {       // default: the next 7 PM store time
-      const now = chicagoStamp(), today = now.slice(0, 10) + "T19:00";
-      until = today > now ? today : new Date(Date.parse(now.slice(0, 10) + "T12:00:00Z") + 86400000).toISOString().slice(0, 10) + "T19:00";
+    if (!until) {       // default: the next time of day saved for this item (standard 7 PM), store time
+      const now = chicagoStamp(), at = data.hotTime[name] || "19:00", today = now.slice(0, 10) + "T" + at;
+      until = today > now ? today : new Date(Date.parse(now.slice(0, 10) + "T12:00:00Z") + 86400000).toISOString().slice(0, 10) + "T" + at;
     }
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(until)) return json({ error: "Pick a day and time for it to turn off." }, 400);
     if (until <= chicagoStamp()) return json({ error: "That turn-off time has already passed." }, 400);

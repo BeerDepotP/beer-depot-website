@@ -63,6 +63,8 @@
   .sw[aria-checked="true"]{background:var(--in)}
   .sw[aria-checked="true"]::after{left:32px}
   .sw[disabled]{opacity:.5}
+  .sw.hot-sw[aria-checked="true"]{background:#C8102E}
+  .hotwrap{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px} .hotwrap small{font-size:11px;font-weight:800;color:#C8102E;line-height:1}
   @media (prefers-reduced-motion:reduce){.sw,.sw::after{transition:none}}
   .weeks{display:flex;gap:8px;margin:2px 0 10px}
   .wk{font:700 15px var(--body);padding:7px 13px;border-radius:999px;border:2px solid var(--line);background:#fff;cursor:pointer;color:var(--ink)}
@@ -764,7 +766,8 @@ function editPanel(key){
     ${ITEMS[key].section==="food" ? foodExtras(key, d) : (ITEMS[key].section==="local" || ITEMS[key].section==="outdoor") ? `${moreFields(key, d)}<button class="btn ghost rm-site" type="button" data-act="removeitem">Remove From Website</button>` : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
 }
-const defaultHotEnd = () => { const n = chicagoStamp(), t = n.slice(0,10)+"T19:00"; return t > n ? t : new Date(Date.parse(n.slice(0,10)+"T12:00:00Z")+86400000).toISOString().slice(0,10)+"T19:00"; };
+const defaultHotEnd = (key) => { const at = hotTimeOf(key||""), n = chicagoStamp(), t = n.slice(0,10)+"T"+at; return t > n ? t : new Date(Date.parse(n.slice(0,10)+"T12:00:00Z")+86400000).toISOString().slice(0,10)+"T"+at; };
+const isRibs = n => /ribs/i.test(n);
 const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
 // Made Here only: description (added items), On Special, Remove From Website
 // Description, small tag and (Made Here) add-ons, for any item
@@ -780,7 +783,8 @@ function foodExtras(key, d){
   return `<label class="ep-l">Group<select class="ep-in" data-f="group">${foodGroups().map(g=>`<option value="${esc(g.key)}"${g.key===d.group?" selected":""}>${esc(g.name)}</option>`).join("")}</select></label>
     ${moreFields(key, d)}
     <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="hoton"${d.hot.on?" checked":""}> Hot and Fresh Off the Smoker (Red Outline + Notice)</label>
-    ${d.hot.on ? `<label class="help" style="margin:0">Turns Off By Itself At (Store Time)<input type="datetime-local" data-f="hotuntil" value="${esc(d.hot.until||"")}"></label><p class="help" style="margin:0">The website shows "${esc(hotText({until:d.hot.until||defaultHotEnd()}))}" in red. Standard is 7 PM.</p>` : ""}</div>
+    ${d.hot.on ? `<label class="help" style="margin:0">Turns Off By Itself At (Store Time)<input type="datetime-local" data-f="hotuntil" value="${esc(d.hot.until||"")}"></label><p class="help" style="margin:0">The website shows "${esc(hotText({until:d.hot.until||defaultHotEnd(key)}))}" in red. Standard is 7 PM.</p>
+      <label class="help" style="margin:0">Usual Turn-Off Time (Used By the Quick Hot Switch)<input type="time" data-f="hottime" value="${esc(d.hot.time||"19:00")}"></label>` : ""}</div>
     <div class="ep-sp"><label style="font-weight:800;color:#C8102E;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="spon"${sp.on?" checked":""}> On Special (Shows First in Its List)</label>
     ${sp.on ? d.prices.filter(r=>String(r[0]).trim()).map((r,i)=>`<div class="sp-row"><span>${esc(r[0])}</span><span class="help" style="margin:0">Regular ${r[1]?"$"+esc(r[1]):"–"}</span><input type="text" inputmode="decimal" data-f="spp" data-l="${esc(r[0])}" value="${esc(sp.prices[r[0]]||"")}" placeholder="Special $" aria-label="Special price for ${esc(r[0])}"></div>`).join("")
       + `<label class="help" style="margin:0">Special Ends (Optional, Store Time)<input type="datetime-local" data-f="spuntil" value="${esc(sp.until||"")}"></label><p class="help" style="margin:0">It turns itself off then. Leave blank to keep it on until you turn it off.</p>` : ""}</div>
@@ -791,7 +795,7 @@ function openDraft(key){
   drafts[key] = { label: (swEdits[key]||{}).label || b.label, prices: (swPrices[key] || b.prices).map(r=>[r[0], r[1]||""]) };
   const cur = specialOf(key);
   const curHot = hotOf(key);
-  drafts[key].hot = { on: !!curHot, was: !!curHot, until: curHot ? curHot.until : "" };
+  drafts[key].hot = { on: !!curHot, was: !!curHot, until: curHot ? curHot.until : "", time: hotTimeOf(key) };
   drafts[key].sp = { on: !!cur, was: !!cur, until: cur ? cur.until : "", prices: Object.fromEntries(cur ? cur.prices : []) };
   drafts[key].desc = menuDesc(ITEMS[key].item, key); drafts[key].tag = menuTag(ITEMS[key].item, key);
   drafts[key].extras = menuExtras(ITEMS[key].item, key).map(r=>[r[0], r[1]||""]);
@@ -805,6 +809,7 @@ function swRow(item, section){
   const mv = (section==="food" || section==="local") ? `<span class="mv"><button type="button" data-mv="-1" data-key="${esc(item.name)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(item.name)}" aria-label="Move down">▼</button></span>` : "";
   return `<li>${mv}<span><span class="nm">${esc(menuLabel(item))}${hot?`<span class="sp-badge">${esc(hotText(hot))}</span>`:""}${sp?`<span class="sp-badge">Special${sp.until?" · Ends "+esc(spEnd(sp.until)):""}</span>`:""}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     ${editBtn(item.name)}
+    ${section==="food" && isRibs(item.name) ? `<span class="hotwrap"><button class="sw hot-sw" role="switch" aria-checked="${!!hot}" aria-label="${esc(item.name)} hot and fresh off the smoker" data-hot="${esc(item.name)}"></button><small>Hot</small></span>` : ""}
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(menuLabel(item))}"></button>${editPanel(item.name)}</li>`;
 }
 function topRow(tp){
@@ -922,8 +927,8 @@ document.addEventListener("click", async e=>{
         try{ j = await api("/api/food-stock",{ action:"special", name:key, on:d.sp.on, prices:rows, until:d.sp.until||"" }); }
         catch(err){ applyFood(j); a.disabled = false; toast(err.message,true); return; }
       }
-      if(ITEMS[key].section==="food" && d.hot && (d.hot.on || d.hot.was)){
-        try{ j = await api("/api/food-stock",{ action:"hot", name:key, on:d.hot.on, until:d.hot.until||"" }); }
+      if(ITEMS[key].section==="food" && d.hot && (d.hot.on || d.hot.was || (d.hot.time||"19:00") !== hotTimeOf(key))){
+        try{ j = await api("/api/food-stock",{ action:"hot", name:key, on:d.hot.on, until:d.hot.until||"", time:d.hot.time||"" }); }
         catch(err){ applyFood(j); a.disabled = false; toast(err.message,true); return; }
       }
       applyFood(j); delete drafts[key]; renderFood(); toast((label||base.label) + ": Saved"); }
@@ -941,7 +946,8 @@ document.addEventListener("input", e=>{
   else if(f==="spp") d.sp.prices[e.target.dataset.l] = e.target.value;
   else if(f==="spuntil") d.sp.until = e.target.value;
   else if(f==="hotuntil") d.hot.until = e.target.value;
-  else if(f==="hoton"){ d.hot.on = e.target.checked; if(d.hot.on && !d.hot.until) d.hot.until = defaultHotEnd(); renderFood(); }
+  else if(f==="hottime") d.hot.time = e.target.value;
+  else if(f==="hoton"){ d.hot.on = e.target.checked; if(d.hot.on && !d.hot.until) d.hot.until = defaultHotEnd(panel.dataset.key); renderFood(); }
   else if(f==="spon"){ d.sp.on = e.target.checked; renderFood(); }
   else if(f==="pl" || f==="pp"){ const i = +e.target.closest(".gp-row").dataset.i; d.prices[i][f==="pl"?0:1] = e.target.value; }
 });
@@ -1509,7 +1515,14 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw):not(.bt-sw):not(.stf-sw)");
+  const hb = e.target.closest(".hot-sw");
+  if(hb){ const key = hb.dataset.hot, on = hb.getAttribute("aria-checked") !== "true"; hb.disabled = true;
+    try{ const j = await api("/api/food-stock",{ action:"hot", name:key, on }); applyFood(j); renderFood();
+      const h = hotOf(key), nm = ITEMS[key] ? menuLabel(ITEMS[key].item) : key;
+      toast(on && h ? nm + " Hot Until " + hotText(h).replace("Hot and Fresh Off the Smoker Until ","") + (h.until.slice(0,10)===chicagoStamp().slice(0,10) ? " Today" : "") : nm + ": Hot Is Off"); }
+    catch(err){ hb.disabled = false; toast(err.message,true); if(err.status===401||err.status===429) lockPage(err.message); }
+    return; }
+  const sw = e.target.closest(".sw:not(.hot-sw):not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw):not(.bt-sw):not(.stf-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
