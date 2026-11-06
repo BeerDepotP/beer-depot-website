@@ -262,8 +262,15 @@
       <div class="nf-add"><button class="btn ghost" type="button" data-nfadd="Name|text">+ Name</button><button class="btn ghost" type="button" data-nfadd="Phone Number|tel">+ Phone</button><button class="btn ghost" type="button" data-nfadd="|text">+ Other Box</button></div>
       <label class="help" for="nf-button" style="margin:0">Button Words</label><input id="nf-button" data-nf="button" maxlength="30" autocomplete="off">
       <label class="help" for="nf-thanks" style="margin:0">Message After They Sign Up</label><input id="nf-thanks" data-nf="thanks" maxlength="160" autocomplete="off">
-      <label class="help" for="nf-emailNote" style="margin:0">Note in the Back in Stock Email (Optional)</label><textarea id="nf-emailNote" data-nf="emailNote" rows="2" maxlength="300"></textarea>
-      <button class="btn" type="button" id="nf-save">Save Pop-Up Wording</button>
+      <h3 class="grp" style="margin:14px 0 0">Back in Stock Email Wording</h3>
+      <p class="help" style="margin:0">The look stays the same. In the subject, <b>{item}</b> becomes the item's name.</p>
+      <label class="help" for="nf-emailSubject" style="margin:0">Subject Line</label><input id="nf-emailSubject" data-nf="emailSubject" maxlength="120" autocomplete="off">
+      <label class="help" for="nf-emailHeading" style="margin:0">Big Heading</label><input id="nf-emailHeading" data-nf="emailHeading" maxlength="60" autocomplete="off">
+      <label class="help" for="nf-emailNote" style="margin:0">Message Under the Item Name (Optional)</label><textarea id="nf-emailNote" data-nf="emailNote" rows="3" maxlength="300"></textarea>
+      <label class="help" for="nf-emailLink" style="margin:0">Link Words</label><input id="nf-emailLink" data-nf="emailLink" maxlength="40" autocomplete="off">
+      <button class="btn" type="button" id="nf-save">Save Pop-Up and Email Wording</button>
+      <button class="btn ghost" type="button" id="nf-preview">Preview Email</button>
+      <iframe id="nf-frame" title="Email preview" hidden style="width:100%;height:380px;border:1px solid #CFC6BE;border-radius:12px;background:#fff"></iframe>
       <button class="btn ghost" type="button" id="nf-reset">Back to Standard Wording</button>
       <p class="sp-status" id="nf-status" role="status"></p>
     </div>
@@ -734,7 +741,11 @@ $("#nf-save").onclick = async ()=>{
   const f = Object.fromEntries($$("[data-nf]").map(i=>[i.dataset.nf,i.value])); f.fields = nfFields.filter(x=>String(x.label).trim());
   try{ nt = await api("/api/notify",{action:"form", form:f}); nfFill(nt.form); renderNotify(); $("#nf-status").textContent = "Saved. The pop-up on the website uses this within a minute."; }catch(err){ toast(err.message,true); }
 };
-$("#nf-reset").onclick = ()=>{ if(!confirm("Put the pop-up and email wording back to standard? Tap Save Pop-Up Wording afterward to keep it.")) return; nfFill(nt.defaults); $("#nf-status").textContent = "Standard wording is in the boxes. Tap Save Pop-Up Wording to keep it."; };
+$("#nf-preview").onclick = async ()=>{
+  const f = Object.fromEntries($$("[data-nf]").map(i=>[i.dataset.nf,i.value]));
+  try{ const j = await api("/api/notify",{action:"previewEmail", form:f}); const fr = $("#nf-frame"); fr.hidden = false; fr.srcdoc = j.html; $("#nf-status").textContent = "Preview with a sample item. Subject: " + j.subject; }catch(err){ toast(err.message,true); }
+};
+$("#nf-reset").onclick = ()=>{ if(!confirm("Put the pop-up and email wording back to standard? Tap Save Pop-Up and Email Wording afterward to keep it.")) return; nfFill(nt.defaults); $("#nf-status").textContent = "Standard wording is in the boxes. Tap Save Pop-Up and Email Wording to keep it."; };
 const loadNotify = () => ntCall({});
 $("#nt-on").onclick = ()=>ntCall({action:"settings", on: nt.on ? false : true, delayMin: nt.delayMin}, "");
 $("#nt-delay").onchange = ()=>ntCall({action:"settings", on: nt.on, delayMin: +$("#nt-delay").value}, "Saved.");

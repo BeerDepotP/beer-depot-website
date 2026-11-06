@@ -1,3 +1,4 @@
+import { SITE } from "./club-email.mjs";
 // Back in Stock emails: shared helpers.
 // Blobs "notify"       = { wants: { key: { name, people: { email: { at } } } }, tokens: { email: token } }
 // Blobs "notify-state" = { on, delayMin, inSince: { key: ms }, sent: [ { at, name, count } ] }
@@ -25,7 +26,10 @@ export const DEFAULT_FORM = {
   intro: "We'll send you one email when it's back in stock.",
   button: "Email Me",
   thanks: "Got it! We'll email you when it's back.",
+  emailSubject: "{item} Is Back in Stock at The Beer Depot",   // {item} = the item name
+  emailHeading: "It's Back in Stock!",
   emailNote: "Stop in or give us a call to grab it.",
+  emailLink: "See What's In Stock",
   fields: [],        // extra boxes: [{ id, label, type: "text" | "tel", required }]
 };
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
@@ -34,5 +38,22 @@ export function cleanForm(f = {}) {
   const fields = (Array.isArray(f.fields) ? f.fields : []).slice(0, 5).map((x, i) => ({
     id: "f" + (i + 1), label: one(x && x.label, 40), type: x && x.type === "tel" ? "tel" : "text", required: !!(x && x.required),
   })).filter(x => x.label);
-  return { title: pick("title", 60), intro: pick("intro", 300, true), button: pick("button", 30), thanks: pick("thanks", 160), emailNote: pick("emailNote", 300, true), fields };
+  return { title: pick("title", 60), intro: pick("intro", 300, true), button: pick("button", 30), thanks: pick("thanks", 160), emailSubject: pick("emailSubject", 120), emailHeading: pick("emailHeading", 60), emailNote: pick("emailNote", 300, true), emailLink: pick("emailLink", 40), fields };
+}
+
+const esc = x => String(x).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// The Back in Stock email (same look every time; the words come from the form settings).
+export function notifyEmail(name, token, form) {
+  const f = cleanForm(form), unsub = `${SITE}/api/notify?unsub=${token}`;
+  const html = `<!doctype html><html><body style="margin:0;background:#F3EBE2;font-family:Arial,Helvetica,sans-serif"><div style="max-width:560px;margin:0 auto;padding:20px">
+ <div style="background:#2B1B12;border-radius:14px;padding:22px;color:#E8D9CC">
+  <h1 style="margin:0 0 8px;color:#F26B1D;font-size:26px">${esc(f.emailHeading)}</h1>
+  <p style="margin:0 0 14px;color:#fff;font-size:20px;font-weight:bold">${esc(name)}</p>
+  ${f.emailNote ? `<p style="margin:0 0 14px">${esc(f.emailNote).replace(/\n/g, "<br>")}</p>` : ""}
+  <p style="margin:0"><a href="${SITE}" style="color:#fff;font-weight:bold">${esc(f.emailLink)}</a> &nbsp;·&nbsp; <a href="tel:+12626964602" style="color:#fff;font-weight:bold">262-696-4602</a></p>
+ </div>
+ <p style="font-size:12px;color:#7A6B60;line-height:1.5;margin:14px 4px">The Beer Depot · N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072<br>You asked us to email you when this item came back. This is the only email you'll get about it. Must be 21 or older for alcohol.<br><a href="${unsub}" style="color:#7A6B60">Unsubscribe</a></p>
+</div></body></html>`;
+  const text = `${f.emailHeading}\n${name}\n\n${f.emailNote ? f.emailNote + "\n\n" : ""}${SITE} · 262-696-4602\n\nThe Beer Depot · N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072\nUnsubscribe: ${unsub}`;
+  return { subject: f.emailSubject.replace(/\{item\}/gi, name), html, text, unsub };
 }
