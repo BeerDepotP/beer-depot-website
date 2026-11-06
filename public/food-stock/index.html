@@ -130,6 +130,8 @@
   .fl-row{display:grid;gap:6px;padding-bottom:10px;border-bottom:1px solid #E5DCD3}
   .fl-row input,.fl-row textarea{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;width:100%;box-sizing:border-box}
   .fl-row .btn,.fl-panel>.btn{width:auto;margin:0;justify-self:start;padding:6px 12px;font-size:14px}
+  .rx{border:0;background:#EFE7DF;color:#6B5A4E;width:30px;height:30px;border-radius:999px;font-size:20px;line-height:1;cursor:pointer;padding:0}
+  .rx:hover{background:#C8102E;color:#fff}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -704,9 +706,10 @@ const newTag = '<span class="newtag">New</span>';
 function renderReport(){
   if(!rep) return;
   $$(".weeks").forEach(w=>w.innerHTML = weeksHtml());
+  const xBtn = (tab, attrs, label) => `<button class="rx" type="button" data-rx="${tab}" ${attrs} aria-label="Remove ${esc(label)}">×</button>`;
   const tbl = (rows, count, stamp, seenKey) => rows.length
     ? `<table>${rows.map(r=>{ const isNew = r[stamp] > (seenBefore[seenKey]||0);
-        return `<tr class="${isNew?"new":""}"><td>${esc(r.q)}${isNew?newTag:""}</td><td class="n">${r[count]}×</td></tr>`; }).join("")}</table>`
+        return `<tr class="${isNew?"new":""}"><td>${esc(r.q)}${isNew?newTag:""}</td><td class="n">${r[count]}×</td><td class="n">${xBtn(seenKey, `data-q="${esc(r.q)}"`, r.q)}</td></tr>`; }).join("")}</table>`
     : `<p class="empty">Nothing yet.</p>`;
   $("#nofind").innerHTML = tbl(rep.noResults, "none", "lastNone", "nofind");
   $("#top").innerHTML = tbl(rep.top, "n", "last", "top");
@@ -714,9 +717,15 @@ function renderReport(){
       const d = new Date(r.at).toLocaleString([], {weekday:"short", month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
       const tel = r.phone ? `<a href="tel:${esc(r.phone.replace(/[^0-9+]/g,""))}">${esc(r.phone)}</a>` : "";
       const isNew = Date.parse(r.at) > (seenBefore.requests||0);
-      return `<tr class="${isNew?"new":""}"><td><div class="it">${esc(r.item)}${isNew?newTag:""}</div><div class="who">${esc(r.name)} · ${tel} · ${esc(d)}</div></td></tr>`;
+      return `<tr class="${isNew?"new":""}"><td><div class="it">${esc(r.item)}${isNew?newTag:""}</div><div class="who">${esc(r.name)} · ${tel} · ${esc(d)}</div></td><td class="n">${xBtn("requests", `data-at="${esc(r.at)}" data-item="${esc(r.item)}"`, r.item)}</td></tr>`;
     }).join("")}</table>` : `<p class="empty">No requests yet.</p>`;
 }
+document.addEventListener("click", async e=>{
+  const x = e.target.closest(".rx"); if(!x) return;
+  x.disabled = true;
+  try{ const keepSeen = seenBefore; rep = await api("/api/insights",{type:"remove", tab:x.dataset.rx, week, q:x.dataset.q, at:x.dataset.at, item:x.dataset.item}); seenBefore = keepSeen; setBadges(rep.badges); renderReport(); toast("Removed"); }
+  catch(err){ x.disabled = false; toast(err.message,true); }
+});
 async function loadReport(w){
   rep = await api("/api/insights",{type:"report", week:w||""});
   week = rep.week; setBadges(rep.badges);

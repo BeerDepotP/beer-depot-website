@@ -5,6 +5,7 @@
 // POST /api/insights { type:"report", pin, week? }            (store page, PIN required)
 // POST /api/insights { type:"seen", pin, tab }                (marks a tab as read: nofind | top | requests)
 // POST /api/insights { type:"badges", pin }                   (just the unread counts)
+// POST /api/insights { type:"remove", pin, tab, week, q | at } (Store Tools x button; returns the report)
 //
 // Searches are counted per week (Central time). Requests keep the latest 300.
 // Everything is stored in Netlify Blobs; nothing here needs a deploy.
@@ -81,7 +82,7 @@ export default async (req) => {
     return json({ ok: true });
   }
 
-  if (body.type === "report" || body.type === "seen" || body.type === "badges") {
+  if (["report", "seen", "badges", "remove"].includes(body.type)) {
     const bad = await checkPin(store, body.pin);
     if (bad) return json({ error: bad.error }, bad.status);
   }
@@ -97,6 +98,19 @@ export default async (req) => {
   if (body.type === "badges") {
     const seen = (await store.get("seen", { type: "json" })) || {};
     return json({ badges: await badges(store, seen), seen });
+  }
+
+  if (body.type === "remove") {
+    const week = /^\d{4}-W\d{2}$/.test(body.week || "") ? body.week : weekKey();
+    if (body.tab === "requests") {
+      const list = (await store.get("requests", { type: "json" })) || [];
+      await store.setJSON("requests", list.filter(r => !(r.at === body.at && r.item === body.item)));
+    } else if (body.tab === "top" || body.tab === "nofind") {
+      const key = "searches-" + week, data = (await store.get(key, { type: "json" })) || { terms: {} };
+      const t = data.terms[String(body.q || "")];
+      if (t) { if (body.tab === "top") delete data.terms[body.q]; else { t.none = 0; t.lastNone = 0; } await store.setJSON(key, data); }
+    } else return json({ error: "Bad request." }, 400);
+    body.type = "report"; body.week = week;
   }
 
   if (body.type === "report") {

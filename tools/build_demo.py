@@ -84,6 +84,8 @@ function menuPhoto(f, key){
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
+      if(b.type==="remove"){ if(b.tab==="requests") report.requests = report.requests.filter(r=>!(r.at===b.at && r.item===b.item));
+        else if(b.tab==="top") report.top = report.top.filter(r=>r.q!==b.q); else report.noResults = report.noResults.filter(r=>r.q!==b.q); return ok(report); }
       return ok(report); }
     if(url.startsWith("/api/bourbon-club")){
       const c = DB.club;
