@@ -246,6 +246,11 @@
     <p class="help">Every Out of Stock item on the website gets an "Email Me When Back" button. When the item is back In Stock, the people who asked get one email.</p>
     <ul class="sw-list" style="margin-bottom:12px"><li><span><span class="nm">Back in Stock Emails</span><span class="st" id="nt-on-st"></span></span>
       <button class="sw nt-sw" role="switch" aria-checked="true" aria-label="Back in stock emails" id="nt-on"></button></li></ul>
+    <h3 class="grp">What People Are Waiting For</h3>
+    <div id="nt-list"></div>
+    <h3 class="grp">Recently Sent</h3>
+    <div id="nt-sent"></div>
+      <h2 class="sec" style="margin-top:28px">Settings and Wording</h2>
     <div class="card sp-card" style="margin-bottom:12px">
       <label class="help" for="nt-delay" style="margin:0">Wait Before Sending</label>
       <select id="nt-delay"><option value="0">Send Right Away</option><option value="15">15 Minutes</option><option value="30">30 Minutes</option><option value="60">1 Hour</option><option value="120">2 Hours</option><option value="240">4 Hours</option></select>
@@ -274,10 +279,6 @@
       <button class="btn ghost" type="button" id="nf-reset">Back to Standard Wording</button>
       <p class="sp-status" id="nf-status" role="status"></p>
     </div>
-    <h3 class="grp">What People Are Waiting For</h3>
-    <div id="nt-list"></div>
-    <h3 class="grp">Recently Sent</h3>
-    <div id="nt-sent"></div>
   </section>
 
   <section id="p-nofind" hidden>
@@ -304,6 +305,10 @@
     <h2 class="sec">Bourbon Club</h2>
     <p class="help" id="club-help">Once a week, members get an email listing every Allocated Bourbon bottle in stock. Weeks with none, nothing is sent.</p>
     <div class="card club-sum" id="club-sum"></div>
+    <h3 class="grp">Members</h3>
+    <button class="btn ghost" type="button" id="club-dl">Download List</button>
+    <div id="club-list"></div>
+      <h2 class="sec" style="margin-top:28px">Emails and Settings</h2>
     <ul class="sw-list club-on-card"><li><span><span class="nm">Weekly Emails</span><span class="st" id="club-on-st"></span></span>
       <button class="club-sw sw" role="switch" aria-checked="true" aria-label="Weekly Bourbon Club emails" id="club-on"></button></li></ul>
     <div class="card sp-card" id="club-when">
@@ -335,9 +340,6 @@
       <button class="btn" type="submit" id="club-test-btn">Send Test Email</button>
       <p class="sp-status" id="club-test-msg" role="status"></p>
     </form>
-    <h3 class="grp">Members</h3>
-    <button class="btn ghost" type="button" id="club-dl">Download List</button>
-    <div id="club-list"></div>
   </section>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
