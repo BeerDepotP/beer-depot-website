@@ -807,7 +807,7 @@ function swRow(item, section){
   ITEMS[item.name] = { item, section, base:{ label: item.label||item.name, prices: item.prices||[] } };
   const sp = section==="food" && specialOf(item.name), hot = section==="food" && hotOf(item.name);
   const mv = (section==="food" || section==="local") ? `<span class="mv"><button type="button" data-mv="-1" data-key="${esc(item.name)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(item.name)}" aria-label="Move down">▼</button></span>` : "";
-  return `<li>${mv}<span><span class="nm">${esc(menuLabel(item))}${hot?`<span class="sp-badge">${esc(hotText(hot))}</span>`:""}${sp?`<span class="sp-badge">Special${sp.until?" · Ends "+esc(spEnd(sp.until)):""}</span>`:""}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
+  return `<li>${mv}<span><span class="nm">${esc(menuLabel(item))}${hot?`<span class="sp-badge">${esc(hotText(hot).replace("Hot and Fresh Off the Smoker Until ","Hot Until "))}</span>`:""}${sp?`<span class="sp-badge">Special${sp.until?" · Ends "+esc(spEnd(sp.until)):""}</span>`:""}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     ${editBtn(item.name)}
     ${section==="food" && isRibs(item.name) ? `<span class="hotwrap"><button class="sw hot-sw" role="switch" aria-checked="${!!hot}" aria-label="${esc(item.name)} hot and fresh off the smoker" data-hot="${esc(item.name)}"></button><small>Hot</small></span>` : ""}
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(menuLabel(item))}"></button>${editPanel(item.name)}</li>`;
