@@ -38,7 +38,7 @@ export const DEFAULTS = {
     thcNote: "A new federal law takes effect December 11, 2026 that ends sales of most hemp-derived THC drinks. We'll carry them until then, while supplies last.",
   },
   info: { ...DEFAULT_INFO },
-  settings: { newDays: 14, thcUntil: "2026-12-11", thcNoteOn: true, showCount: 20, allocCount: 10, sodaAlwaysIn: true },
+  settings: { newDays: 14, thcUntil: "2026-12-11", thcNoteOn: true, newCount: 20, showCount: 20, allocCount: 10, sodaAlwaysIn: true },
   email: { fromName: "The Beer Depot", replyTo: "bourbon@beerdepotpewaukee.com", footer: "" },
   social: { on: false, facebook: "", instagram: "", tiktok: "", x: "", youtube: "" },
   colors: { main: "#F26B1D", dark: "#2B1A10", light: "#F3ECE3" },
@@ -156,7 +156,9 @@ export default async (req) => {
       if (thc && !/^\d{4}-\d{2}-\d{2}$/.test(thc)) return json({ error: "Pick a date for the THC section." }, 400);
       const sc = Math.round(Number(b.settings.showCount ?? next.settings.showCount)), ac = Math.round(Number(b.settings.allocCount ?? next.settings.allocCount));
       if (!(sc >= 5 && sc <= 200) || !(ac >= 3 && ac <= 100)) return json({ error: "Show More counts must be 5 to 200 (Allocated: 3 to 100)." }, 400);
-      next.settings = { newDays: n, thcUntil: thc, showCount: sc, allocCount: ac, sodaAlwaysIn: b.settings.sodaAlwaysIn === undefined ? next.settings.sodaAlwaysIn : !!b.settings.sodaAlwaysIn,
+      const nc = Math.round(Number(b.settings.newCount ?? next.settings.newCount ?? 20));
+      if (!(nc >= 3 && nc <= 200)) return json({ error: "New Arrivals count must be 3 to 200." }, 400);
+      next.settings = { newDays: n, thcUntil: thc, newCount: nc, showCount: sc, allocCount: ac, sodaAlwaysIn: b.settings.sodaAlwaysIn === undefined ? next.settings.sodaAlwaysIn : !!b.settings.sodaAlwaysIn,
         thcNoteOn: b.settings.thcNoteOn === undefined ? next.settings.thcNoteOn !== false : !!b.settings.thcNoteOn };
     }
     next.updated = new Date().toISOString();

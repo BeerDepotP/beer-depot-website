@@ -533,6 +533,7 @@ __PREVIEW_FLAG__
       <div class="shelf-head"><h2>New Arrivals</h2><span class="count" id="new-count"></span></div>
       <p class="lede" data-tx="newIntro">Just came in over the last two weeks.</p>
       <ul class="items" id="new-list"></ul>
+      <div class="more-row" id="new-more"></div>
     </div>
   </section>
   <div class="drinks wrap" id="drinks"></div>
@@ -584,6 +585,7 @@ const SALES_URL = STOCK_URL ? "/api/sales" : null;      // On Sale section (edit
 const REFRESH_SECONDS = 60;
 let SECTION_LIMIT = 20;               // changed in Store Tools → Banners & Text → Settings
 let THC_NOTE_ON = true;
+let NEW_LIMIT = 20;                  // New Arrivals shown before "Show More" (Store Tools → Banners & Text → Settings)
 let ALLOCATED_LIMIT = 10;            // bottles shown in the Allocated Bourbon box before "Show More"              // products shown per section before "See All"
 
 // Drink sections, in the order they appear on the page.
@@ -671,7 +673,7 @@ function applySite(d){
   if(d.images){ const src = id => SITE_URL + "?img=" + encodeURIComponent(id);
     if(d.images.logo) document.querySelectorAll("img.site-logo").forEach(i=>{ i.src = src(d.images.logo); });
     if(d.images.icon) document.querySelectorAll('link[rel="icon"],link[rel="apple-touch-icon"]').forEach(l=>{ l.href = src(d.images.icon); }); }
-  if(d.settings){ THC_NOTE_ON = d.settings.thcNoteOn !== false; const n = +d.settings.showCount, a = +d.settings.allocCount; if(n >= 5) SECTION_LIMIT = n; if(a >= 3) ALLOCATED_LIMIT = a; }
+  if(d.settings){ THC_NOTE_ON = d.settings.thcNoteOn !== false; const n = +d.settings.showCount, a = +d.settings.allocCount, nc = +d.settings.newCount; if(nc >= 3) NEW_LIMIT = nc; if(n >= 5) SECTION_LIMIT = n; if(a >= 3) ALLOCATED_LIMIT = a; }
   // social media links at the bottom (Store Tools → Banners & Text → Social Media, with its own on/off switch)
   if(d.social){ const so = d.social, names = { facebook:"Facebook", instagram:"Instagram", tiktok:"TikTok", x:"X", youtube:"YouTube" };
     const links = Object.keys(names).filter(k=>so[k] && /^https:\/\//.test(so[k]));
@@ -936,7 +938,10 @@ function render(){
   const fresh = (stock||[]).filter(it=>it.isNew && it.inStock && drinkIds.has(it.section) && !(foodOnly && adultOnlySub(it)) && matches(it.name,qRaw)).sort((a,b)=>a.name.localeCompare(b.name));
   $("#new-arrivals").hidden = !fresh.length;
   $("#new-count").textContent = fresh.length + (fresh.length===1?" Item":" Items");
-  $("#new-list").innerHTML = fresh.map(it=>`<li><span class="name">${highlight(it.name,qRaw)}<span class="sec-tag">${esc(secName[it.section]||"")}</span></span><span class="status in">In Stock</span></li>`).join("");
+  const nLim = qRaw ? fresh.length : (showing.get("new-arrivals") || NEW_LIMIT);
+  $("#new-list").innerHTML = fresh.slice(0, nLim).map(it=>`<li><span class="name">${highlight(it.name,qRaw)}<span class="sec-tag">${esc(secName[it.section]||"")}</span></span><span class="status in">In Stock</span></li>`).join("");
+  $("#new-more").innerHTML = (!qRaw && fresh.length > NEW_LIMIT) ? (nLim < fresh.length ? `<button class="more" data-sec="new-arrivals" data-step="${NEW_LIMIT}" data-act="more">Show More New Arrivals</button>` : "")
+    + (nLim > NEW_LIMIT ? `<button class="more less" data-sec="new-arrivals" data-act="less">Show Less</button>` : "") : "";
 
   // drinks
   let html="", total=0;
