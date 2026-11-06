@@ -7,7 +7,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin, json } from "../lib/pin.mjs";
-import { loadState, loadWants, isIn } from "../lib/notify.mjs";
+import { loadState, loadWants, isIn, cleanForm, DEFAULT_FORM } from "../lib/notify.mjs";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const KEYS = /^[kfo]:/;
@@ -28,7 +28,8 @@ export default async (req) => {
       }
       return new Response(`<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><body style="font-family:Arial;max-width:480px;margin:60px auto;padding:0 20px;color:#2B1B12"><h1>You're Unsubscribed</h1><p>You won't get any more Back in Stock emails from The Beer Depot.</p><p><a href="/">Back to the Website</a></p>`, { headers: { "content-type": "text/html; charset=utf-8" } });
     }
-    return json({ on: (await loadState(store)).on });
+    const st = await loadState(store);
+    return json({ on: st.on, form: cleanForm(st.form) });
   }
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
@@ -47,7 +48,13 @@ export default async (req) => {
     if (!d.wants[key] && Object.keys(d.wants).length >= 800) return json({ error: "Try again later." }, 429);
     if (!d.wants[key]?.people[email] && mine >= 10) return json({ error: "That's the limit of 10 items per email." }, 429);
     d.wants[key] = d.wants[key] || { name, people: {} };
-    d.wants[key].people[email] = { at: new Date().toISOString() };
+    const extra = {};
+    for (const f of cleanForm(state.form).fields) {
+      const v = String((b.extra || {})[f.id] ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+      if (f.required && !v) return json({ error: `Please fill in ${f.label}.` }, 400);
+      if (v) extra[f.label] = v;
+    }
+    d.wants[key].people[email] = { at: new Date().toISOString(), ...(Object.keys(extra).length ? { extra } : {}) };
     d.tokens[email] = d.tokens[email] || randomBytes(12).toString("hex");
     await store.setJSON("notify", d);
     return json({ ok: true });
@@ -59,6 +66,7 @@ export default async (req) => {
   if (b.action === "settings") {
     await store.setJSON("notify-state", { ...state, on: !!b.on, delayMin: [0, 15, 30, 60, 120, 240].includes(+b.delayMin) ? +b.delayMin : state.delayMin });
   }
+  if (b.action === "form") await store.setJSON("notify-state", { ...state, form: cleanForm(b.form) });
   if (b.action === "clear" && d.wants[b.key]) { delete d.wants[b.key]; await store.setJSON("notify", d); }
   if (b.action === "removeEmail" && d.wants[b.key]) {
     delete d.wants[b.key].people[String(b.email || "")];
@@ -68,9 +76,9 @@ export default async (req) => {
   const s2 = await loadState(store);
   const items = Object.entries(d.wants).map(([key, w]) => ({
     key, name: w.name, count: Object.keys(w.people).length,
-    people: Object.entries(w.people).map(([email, p]) => ({ email, at: p.at })).sort((x, y) => y.at.localeCompare(x.at)),
+    people: Object.entries(w.people).map(([email, p]) => ({ email, at: p.at, extra: p.extra || {} })).sort((x, y) => y.at.localeCompare(x.at)),
   })).sort((x, y) => y.count - x.count || x.name.localeCompare(y.name));
-  return json({ on: s2.on, delayMin: s2.delayMin, items, sent: (s2.sent || []).slice(-30).reverse(), ready: !!process.env.BREVO_API_KEY });
+  return json({ form: cleanForm(s2.form), defaults: DEFAULT_FORM, on: s2.on, delayMin: s2.delayMin, items, sent: (s2.sent || []).slice(-30).reverse(), ready: !!process.env.BREVO_API_KEY });
 };
 
 export const config = { path: "/api/notify" };

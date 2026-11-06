@@ -103,6 +103,12 @@
   @media (max-width:480px){.sl-item{grid-template-columns:96px 1fr}}
   .club-sum{margin-bottom:12px} .club-n{font-size:20px;margin:0 0 4px}
   .club-rm{width:auto;margin:0;padding:6px 12px;font-size:15px}
+  #nt-form textarea{width:100%;font:inherit;font-size:17px;padding:10px;border:2px solid #CFC6BE;border-radius:12px;box-sizing:border-box}
+  .nf-row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;margin-bottom:8px}
+  .nf-row select{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
+  .nf-row label{font-size:15px;display:flex;gap:6px;align-items:center;white-space:nowrap}
+  .nf-row .btn{width:auto;margin:0;padding:6px 12px;grid-column:1/-1;justify-self:start;font-size:14px}
+  .nf-add{display:flex;gap:8px;flex-wrap:wrap} .nf-add .btn{width:auto;margin:0;padding:8px 14px;font-size:15px}
   #nt-delay{font:600 17px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:12px;min-width:0}
   .nt-row summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;font-weight:700}
   .nt-row .n{color:var(--orange)} .nt-p{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-top:1px solid #E5DCD3;font-size:16px;word-break:break-all}
@@ -245,6 +251,21 @@
       <select id="nt-delay"><option value="0">Send Right Away</option><option value="15">15 Minutes</option><option value="30">30 Minutes</option><option value="60">1 Hour</option><option value="120">2 Hours</option><option value="240">4 Hours</option></select>
       <p class="help" style="margin:0">An item has to stay In Stock this long before anyone is emailed. If you mark one In Stock by mistake and fix it in time, nothing is sent.</p>
       <p class="sp-status" id="nt-status" role="status"></p>
+    </div>
+    <div class="card sp-card" id="nt-form" style="margin-bottom:12px">
+      <h3 class="grp" style="margin:0">Pop-Up Wording</h3>
+      <p class="help" style="margin:0">What customers see when they tap "Email Me When Back". Their email is always asked for. Add boxes for a name, phone number or anything else.</p>
+      <label class="help" for="nf-title" style="margin:0">Title</label><input id="nf-title" data-nf="title" maxlength="60" autocomplete="off">
+      <label class="help" for="nf-intro" style="margin:0">Message Under the Title</label><textarea id="nf-intro" data-nf="intro" rows="2" maxlength="300"></textarea>
+      <label class="help" style="margin:0">Extra Boxes</label>
+      <div id="nf-fields"></div>
+      <div class="nf-add"><button class="btn ghost" type="button" data-nfadd="Name|text">+ Name</button><button class="btn ghost" type="button" data-nfadd="Phone Number|tel">+ Phone</button><button class="btn ghost" type="button" data-nfadd="|text">+ Other Box</button></div>
+      <label class="help" for="nf-button" style="margin:0">Button Words</label><input id="nf-button" data-nf="button" maxlength="30" autocomplete="off">
+      <label class="help" for="nf-thanks" style="margin:0">Message After They Sign Up</label><input id="nf-thanks" data-nf="thanks" maxlength="160" autocomplete="off">
+      <label class="help" for="nf-emailNote" style="margin:0">Note in the Back in Stock Email (Optional)</label><textarea id="nf-emailNote" data-nf="emailNote" rows="2" maxlength="300"></textarea>
+      <button class="btn" type="button" id="nf-save">Save Pop-Up Wording</button>
+      <button class="btn ghost" type="button" id="nf-reset">Back to Standard Wording</button>
+      <p class="sp-status" id="nf-status" role="status"></p>
     </div>
     <h3 class="grp">What People Are Waiting For</h3>
     <div id="nt-list"></div>
@@ -688,14 +709,32 @@ function renderNotify(){
   $("#nt-on").setAttribute("aria-checked", nt.on);
   const st = $("#nt-on-st"); st.className = "st" + (nt.on ? " on" : ""); st.textContent = nt.on ? "On · Buttons show on the website" : "Off · No buttons, no emails";
   $("#nt-delay").value = nt.delayMin;
+  if(!$("#nt-form").dataset.loaded){ $("#nt-form").dataset.loaded = "1"; nfFill(nt.form); }
   $("#nt-list").innerHTML = nt.items.length ? nt.items.map(it=>`<details class="card nt-row" style="margin-bottom:10px"><summary><span>${esc(it.name)}</span><span class="n">${it.count} ${it.count===1?"Person":"People"}</span></summary>
-    ${it.people.map(p=>`<div class="nt-p"><span>${esc(p.email)}<br><span class="help">${esc(ntDate(p.at))}</span></span><button class="btn ghost" type="button" data-nk="${esc(it.key)}" data-ne="${esc(p.email)}">Remove</button></div>`).join("")}
+    ${it.people.map(p=>`<div class="nt-p"><span>${esc(p.email)}<br><span class="help">${esc(ntDate(p.at))}${Object.entries(p.extra||{}).map(([k,v])=>" · "+esc(k)+": "+esc(v)).join("")}</span></span><button class="btn ghost" type="button" data-nk="${esc(it.key)}" data-ne="${esc(p.email)}">Remove</button></div>`).join("")}
     <button class="btn ghost" type="button" data-nclear="${esc(it.key)}" style="margin-top:8px">Clear This Item</button></details>`).join("") : '<p class="help">Nobody is waiting on an item right now.</p>';
   $("#nt-sent").innerHTML = nt.sent.length ? `<table>${nt.sent.map(x=>`<tr><td>${esc(x.name)}<br><span class="help">${esc(ntDate(x.at))}</span></td><td class="n">${x.count} ${x.count===1?"Email":"Emails"}</td></tr>`).join("")}</table>` : '<p class="help">No emails sent yet.</p>';
 }
 async function ntCall(body, msg){
   try{ nt = await api("/api/notify",{action:"list",...body}); renderNotify(); if(msg) $("#nt-status").textContent = msg; }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); }
 }
+let nfFields = [];
+function nfFill(f){ $$("[data-nf]").forEach(i=>{ i.value = f[i.dataset.nf] || ""; }); nfFields = f.fields.map(x=>({...x})); nfRender(); }
+function nfRender(){
+  $("#nf-fields").innerHTML = nfFields.length ? nfFields.map((f,i)=>`<div class="nf-row" data-i="${i}"><input data-k="label" value="${esc(f.label)}" placeholder="Label (Example: Name)" maxlength="40" aria-label="Box label">
+    <select data-k="type" aria-label="Box type"><option value="text"${f.type==="text"?" selected":""}>Text</option><option value="tel"${f.type==="tel"?" selected":""}>Phone</option></select>
+    <label><input type="checkbox" data-k="required"${f.required?" checked":""}> Required</label><button class="btn ghost" type="button" data-nfrm="${i}">Remove</button></div>`).join("") : '<p class="help" style="margin:0">No extra boxes. Only email is asked for.</p>';
+}
+$("#nf-fields").addEventListener("input",e=>{ const k=e.target.dataset.k, r=e.target.closest(".nf-row"); if(!k||!r) return; nfFields[+r.dataset.i][k] = e.target.type==="checkbox" ? e.target.checked : e.target.value; });
+$("#nt-form").addEventListener("click",e=>{
+  const a = e.target.closest("[data-nfadd]"); if(a){ if(nfFields.length>=5){ toast("Up to 5 extra boxes.",true); return; } const [label,type]=a.dataset.nfadd.split("|"); nfFields.push({label,type,required:false}); nfRender(); if(!label) $$("#nf-fields input[data-k=label]").pop().focus(); return; }
+  const r = e.target.closest("[data-nfrm]"); if(r){ nfFields.splice(+r.dataset.nfrm,1); nfRender(); }
+});
+$("#nf-save").onclick = async ()=>{
+  const f = Object.fromEntries($$("[data-nf]").map(i=>[i.dataset.nf,i.value])); f.fields = nfFields.filter(x=>String(x.label).trim());
+  try{ nt = await api("/api/notify",{action:"form", form:f}); nfFill(nt.form); renderNotify(); $("#nf-status").textContent = "Saved. The pop-up on the website uses this within a minute."; }catch(err){ toast(err.message,true); }
+};
+$("#nf-reset").onclick = ()=>{ if(!confirm("Put the pop-up and email wording back to standard? Tap Save Pop-Up Wording afterward to keep it.")) return; nfFill(nt.defaults); $("#nf-status").textContent = "Standard wording is in the boxes. Tap Save Pop-Up Wording to keep it."; };
 const loadNotify = () => ntCall({});
 $("#nt-on").onclick = ()=>ntCall({action:"settings", on: nt.on ? false : true, delayMin: nt.delayMin}, "");
 $("#nt-delay").onchange = ()=>ntCall({action:"settings", on: nt.on, delayMin: +$("#nt-delay").value}, "Saved.");

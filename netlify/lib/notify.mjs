@@ -18,3 +18,21 @@ export async function isIn(store, key, stock) {
   const sw = ((await store.get("food-stock", { type: "json" })) || { items: {} }).items || {};
   return kind === "f:" ? sw[name] === true : sw[name] !== false;
 }
+
+// The words and extra boxes in the "Email Me When Back" pop-up (edited in Store Tools → Back in Stock), and the note in the email.
+export const DEFAULT_FORM = {
+  title: "Email Me When Back",
+  intro: "We'll send you one email when it's back in stock.",
+  button: "Email Me",
+  thanks: "Got it! We'll email you when it's back.",
+  emailNote: "Stop in or give us a call to grab it.",
+  fields: [],        // extra boxes: [{ id, label, type: "text" | "tel", required }]
+};
+const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+export function cleanForm(f = {}) {
+  const pick = (k, n, keepEmpty) => { const v = typeof f[k] === "string" ? one(f[k], n) : DEFAULT_FORM[k]; return v || (keepEmpty ? "" : DEFAULT_FORM[k]); };
+  const fields = (Array.isArray(f.fields) ? f.fields : []).slice(0, 5).map((x, i) => ({
+    id: "f" + (i + 1), label: one(x && x.label, 40), type: x && x.type === "tel" ? "tel" : "text", required: !!(x && x.required),
+  })).filter(x => x.label);
+  return { title: pick("title", 60), intro: pick("intro", 300, true), button: pick("button", 30), thanks: pick("thanks", 160), emailNote: pick("emailNote", 300, true), fields };
+}

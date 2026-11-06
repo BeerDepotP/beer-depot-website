@@ -21,7 +21,7 @@ function menuPhoto(f, key){
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
-    notify:{on:true,delayMin:60,items:[{key:"k:Blanton's Single Barrel 750ml",name:"Blanton's Single Barrel 750ml",count:3,people:[{email:"jim@example.com",at:"2026-11-05T15:00:00Z"},{email:"sara@example.com",at:"2026-11-05T16:10:00Z"},{email:"dave@example.com",at:"2026-11-04T12:00:00Z"}]},{key:"f:Smoked Lasagna",name:"Smoked Lasagna",count:1,people:[{email:"pat@example.com",at:"2026-11-05T17:30:00Z"}]}],sent:[{at:"2026-11-04T14:05:00Z",name:"Spotted Cow 12pk Cans",count:2}]},
+    notify:{on:true,delayMin:60,form:{title:"Email Me When Back",intro:"We'll send you one email when it's back in stock.",button:"Email Me",thanks:"Got it! We'll email you when it's back.",emailNote:"Stop in or give us a call to grab it.",fields:[{id:"f1",label:"Name",type:"text",required:true},{id:"f2",label:"Phone Number",type:"tel",required:false}]},items:[{key:"k:Blanton's Single Barrel 750ml",name:"Blanton's Single Barrel 750ml",count:3,people:[{email:"jim@example.com",at:"2026-11-05T15:00:00Z"},{email:"sara@example.com",at:"2026-11-05T16:10:00Z"},{email:"dave@example.com",at:"2026-11-04T12:00:00Z"}]},{key:"f:Smoked Lasagna",name:"Smoked Lasagna",count:1,people:[{email:"pat@example.com",at:"2026-11-05T17:30:00Z"}]}],sent:[{at:"2026-11-04T14:05:00Z",name:"Spotted Cow 12pk Cans",count:2}]},
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
@@ -60,9 +60,10 @@ function menuPhoto(f, key){
       return ok({ok:true,...DB.hours}); }
     if(url.startsWith("/api/notify")){ const n = DB.notify;
       if(b.action==="settings"){ n.on = !!b.on; if(b.delayMin!=null) n.delayMin = +b.delayMin; }
+      if(b.action==="form"){ n.form = Object.assign({},n.form,b.form); n.form.fields = (b.form.fields||[]).map((f,i)=>Object.assign({},f,{id:"f"+(i+1)})); }
       if(b.action==="clear") n.items = n.items.filter(i=>i.key!==b.key);
       if(b.action==="removeEmail"){ const it = n.items.find(i=>i.key===b.key); if(it){ it.people = it.people.filter(p=>p.email!==b.email); it.count = it.people.length; } n.items = n.items.filter(i=>i.count); }
-      return ok({ok:true,ready:true,...n}); }
+      return ok({ok:true,ready:true,defaults:{title:"Email Me When Back",intro:"We'll send you one email when it's back in stock.",button:"Email Me",thanks:"Got it! We'll email you when it's back.",emailNote:"Stop in or give us a call to grab it.",fields:[]},...n}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
