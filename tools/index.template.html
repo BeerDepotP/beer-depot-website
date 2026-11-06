@@ -820,11 +820,9 @@ function render(){
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
         <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
-  const specials = FOOD_GROUPS.flatMap(g=>foodItems(g)).filter(f=>specialOf(f.name));
-  const spCards = specials.map(f=>card(f,"food")).join("");
-  if(spCards) menuHtml += `<h3 class="grp sp-grp">Specials</h3><div class="menu">${spCards}</div>`;
   for(const grp of FOOD_GROUPS){
-    const cards = foodItems(grp).filter(f=>!specialOf(f.name)).map(f=>card(f,"food")).join("");
+    // items on special go to the front of their own group
+    const cards = foodItems(grp).map((f,i)=>[f,i]).sort((a,b)=>(!!specialOf(b[0].name) - !!specialOf(a[0].name)) || a[1]-b[1]).map(x=>card(x[0],"food")).join("");
     const note = FOOD_GROUP_NOTES[grp] || "";
     if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
@@ -834,12 +832,12 @@ function render(){
 
   // local favorites
   const foodBefore = foodShown; let localHtml="";
-  for(const maker of [...new Set(LOCAL.map(l=>l.maker))]){
-    const list = LOCAL.filter(l=>l.maker===maker);
+  for(const maker of makerKeys()){
+    const list = localItems(maker), info = makerInfo(maker);
     const cards = list.map(l=>card({...l, desc: l.desc}, "local")).join("");
     if(cards){
-      const where = list[0].where ? `, ${esc(list[0].where)}` : "";
-      localHtml += `<h3 class="grp">${esc(maker)}<span class="where">${where}</span></h3>`
+      const where = info.where ? `, ${esc(info.where)}` : "";
+      localHtml += `<h3 class="grp">${esc(info.name)}<span class="where">${where}</span></h3>`
         + (MAKER_NOTES[maker] ? `<p class="maker-note">${esc(MAKER_NOTES[maker])}</p>` : "")
         + `<div class="menu">${cards}</div>`;
     }

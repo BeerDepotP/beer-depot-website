@@ -43,7 +43,7 @@ function tidy(d) {      // drop specials that have ended
   return d;
 }
 const view = d => ({ ok: true, items: d.items || {}, prices: d.prices || {}, edits: d.edits || {}, toppings: d.toppings || null,
-  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, updated: d.updated });
+  custom: d.custom || [], order: d.order || {}, removed: d.removed || {}, specials: d.specials || {}, makers: d.makers || {}, newMakers: d.newMakers || [], updated: d.updated });
 async function saveData(store, d) { tidy(d); d.updated = new Date().toISOString(); await store.setJSON(KEY, d); return json(view(d)); }
 
 export default async (req) => {
@@ -83,22 +83,50 @@ export default async (req) => {
 
   if (body.action === "addItem") {
     const d = (await store.get(KEY, { type: "json" })) || { items: {} };
-    const label = title(clean(body.label, 60)), group = clean(body.group, 40);
-    if (!label || !group) return json({ error: "Give the item a name." }, 400);
+    const label = title(clean(body.label, 60)), group = clean(body.group, 40), maker = clean(body.maker, 60);
+    if (!label || !(group || maker)) return json({ error: "Give the item a name." }, 400);
     d.custom = d.custom || [];
-    if (d.custom.length >= 60) return json({ error: "That's the limit of added items." }, 400);
+    if (d.custom.length >= 150) return json({ error: "That's the limit of added items." }, 400);
     const name = "c-" + Date.now().toString(36);
-    d.custom.push({ name, label, group, desc: clean(body.desc, 120) });
+    d.custom.push(maker ? { name, label, maker, desc: clean(body.desc, 120) } : { name, label, group, desc: clean(body.desc, 120) });
     d.prices = d.prices || {}; d.prices[name] = priceRows(body.prices);
     d.items[name] = true;
     return saveData(store, d);
   }
   if (body.action === "order") {
     const d = (await store.get(KEY, { type: "json" })) || { items: {} };
-    const group = clean(body.group, 40);
+    const group = clean(body.group, 70);
     if (!group || !Array.isArray(body.names)) return json({ error: "Bad request." }, 400);
     d.order = d.order || {};
     d.order[group] = body.names.map(n => String(n || "").slice(0, 120)).filter(Boolean).slice(0, 120);
+    return saveData(store, d);
+  }
+
+  // Local Favorites companies: rename / change city ("maker"), add one ("addMaker"), delete an added one ("deleteMaker")
+  if (["maker", "addMaker", "deleteMaker"].includes(body.action)) {
+    const d = (await store.get(KEY, { type: "json" })) || { items: {} };
+    d.makers = d.makers || {}; d.newMakers = d.newMakers || [];
+    if (body.action === "addMaker") {
+      const name = title(clean(body.name, 50));
+      if (!name) return json({ error: "Give the company a name." }, 400);
+      if (d.newMakers.length >= 20) return json({ error: "That's the limit of added companies." }, 400);
+      d.newMakers.push({ id: "m-" + Date.now().toString(36), name, where: clean(body.where, 50) });
+    } else {
+      const key = clean(body.key, 60);
+      if (!key) return json({ error: "Bad request." }, 400);
+      if (body.action === "deleteMaker") {
+        if (!key.startsWith("m-")) return json({ error: "Only companies added in Store Tools can be deleted." }, 400);
+        d.newMakers = d.newMakers.filter(m => m.id !== key);
+        const gone = (d.custom || []).filter(c => c.maker === key).map(c => c.name);
+        d.custom = (d.custom || []).filter(c => c.maker !== key);
+        for (const n of gone) for (const k of ["removed", "prices", "edits", "items"]) if (d[k]) delete d[k][n];
+        delete d.makers[key]; if (d.order) delete d.order["local:" + key];
+      } else {
+        const name = title(clean(body.name, 50));
+        if (!name) return json({ error: "Give the company a name." }, 400);
+        d.makers[key] = { name, where: clean(body.where, 50) };
+      }
+    }
     return saveData(store, d);
   }
 

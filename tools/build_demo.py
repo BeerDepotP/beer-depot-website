@@ -17,7 +17,7 @@ function menuPhoto(f, key){
   return f.photo ? (FOOD_PHOTOS[f.photo] || "") : "";
 }
 (function(){
-  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},removed:{"Ribeye":true},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
+  const DB = { food:{items:{},prices:{},edits:{},toppings:null,custom:[],order:{},makers:{},newMakers:[],removed:{"Ribeye":true},specials:{"Smoked Pulled Pork":{on:true,prices:[["Per lb","7.99"]],until:"2026-12-31T20:00"}}},
     sales:{on:true,items:[{id:"s1",name:"Spotted Cow 12pk Cans",price:"15.99",was:"18.99",note:"While supplies last",photo:""}]},
     seasonal:{on:true,title:"Christmas",items:[{id:"c1",name:"Ham Dinner Tray",price:"39.99",note:"Order by Dec 20",photo:""}]},
     hours:{weekly:null,overrides:[{date:"2026-12-25",closed:true,open:"",close:"",note:"Merry Christmas! See You Friday"}]},
@@ -45,7 +45,10 @@ function menuPhoto(f, key){
         if(Object.keys(e).length) f.edits[b.name] = e; else delete f.edits[b.name];
         if(Array.isArray(b.prices)) f.prices[b.name] = b.prices;
         return ok({ok:true,...f}); }
-      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push({name:n,label:b.label,group:b.group,desc:b.desc}); f.prices[n] = b.prices; f.items[n] = true; return ok({ok:true,...f}); }
+      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); f.prices[n] = b.prices; f.items[n] = true; return ok({ok:true,...f}); }
+      if(b.action==="maker"){ f.makers[b.key] = {name:b.name,where:b.where}; return ok({ok:true,...f}); }
+      if(b.action==="addMaker"){ f.newMakers.push({id:"m-"+Date.now().toString(36),name:b.name,where:b.where}); return ok({ok:true,...f}); }
+      if(b.action==="deleteMaker"){ f.newMakers = f.newMakers.filter(m=>m.id!==b.key); f.custom = f.custom.filter(c=>c.maker!==b.key); return ok({ok:true,...f}); }
       if(b.action==="order"){ f.order[b.group] = b.names; return ok({ok:true,...f}); }
       if(b.action==="removeItem"){ f.removed[b.name] = true; delete f.specials[b.name]; return ok({ok:true,...f}); }
       if(b.action==="restoreItem"){ delete f.removed[b.name]; return ok({ok:true,...f}); }

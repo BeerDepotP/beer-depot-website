@@ -762,19 +762,29 @@ function menuPhoto(f, key){
 const toppingList = () => swToppings || PIZZA_TOPPINGS;
 
 // Made Here changes from Store Tools: added items, order, removed items and specials (see food-stock.mjs).
-let swMenu = { custom:[], order:{}, removed:{}, specials:{} };
-function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{} }; }
+let swMenu = { custom:[], order:{}, removed:{}, specials:{}, makers:{}, newMakers:[] };
+function setMenu(d){ d = d || {}; swMenu = { custom: d.custom||[], order: d.order||{}, removed: d.removed||{}, specials: d.specials||{}, makers: d.makers||{}, newMakers: d.newMakers||[] }; }
 const isRemoved = name => !!swMenu.removed[name];
-const allFood = () => [...FOOD, ...swMenu.custom];
+const allFood = () => [...FOOD, ...swMenu.custom.filter(c=>!c.maker)];
 // Items in one Made Here group, in the saved order (new items go to the bottom until moved).
 function foodItems(group, withRemoved){
-  const list = allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name)));
-  const ord = swMenu.order[group] || [], pos = (f,i) => { const x = ord.indexOf(f.name); return x<0 ? 1e6+i : x; };
+  return ordered(allFood().filter(f=>f.group===group && (withRemoved || !isRemoved(f.name))), swMenu.order[group]);
+}
+function ordered(list, ord){
+  ord = ord || [];
+  const pos = (f,i) => { const x = ord.indexOf(f.name); return x<0 ? 1e6+i : x; };
   return list.map((f,i)=>[f,pos(f,i)]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
 }
 const chicagoStamp = () => new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
 // The special for an item if it's on now (it turns itself off at its end day and time, store time).
 function specialOf(name){ const s = swMenu.specials[name]; if(!s || !s.on) return null; if(s.until && chicagoStamp() >= s.until) return null; return s; }
+
+// Local Favorites: companies (built-in + added in Store Tools), their names and cities as edited, and their items in order.
+// Order is saved under "local:<company>". A company's key never changes, even when it's renamed.
+const makerKeys = () => [...new Set(LOCAL.map(l=>l.maker)), ...swMenu.newMakers.map(m=>m.id)];
+const makerInfo = m => { const nm = swMenu.newMakers.find(x=>x.id===m), base = LOCAL.find(l=>l.maker===m) || {};
+  const e = swMenu.makers[m] || {}; return { name: e.name || (nm ? nm.name : m), where: e.where != null ? e.where : (nm ? nm.where : base.where || "") }; };
+const localItems = (m, withRemoved) => ordered([...LOCAL.filter(l=>l.maker===m), ...swMenu.custom.filter(c=>c.maker===m)].filter(l=>withRemoved || !isRemoved(l.name)), swMenu.order["local:"+m]);
 
 
 // Grilling & Outdoor: shown to everyone (not behind the 21+ check).
@@ -948,11 +958,9 @@ function render(){
           return `<details class="extras"><summary>Toppings</summary><p class="top-note">As many as you like, same price.</p>${on.length ? `<ul class="top-list">${on.map(tp=>`<li>${esc(tp)}</li>`).join("")}</ul>` : `<p class="top-note">Ask us about today's toppings.</p>`}</details>`; })():""}
         <div class="foot">${spr && spr.best>0 ? `<span class="save-tag">Save $${spr.best.toFixed(2)}</span>` : ""}${status}${st===false?nbtn("f:"+f.name,menuLabel(f)):""}${f.tag?`<span class="tag">${esc(f.tag)}</span>`:""}</div></div></article>`;
   };
-  const specials = FOOD_GROUPS.flatMap(g=>foodItems(g)).filter(f=>specialOf(f.name));
-  const spCards = specials.map(f=>card(f,"food")).join("");
-  if(spCards) menuHtml += `<h3 class="grp sp-grp">Specials</h3><div class="menu">${spCards}</div>`;
   for(const grp of FOOD_GROUPS){
-    const cards = foodItems(grp).filter(f=>!specialOf(f.name)).map(f=>card(f,"food")).join("");
+    // items on special go to the front of their own group
+    const cards = foodItems(grp).map((f,i)=>[f,i]).sort((a,b)=>(!!specialOf(b[0].name) - !!specialOf(a[0].name)) || a[1]-b[1]).map(x=>card(x[0],"food")).join("");
     const note = FOOD_GROUP_NOTES[grp] || "";
     if(cards) menuHtml += `<h3 class="grp">${esc(grp)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
@@ -962,12 +970,12 @@ function render(){
 
   // local favorites
   const foodBefore = foodShown; let localHtml="";
-  for(const maker of [...new Set(LOCAL.map(l=>l.maker))]){
-    const list = LOCAL.filter(l=>l.maker===maker);
+  for(const maker of makerKeys()){
+    const list = localItems(maker), info = makerInfo(maker);
     const cards = list.map(l=>card({...l, desc: l.desc}, "local")).join("");
     if(cards){
-      const where = list[0].where ? `, ${esc(list[0].where)}` : "";
-      localHtml += `<h3 class="grp">${esc(maker)}<span class="where">${where}</span></h3>`
+      const where = info.where ? `, ${esc(info.where)}` : "";
+      localHtml += `<h3 class="grp">${esc(info.name)}<span class="where">${where}</span></h3>`
         + (MAKER_NOTES[maker] ? `<p class="maker-note">${esc(MAKER_NOTES[maker])}</p>` : "")
         + `<div class="menu">${cards}</div>`;
     }

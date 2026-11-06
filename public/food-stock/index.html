@@ -118,6 +118,9 @@
   .add-item{margin:6px 0 14px} .add-item summary{cursor:pointer;font-weight:700;color:var(--orange)}
   .add-item .ai{display:grid;gap:8px;margin-top:8px} .add-item input{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0}
   .add-item .ai-p{display:grid;grid-template-columns:1fr 110px;gap:8px}
+  .mk-where{font-weight:600;font-size:15px;color:var(--muted)} h3.grp .mk-edit{margin-left:10px;vertical-align:middle;font:700 13px var(--body);color:var(--glass);background:#fff;border:2px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer} .mk-edit[aria-expanded="true"]{background:var(--glass);color:#fff}
+  .mk-panel{display:grid;gap:8px;margin-bottom:10px} .mk-panel input{display:block;width:100%;box-sizing:border-box;font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;margin-top:4px}
+  .add-mk{margin-top:18px;font-size:17px}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -214,6 +217,7 @@
     <p class="help">Use the arrows to change the order. Tap Edit to change the name, price or picture, put an item On Special, or remove it from the website.</p>
     <div id="food"></div>
     <h2 class="sec more">Local Favorites</h2>
+    <p class="help">Use the arrows to change the order. Tap Edit Company to change a company's name or city. Tap Edit on an item to change its name, price or picture, or remove it from the website.</p>
     <div id="local"></div>
     <h2 class="sec more" id="j-gear">Grilling &amp; Outdoor</h2>
     <p class="help">Switch an item off to show Out of Stock. Tap Edit on any item to change its name, price or picture.</p>
@@ -426,6 +430,7 @@ function current(item, section){
   if(item.name in DEFAULT_STOCK) return DEFAULT_STOCK[item.name];
   return section==="food" ? true : koronaSays(item);
 }
+let makerOpen = null;
 function applyFood(j){
   if(!j) return;
   switches = j.items || switches; swPrices = j.prices || swPrices; swEdits = j.edits || swEdits;
@@ -434,7 +439,7 @@ function applyFood(j){
 }
 document.addEventListener("click", async e=>{
   const m = e.target.closest("[data-mv]");
-  if(m){ const key = m.dataset.key, f = ITEMS[key].item, g = f.group, list = foodItems(g).map(x=>x.name), i = list.indexOf(key), j = i + +m.dataset.mv;
+  if(m){ const key = m.dataset.key, f = ITEMS[key].item, g = f.maker ? "local:"+f.maker : f.group, list = (f.maker ? localItems(f.maker) : foodItems(f.group)).map(x=>x.name), i = list.indexOf(key), j = i + +m.dataset.mv;
     if(j<0 || j>=list.length) return; [list[i], list[j]] = [list[j], list[i]];
     swMenu.order[g] = list; renderFood();
     const again = document.querySelector(`[data-mv="${m.dataset.mv}"][data-key="${CSS.escape(key)}"]`); if(again) again.focus();
@@ -444,9 +449,19 @@ document.addEventListener("click", async e=>{
   if(ad){ const box = ad.closest(".add-item"), v = k => box.querySelector(`[data-ai="${k}"]`).value.trim();
     if(!v("label")){ toast("Give the item a name.",true); return; }
     ad.disabled = true;
-    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
+    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, maker: ad.dataset.maker || "", label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
     catch(err){ ad.disabled = false; toast(err.message,true); }
     return; }
+  const mk = e.target.closest("[data-mk]");
+  if(mk){ makerOpen = makerOpen===mk.dataset.mk ? null : mk.dataset.mk; renderFood(); return; }
+  const ms = e.target.closest("[data-mksave]");
+  if(ms){ const p = ms.closest(".mk-panel"), v = k => p.querySelector(`[data-mkf="${k}"]`).value.trim();
+    try{ applyFood(await api("/api/food-stock",{ action:"maker", key: ms.dataset.mksave, name:v("name"), where:v("where") })); makerOpen = null; renderFood(); toast(v("name") + ": Saved"); }catch(err){ toast(err.message,true); } return; }
+  const md = e.target.closest("[data-mkdel]");
+  if(md){ if(!confirm("Delete this company and the items you added to it? This can't be undone.")) return;
+    try{ applyFood(await api("/api/food-stock",{ action:"deleteMaker", key: md.dataset.mkdel })); makerOpen = null; renderFood(); toast("Company Deleted"); }catch(err){ toast(err.message,true); } return; }
+  if(e.target.closest("#mk-add")){ const n = $("#mk-new-name").value.trim(); if(!n){ toast("Give the company a name.",true); return; }
+    try{ applyFood(await api("/api/food-stock",{ action:"addMaker", name:n, where:$("#mk-new-where").value.trim() })); renderFood(); toast(n + ": Added. Now add its items."); }catch(err){ toast(err.message,true); } return; }
   const rs = e.target.closest("[data-restore]");
   if(rs){ try{ applyFood(await api("/api/food-stock",{ action:"restoreItem", name:rs.dataset.restore })); renderFood(); toast("Back on the Website"); }catch(err){ toast(err.message,true); } return; }
   const dl = e.target.closest("[data-delete]");
@@ -475,7 +490,7 @@ function editPanel(key){
       <div class="ep-pbtns"><label class="ep-btn">${src?"Change Picture":"Add Picture"}<input type="file" accept="image/*" data-act="photo"></label>
         ${src?`<button class="ep-btn" type="button" data-act="nophoto">Remove Picture</button>`:""}
         ${(swEdits[key]||{}).photo || d.photo!==undefined && d.photo!=="" ?`<button class="ep-btn" type="button" data-act="origphoto">Use Original</button>`:""}</div></div></div>
-    ${ITEMS[key].section==="food" ? foodExtras(key, d) : ""}
+    ${ITEMS[key].section==="food" ? foodExtras(key, d) : ITEMS[key].section==="local" ? `${key.startsWith("c-")?`<label class="ep-l">Description<input type="text" class="ep-in" data-f="desc" maxlength="120" value="${esc(d.desc||"")}"></label>`:""}<button class="btn ghost ep-rm" type="button" data-act="removeitem">Remove From Website</button>` : ""}
     <div class="ep-act"><button class="btn" type="button" data-act="save">Save</button><button class="btn ghost" type="button" data-act="cancel">Cancel</button></div></div>`;
 }
 const spEnd = u => new Date(u+":00").toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}).replace(":00","");
@@ -500,7 +515,7 @@ function swRow(item, section){
   const on = current(item, section);
   ITEMS[item.name] = { item, section, base:{ label: item.label||item.name, prices: item.prices||[] } };
   const sp = section==="food" && specialOf(item.name);
-  const mv = section==="food" ? `<span class="mv"><button type="button" data-mv="-1" data-key="${esc(item.name)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(item.name)}" aria-label="Move down">▼</button></span>` : "";
+  const mv = (section==="food" || section==="local") ? `<span class="mv"><button type="button" data-mv="-1" data-key="${esc(item.name)}" aria-label="Move up">▲</button><button type="button" data-mv="1" data-key="${esc(item.name)}" aria-label="Move down">▼</button></span>` : "";
   return `<li>${mv}<span><span class="nm">${esc(menuLabel(item))}${sp?`<span class="sp-badge">Special${sp.until?" · Ends "+esc(spEnd(sp.until)):""}</span>`:""}</span><span class="st ${on?"on":""}">${on?"In Stock":"Out of Stock"}</span></span>
     ${editBtn(item.name)}
     <button class="sw" role="switch" aria-checked="${on}" aria-label="${esc(item.name)} in stock" data-name="${esc(item.name)}" data-label="${esc(menuLabel(item))}"></button>${editPanel(item.name)}</li>`;
@@ -517,8 +532,8 @@ async function saveToppings(list, msg){
 }
 const jid = s => "j-" + String(s).toLowerCase().replace(/[^a-z0-9]+/g,"-");
 function renderJump(){
-  const makers = [...new Set(LOCAL.map(l=>l.maker))];
-  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), m]), ["j-gear","Grilling & Outdoor"], ["j-removed","Removed"]]
+  const makers = makerKeys();
+  $("#jump").innerHTML = [...FOOD_GROUPS.map(g=>[jid(g), g]), ...makers.map(m=>[jid(m), makerInfo(m).name]), ["j-gear","Grilling & Outdoor"], ["j-removed","Removed"]]
     .map(([id,label])=>`<a href="#${id}" data-jump="${id}">${esc(label)}</a>`).join("");
 }
 document.addEventListener("click", e=>{
@@ -549,10 +564,25 @@ function renderFood(){
         return `<li class="var-row"><span><span class="nm">${esc(v)}</span><span class="st ${von?"on":""}">${von?"In Stock":"Out of Stock"}</span></span>
         <button class="sw" role="switch" aria-checked="${von}" aria-label="${esc(v)} pellets in stock" data-name="${esc(vk)}" data-label="${esc(v)} Pellets"></button></li>`; }).join("")}</ul></div>`;
   }).join("");
-  const gone = FOOD_GROUPS.flatMap(g=>foodItems(g,true).filter(f=>isRemoved(f.name)));
-  $("#removed").innerHTML = gone.length ? gone.map(f=>`<div class="rm-row"><span><b>${esc(menuLabel(f))}</b><br><span class="help">${esc(f.group)}</span></span><span>
+  const gone = [...FOOD_GROUPS.flatMap(g=>foodItems(g,true)), ...makerKeys().flatMap(m=>localItems(m,true))].filter(f=>isRemoved(f.name));
+  $("#removed").innerHTML = gone.length ? gone.map(f=>`<div class="rm-row"><span><b>${esc(menuLabel(f))}</b><br><span class="help">${esc(f.maker ? "Local Favorites · " + makerInfo(f.maker).name : f.group)}</span></span><span>
     <button class="btn" type="button" data-restore="${esc(f.name)}">Put Back</button>${f.name.startsWith("c-")?`<button class="btn ghost" type="button" data-delete="${esc(f.name)}">Delete Forever</button>`:""}</span></div>`).join("") : '<p class="help">Nothing removed.</p>';
-  $("#local").innerHTML = [...new Set(LOCAL.map(l=>l.maker))].map(m=>`<h3 class="grp" id="${jid(m)}">${esc(m)}</h3><ul class="sw-list">${LOCAL.filter(l=>l.maker===m).map(l=>swRow(l,"local")).join("")}</ul>`).join("");
+  $("#local").innerHTML = makerKeys().map(m=>{ const info = makerInfo(m), open = makerOpen === m;
+    return `<h3 class="grp" id="${jid(m)}">${esc(info.name)}<span class="mk-where">${info.where?" · "+esc(info.where):""}</span>
+      <button class="mk-edit" type="button" data-mk="${esc(m)}" aria-expanded="${open}">Edit Company</button></h3>
+    ${open ? `<div class="card mk-panel" data-mkp="${esc(m)}"><label class="help" style="margin:0">Company Name<input data-mkf="name" maxlength="50" value="${esc(info.name)}"></label>
+      <label class="help" style="margin:0">City<input data-mkf="where" maxlength="50" value="${esc(info.where)}" placeholder="Example: Watertown, WI"></label>
+      <div class="ep-act"><button class="btn" type="button" data-mksave="${esc(m)}">Save</button>${m.startsWith("m-")?`<button class="btn ghost ep-rm" type="button" data-mkdel="${esc(m)}">Delete Company</button>`:""}</div></div>` : ""}
+    <ul class="sw-list">${localItems(m).map(l=>swRow(l,"local")).join("") || '<li><span class="help" style="margin:0">No items yet.</span></li>'}</ul>
+    <details class="add-item"><summary>+ Add an Item to ${esc(info.name)}</summary><div class="ai">
+      <input data-ai="label" maxlength="60" placeholder="Name (Example: Cajun Snack Stick)" aria-label="New item name">
+      <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
+      <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price (Optional)" aria-label="Price"></div>
+      <button class="btn" type="button" data-additem="" data-maker="${esc(m)}">Add Item</button></div></details>`; }).join("")
+    + `<details class="add-item add-mk"><summary>+ Add a Company</summary><div class="ai">
+      <input id="mk-new-name" maxlength="50" placeholder="Company Name" aria-label="Company name">
+      <input id="mk-new-where" maxlength="50" placeholder="City (Example: Hartland, WI)" aria-label="City">
+      <button class="btn" type="button" id="mk-add">Add Company</button></div></details>`;
 }
 
 document.addEventListener("click", async e=>{
@@ -579,7 +609,7 @@ document.addEventListener("click", async e=>{
     if(key.startsWith("c-")) body.desc = d.desc || "";
     a.disabled = true;
     try{ let j = await api("/api/food-stock", body);
-      if(ITEMS[key].section==="food" && (d.sp.on || d.sp.was)){
+      if(ITEMS[key].section==="food" && d.sp && (d.sp.on || d.sp.was)){
         const rows = d.prices.filter(r=>String(r[0]).trim()).map(r=>[r[0], d.sp.prices[r[0]]||""]).filter(r=>String(r[1]).trim());
         try{ j = await api("/api/food-stock",{ action:"special", name:key, on:d.sp.on, prices:rows, until:d.sp.until||"" }); }
         catch(err){ applyFood(j); a.disabled = false; toast(err.message,true); return; }
