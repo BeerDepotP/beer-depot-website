@@ -160,6 +160,10 @@ const groupOf = f => ((typeof swEdits!=="undefined" && swEdits[f.name]) || {}).g
 const menuEdit = (f, key) => (typeof swEdits!=="undefined" && swEdits[key||f.name]) || {};
 const menuDesc   = (f, key) => { const e = menuEdit(f, key); return "desc" in e ? e.desc : (f.desc || ""); };
 const menuTag    = (f, key) => { const e = menuEdit(f, key); return "tag" in e ? e.tag : (f.tag || ""); };
+// Gluten-free symbol on Made Here cards: every built-in item except these (Edit → Gluten Free Symbol overrides per item; added items start without it).
+const GF_NOT = ["Shrimp Salad","Italian Pasta Salad","Smoked Mac & Cheese","Smoked Lasagna","Smoked Stuffed Meatloaf","Smoked Bacon & Jalapeño Mac & Cheese","14\" Take & Bake Pizza","12\" Take & Bake Pizza"];
+const menuGF = (f, key) => { const e = menuEdit(f, key); if("gf" in e) return !!e.gf; return FOOD.some(x => x.name === (key||f.name)) && !GF_NOT.includes(key||f.name); };
+const GF_ICON = '<svg class="gf-ico" viewBox="0 0 24 24" role="img" aria-label="Gluten Free" width="22" height="22"><title>Gluten Free</title><circle cx="12" cy="12" r="10.5" fill="#fff" stroke="#2F7D32" stroke-width="1.8"/><g stroke="#2F7D32" stroke-width="1.5" stroke-linecap="round" fill="none"><path d="M12 19V8"/><path d="M12 8c-2-.4-3-1.6-3-3 2 .1 3 1.1 3 3zM12 8c2-.4 3-1.6 3-3-2 .1-3 1.1-3 3zM12 12c-2-.4-3-1.6-3-3 2 .1 3 1.1 3 3zM12 12c2-.4 3-1.6 3-3-2 .1-3 1.1-3 3zM12 16c-2-.4-3-1.6-3-3 2 .1 3 1.1 3 3zM12 16c2-.4 3-1.6 3-3-2 .1-3 1.1-3 3z"/><path d="M5.5 18.5l13-13" stroke-width="1.9"/></g></svg>';
 const menuExtras = (f, key) => menuEdit(f, key).extras || f.extras || [];
 // Companies that switch all their items back to In Stock each week (changed in Store Tools → Edit Company).
 const RESTOCK_DEFAULTS = { "Grebe's": { on:true, day:4, time:"09:00" } };   // keep in step with tools/build.py

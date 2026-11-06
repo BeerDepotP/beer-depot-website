@@ -44,13 +44,13 @@ function menuPhoto(f, key){
       if(b.check) return ok({ok:true});
       if(b.action==="photo"){ const id = "demo"+Date.now().toString(36); PH[id] = b.data; return ok({ok:true,photo:id}); }
       if(b.action==="toppings"){ f.toppings = b.list; return ok({ok:true,...f}); }
-      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.group!=null){ if(b.group) e.group = b.group; else delete e.group; } if(b.desc!=null) e.desc = b.desc; if(b.tag!=null) e.tag = b.tag; if(b.extras) e.extras = b.extras; if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name.replace(/^Outdoor: /,"")); if(c) c.desc = b.desc; }
+      if(b.action==="edit"){ const e = {...(f.edits[b.name]||{})}; if(b.group!=null){ if(b.group) e.group = b.group; else delete e.group; } if(b.desc!=null) e.desc = b.desc; if(b.tag!=null) e.tag = b.tag; if(typeof b.gf==="boolean") e.gf = b.gf; if(b.extras) e.extras = b.extras; if(b.desc!=null){ const c = f.custom.find(x=>x.name===b.name.replace(/^Outdoor: /,"")); if(c) c.desc = b.desc; }
         if(b.label) e.label = b.label; else delete e.label;
         if("photo" in b){ if(b.photo) e.photo = b.photo; else delete e.photo; }
         if(Object.keys(e).length) f.edits[b.name] = e; else delete f.edits[b.name];
         if(Array.isArray(b.prices)) f.prices[b.name] = b.prices;
         return ok({ok:true,...f}); }
-      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.outdoor?{name:n,label:b.label,outdoor:true,desc:b.desc}:b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); const k = b.outdoor?"Outdoor: "+n:n; f.prices[k] = b.prices; f.items[k] = true; return ok({ok:true,...f}); }
+      if(b.action==="addItem"){ const n = "c-"+Date.now().toString(36); f.custom.push(b.outdoor?{name:n,label:b.label,outdoor:true,desc:b.desc}:b.maker?{name:n,label:b.label,maker:b.maker,desc:b.desc}:{name:n,label:b.label,group:b.group,desc:b.desc}); const k = b.outdoor?"Outdoor: "+n:n; f.prices[k] = b.prices; f.items[k] = true; if(b.gf===true && !b.outdoor && !b.maker){ f.edits = f.edits||{}; f.edits[n] = {...(f.edits[n]||{}), gf:true}; } return ok({ok:true,...f}); }
       if(b.action==="maker"){ f.makers[b.key] = {name:b.name,where:b.where,note:b.note,restock:b.restock}; return ok({ok:true,...f}); }
       if(b.action==="addMaker"){ f.newMakers.push({id:"m-"+Date.now().toString(36),name:b.name,where:b.where}); return ok({ok:true,...f}); }
       if(b.action==="deleteMaker"){ f.newMakers = f.newMakers.filter(m=>m.id!==b.key); f.custom = f.custom.filter(c=>c.maker!==b.key); return ok({ok:true,...f}); }

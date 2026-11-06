@@ -95,6 +95,7 @@ export default async (req) => {
     const key = outdoor ? "Outdoor: " + name : name;
     d.prices = d.prices || {}; d.prices[key] = priceRows(body.prices);
     d.items[key] = true;
+    if (body.gf === true && !outdoor && !maker) { d.edits = d.edits || {}; d.edits[name] = { ...(d.edits[name] || {}), gf: true }; }
     return saveData(store, d);
   }
   if (body.action === "order") {
@@ -231,6 +232,7 @@ export default async (req) => {
     if (typeof body.photo === "string") { const ph = body.photo.replace(/[^a-z0-9]/gi, "").slice(0, 40); if (ph) e.photo = ph; else delete e.photo; }
     if (body.photo === "none") e.photo = "none";
     if (typeof body.desc === "string") e.desc = clean(body.desc, 160);
+    if (typeof body.gf === "boolean") e.gf = body.gf;
     if (typeof body.tag === "string") e.tag = title(clean(body.tag, 30));
     if (Array.isArray(body.extras)) { const x = priceRows(body.extras); if (x.length) e.extras = x; else e.extras = []; }
     if (typeof body.group === "string") { const g = clean(body.group, 40); if (g) e.group = g; else delete e.group; }

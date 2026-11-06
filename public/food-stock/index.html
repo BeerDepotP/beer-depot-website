@@ -709,7 +709,7 @@ document.addEventListener("click", async e=>{
   if(ad){ const box = ad.closest(".add-item"), v = k => box.querySelector(`[data-ai="${k}"]`).value.trim();
     if(!v("label")){ toast("Give the item a name.",true); return; }
     ad.disabled = true;
-    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, maker: ad.dataset.maker || "", outdoor: !!ad.dataset.outdoor, label:v("label"), desc:v("desc"), prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
+    try{ applyFood(await api("/api/food-stock",{ action:"addItem", group: ad.dataset.additem, maker: ad.dataset.maker || "", outdoor: !!ad.dataset.outdoor, label:v("label"), desc:v("desc"), gf: (box.querySelector('[data-ai="gf"]')||{}).checked === true ? true : undefined, prices: v("pl") ? [[v("pl"), v("pv")]] : [] })); renderFood(); toast(v("label") + ": Added. Tap Edit to add a picture."); }
     catch(err){ ad.disabled = false; toast(err.message,true); }
     return; }
   const flb = e.target.closest("[data-fl]");
@@ -775,6 +775,7 @@ function moreFields(key, d){
   const sec = ITEMS[key].section;
   return `<label class="ep-l">Description (Optional)<input type="text" class="ep-in" data-f="desc" maxlength="160" value="${esc(d.desc||"")}" placeholder="Example: Regular or Spicy"></label>
     ${sec!=="outdoor" ? `<label class="ep-l">Small Tag (Optional)<input type="text" class="ep-in" data-f="tag" maxlength="30" value="${esc(d.tag||"")}" placeholder="Example: Thu–Sun, Summer"></label>` : ""}
+    ${sec==="food" ? `<label style="font-weight:700;display:flex;gap:8px;align-items:center"><input type="checkbox" data-f="gf"${d.gf?" checked":""}> Show Gluten Free Symbol</label>` : ""}
     ${sec==="food" ? `<div><div class="help" style="margin:0 0 6px;font-weight:700">Add-Ons (Optional)</div><div class="ep-prices">${d.extras.map((r,i)=>`<div class="gp-row xp-row" data-xi="${i}"><input class="gp-l" data-f="xl" value="${esc(r[0])}" aria-label="Add-on name" placeholder="Example: Extra Tzatziki"><span class="help" style="margin:0">$</span><input class="gp-v" data-f="xv" inputmode="decimal" value="${esc(r[1])}" aria-label="Add-on price"><button class="ep-rm" type="button" data-act="rmextra" aria-label="Remove add-on">×</button></div>`).join("")}
       <button class="ep-btn" type="button" data-act="addextra" style="align-self:flex-start">+ Add an Add-On</button></div></div>` : ""}`;
 }
@@ -797,7 +798,7 @@ function openDraft(key){
   const curHot = hotOf(key);
   drafts[key].hot = { on: !!curHot, was: !!curHot, until: curHot ? curHot.until : "", time: hotTimeOf(key) };
   drafts[key].sp = { on: !!cur, was: !!cur, until: cur ? cur.until : "", prices: Object.fromEntries(cur ? cur.prices : []) };
-  drafts[key].desc = menuDesc(ITEMS[key].item, key); drafts[key].tag = menuTag(ITEMS[key].item, key);
+  drafts[key].desc = menuDesc(ITEMS[key].item, key); drafts[key].tag = menuTag(ITEMS[key].item, key); drafts[key].gf = menuGF(ITEMS[key].item, key);
   drafts[key].extras = menuExtras(ITEMS[key].item, key).map(r=>[r[0], r[1]||""]);
   if(ITEMS[key].section==="food") drafts[key].group = groupOf(ITEMS[key].item);
   if(!drafts[key].prices.length) drafts[key].prices = [["Each",""]];
@@ -844,6 +845,7 @@ function renderFood(){
         <input data-ai="label" maxlength="60" placeholder="Name (Example: Smoked Brisket)" aria-label="New item name">
         <input data-ai="desc" maxlength="120" placeholder="Description (Optional)" aria-label="Description">
         <div class="ai-p"><input data-ai="pl" maxlength="30" value="Each" aria-label="Price label"><input data-ai="pv" inputmode="decimal" placeholder="Price" aria-label="Price"></div>
+        <label style="font-weight:700;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" data-ai="gf"> Show Gluten Free Symbol</label>
         <button class="btn" type="button" data-additem="${esc(g)}">Add Item</button></div></details>`
     + (g==="Take & Bake Pizza" ? `<details class="toppings" ${toppingsOpen?"open":""}><summary>Edit Toppings</summary>
         <ul class="sw-list">${toppingList().map(topRow).join("")}<li class="top-add"><input id="top-new" maxlength="30" placeholder="New Topping (e.g. Pineapple)" aria-label="New topping name" autocomplete="off"><button class="btn" type="button" id="top-add">Add</button></li></ul></details>` : "")).join("");
@@ -917,7 +919,7 @@ document.addEventListener("click", async e=>{
     const base = ITEMS[key].base, label = String(d.label||"").trim();
     const body = { action:"edit", name:key, label: (!label || label===base.label) ? "" : label, prices: d.prices.filter(r=>String(r[0]).trim()) };
     if(d.photo !== undefined) body.photo = d.photo;
-    if(ITEMS[key].section){ body.desc = d.desc || ""; if(ITEMS[key].section!=="outdoor") body.tag = d.tag || ""; }
+    if(ITEMS[key].section){ body.desc = d.desc || ""; if(ITEMS[key].section!=="outdoor") body.tag = d.tag || ""; if(ITEMS[key].section==="food") body.gf = !!d.gf; }
     if(ITEMS[key].section==="food") body.extras = d.extras.filter(r=>String(r[0]).trim());
     if(d.group) body.group = d.group === ITEMS[key].item.group ? "" : d.group;
     a.disabled = true;
@@ -941,6 +943,7 @@ document.addEventListener("input", e=>{
   if(f==="label") d.label = e.target.value;
   else if(f==="desc") d.desc = e.target.value;
   else if(f==="tag") d.tag = e.target.value;
+  else if(f==="gf") d.gf = e.target.checked;
   else if(f==="xl" || f==="xv"){ d.extras[+e.target.closest(".xp-row").dataset.xi][f==="xl"?0:1] = e.target.value; }
   else if(f==="group") d.group = e.target.value;
   else if(f==="spp") d.sp.prices[e.target.dataset.l] = e.target.value;
