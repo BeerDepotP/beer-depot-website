@@ -415,6 +415,8 @@
       <div class="clr"><input type="color" id="cl-dark" aria-label="Dark color"><label for="cl-dark"><b>Dark Color</b><br><span class="help" style="margin:0">Top of the page and dark boxes (now brown)</span></label></div>
       <div class="clr"><input type="color" id="cl-light" aria-label="Light color"><label for="cl-light"><b>Light Background</b><br><span class="help" style="margin:0">Background of the food sections (now light tan)</span></label></div>
       <div class="clr-prev" id="cl-prev"><span class="p-dark">Top of Page <span class="p-btn">Button</span></span><span class="p-light">Made Here <u>Section</u></span></div>
+      <label class="help" for="cl-until">Go Back to the Standard Colors On (Optional, Store Time)</label><input id="cl-until" type="datetime-local" class="until-in">
+      <p class="help" style="margin:0">Great for holiday colors: set it and the website switches back to the normal orange and brown by itself.</p>
       <button class="btn" type="button" id="cl-save">Save Colors</button>
       <button class="btn ghost" type="button" id="cl-reset">Back to Standard Colors</button>
       <p class="sp-status" id="cl-status" role="status"></p>
@@ -1228,6 +1230,7 @@ function renderSite(){
   $("#hh-on").setAttribute("aria-checked", !!h.on); $("#hh-st").className = "st" + (h.on?" on":""); $("#hh-st").textContent = h.on ? "On · Shows " + DAYN[h.day] + "s " + hrT(h.from) + " – " + hrT(h.until) : "Off";
   $("#hh-day").value = h.day; $("#hh-from").value = h.from; $("#hh-until").value = h.until; $("#hh-text").value = h.text;
   $$("[data-tx]").forEach(i=>{ i.value = site.text[i.dataset.tx] || ""; });
+  $("#cl-until").value = site.colors.until || "";
   $("#cl-main").value = site.colors.main; $("#cl-dark").value = site.colors.dark; $("#cl-light").value = site.colors.light; clPreview();
   const imgSrc = id => "/api/site?img=" + encodeURIComponent(id);
   $("#lg-prev").innerHTML = `<img src="${site.images.logo ? imgSrc(site.images.logo) : "/img/logo-orange.png"}" alt="Current logo">`;
@@ -1251,7 +1254,7 @@ $("#st-save").onclick = ()=>siteSave({ settings:{ newDays:$("#st-newdays").value
 function clPreview(){ const m = $("#cl-main").value, d = $("#cl-dark").value, l = $("#cl-light").value;
   $("#cl-prev .p-dark").style.background = d; $("#cl-prev .p-btn").style.background = m; $("#cl-prev .p-light").style.background = l; $("#cl-prev u").style.textDecorationColor = m; $("#cl-prev .p-light").style.color = "#22160F"; }
 ["#cl-main","#cl-dark","#cl-light"].forEach(id=>$(id).addEventListener("input", clPreview));
-$("#cl-save").onclick = ()=>siteSave({ colors:{ main:$("#cl-main").value, dark:$("#cl-dark").value, light:$("#cl-light").value } }, "#cl-status", "Saved. The website shows the new colors within a minute.");
+$("#cl-save").onclick = ()=>siteSave({ colors:{ main:$("#cl-main").value, dark:$("#cl-dark").value, light:$("#cl-light").value, until:$("#cl-until").value } }, "#cl-status", $("#cl-until").value ? "Saved. The new colors show within a minute and go back to standard at the time you picked." : "Saved. The website shows the new colors within a minute.");
 $("#cl-reset").onclick = async ()=>{ if(await askYes("Put the website colors back to the standard orange and brown?")) siteSave({ colors:{ reset:true } }, "#cl-status", "Back to the standard colors."); };
 function readImg(file){ return new Promise((res,rej)=>{ if(!file) return rej(new Error("No picture.")); if(file.size > 700*1024) return rej(new Error("That picture is too big. Try one under 700 KB.")); const r = new FileReader(); r.onload = ()=>res(r.result); r.onerror = ()=>rej(new Error("Couldn't read that picture.")); r.readAsDataURL(file); }); }
 async function upImg(kind, input){ try{ toast("Uploading…"); const data = await readImg(input.files[0]); site = await api("/api/site",{action:"image", kind, data}); renderSite(); toast(kind==="icon" ? "Tab Icon Saved" : "Logo Saved"); }catch(err){ toast(err.message,true); } input.value = ""; }

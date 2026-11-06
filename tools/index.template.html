@@ -655,7 +655,8 @@ function applySite(d){
       const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n; while((n = w.nextNode())) if(n.nodeValue.includes(old)) n.nodeValue = n.nodeValue.split(old).join(PHONE); }
   }
   // colors and logos (Store Tools → Banners & Text → Colors and Logos)
-  if(d.colors){ const r = document.documentElement.style, c = d.colors;
+  if(d.colors){ const r = document.documentElement.style, nowC = new Date().toLocaleString("sv-SE",{timeZone:"America/Chicago"}).slice(0,16).replace(" ","T");
+    const c = d.colors.until && d.colors.until <= nowC ? { main:"#F26B1D", dark:"#2B1A10", light:"#F3ECE3" } : d.colors;
     const mix = (hex, amt) => { const n = parseInt(hex.slice(1),16), f = v => Math.max(0,Math.min(255,Math.round(amt<0 ? v*(1+amt) : v+(255-v)*amt)));
       return "#" + [n>>16, n>>8&255, n&255].map(v=>f(v).toString(16).padStart(2,"0")).join(""); };
     if(/^#[0-9a-f]{6}$/i.test(c.main||"")){ r.setProperty("--orange", c.main); r.setProperty("--orange-deep", mix(c.main,-0.18)); }

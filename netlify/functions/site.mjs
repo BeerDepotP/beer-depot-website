@@ -69,7 +69,8 @@ export default async (req) => {
       return new Response(buf, { headers: { "content-type": type, "cache-control": "public, max-age=31536000, immutable" } });
     }
     const a = cur.announce, live = a.on && a.text && !(a.until && a.until <= nowCT());
-    return json({ ...cur, announce: live ? a : { on: false } });
+    const colors = cur.colors.until && cur.colors.until <= nowCT() ? { ...DEFAULTS.colors } : cur.colors;
+    return json({ ...cur, colors, announce: live ? a : { on: false } });
   }
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
@@ -123,6 +124,9 @@ export default async (req) => {
     if (b.colors) {
       const c = b.colors.reset ? { ...DEFAULTS.colors } : { main: b.colors.main, dark: b.colors.dark, light: b.colors.light };
       if (!Object.values(c).every(v => HEX.test(String(v || "")))) return json({ error: "Pick all three colors." }, 400);
+      const until = !b.colors.reset && DT.test(b.colors.until || "") ? b.colors.until : "";
+      if (until && until <= nowCT()) return json({ error: "That end time has already passed." }, 400);
+      if (until) c.until = until;     // after this, the website goes back to the standard colors by itself
       next.colors = c;
     }
     if (b.settings) {
