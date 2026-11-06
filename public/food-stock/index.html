@@ -139,6 +139,11 @@
   .bt-card input:not([type=checkbox]),.bt-card select,.bt-card textarea{font:600 16px var(--body);padding:9px;border:2px solid #CFC6BE;border-radius:10px;min-width:0;width:100%;box-sizing:border-box}
   .bt-card .hr-times input{width:auto}
   .an-prev{display:block;text-align:center;font-weight:800;font-size:17px;padding:10px;border-radius:10px;color:#fff;background:#C8102E} .an-prev.orange{background:var(--orange)} .an-prev.dark{background:#2B1B12}
+  .who{font-size:13px;font-weight:700;color:#E8D9CC;margin-left:auto;margin-right:10px}
+  .stf-tabs input{width:auto!important;flex:none;margin:0} .stf-tabs label{justify-content:flex-start;text-align:left}
+  .stf-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px} .stf-tabs label{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600}
+  .stf-card{margin-bottom:12px;display:grid;gap:8px} .stf-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .stf-card .btn{width:auto;margin:0;padding:6px 12px;font-size:14px} .stf-btns{display:flex;gap:8px;flex-wrap:wrap}
   .rm-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #E5DCD3}
   .rm-row .btn{width:auto;margin:0 0 0 6px;padding:6px 12px;font-size:14px}
   .ly-row{margin-bottom:10px;padding:12px} .ly-top{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center}
@@ -204,7 +209,7 @@
 </head>
 <body>
 <div class="top">
-  <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><button class="lockbtn" id="lock" hidden>Lock</button></header>
+  <header><img src="/img/logo-orange.png" alt="The Beer Depot"><h1>Store Tools</h1><span class="who" id="who" hidden></span><button class="lockbtn" id="lock" hidden>Lock</button></header>
   <nav class="tabs" id="tabs" role="tablist" aria-label="Store tools" hidden>
     <button class="tab" role="tab" data-tab="food" aria-selected="true">Food Stock</button>
     <button class="tab" role="tab" data-tab="sales" aria-selected="false">Sales</button>
@@ -213,6 +218,7 @@
     <button class="tab" role="tab" data-tab="notify" aria-selected="false">Back in Stock</button>
     <button class="tab" role="tab" data-tab="layout" aria-selected="false">Layout</button>
     <button class="tab" role="tab" data-tab="banners" aria-selected="false">Banners &amp; Text</button>
+    <button class="tab" role="tab" data-tab="staff" aria-selected="false" hidden>Staff</button>
     <button class="tab" role="tab" data-tab="nofind" aria-selected="false">Couldn't Find It<span class="badge" data-badge="nofind" hidden></span></button>
     <button class="tab" role="tab" data-tab="top" aria-selected="false">Top Searches<span class="badge" data-badge="top" hidden></span></button>
     <button class="tab" role="tab" data-tab="requests" aria-selected="false">Requests<span class="badge" data-badge="requests" hidden></span></button>
@@ -397,6 +403,19 @@
     </div>
   </section>
 
+  <section id="p-staff" hidden>
+    <h2 class="sec">Staff PINs</h2>
+    <p class="help">Only you see this tab. Give each employee their own PIN and pick which tabs they can use. Their PIN only opens those tabs, and you can turn a PIN off or remove it any time. Nothing needs to be set in Netlify; your own PIN stays the one in Netlify and still opens everything.</p>
+    <div id="stf-list"></div>
+    <div class="card sp-card bt-card">
+      <h3 class="grp" style="margin:0">Add a Staff Member</h3>
+      <label class="help" for="stf-name">Name</label><input id="stf-name" maxlength="40" autocomplete="off" placeholder="Example: Jake">
+      <label class="help" for="stf-pin">Their PIN (4 to 12 Numbers)</label><input id="stf-pin" inputmode="numeric" maxlength="12" autocomplete="off">
+      <span class="help" style="margin:0">Tabs They Can Use</span><div class="stf-tabs" id="stf-tabs"></div>
+      <button class="btn" type="button" id="stf-add">Add Staff Member</button>
+    </div>
+  </section>
+
   <section id="p-nofind" hidden>
     <h2 class="sec">Couldn't Find It</h2>
     <p class="help">Searches that showed nothing on the website: things customers want that you may not carry.</p>
@@ -476,7 +495,7 @@ function askYes(msg, yes, red){
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm = s => (s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[’']/g,"").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim();
 const ss = { get(k){ try{return sessionStorage.getItem(k)||""}catch(e){return ""} }, set(k,v){ try{ v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k) }catch(e){} } };
-const TABS = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club"];
+const TABS = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club","staff"];
 let toppingsOpen = false;
 let swPrices = {};
 let pin = "", switches = {}, stock = [], tab = "food", week = "", rep = null, seenBefore = {};
@@ -1115,9 +1134,54 @@ $("#hh-on").onclick = ()=>siteSave(hhBody(!site.hotHam.on), "#hh-status", site.h
 $("#tx-save").onclick = ()=>siteSave({ text: Object.fromEntries($$("[data-tx]").map(i=>[i.dataset.tx, i.value])) }, "#tx-status", "Saved. The website shows it within a minute.");
 async function loadSite(){ try{ site = await api("/api/site",{action:"list"}); renderSite(); }catch(err){ if(err.status===401||err.status===429) lockPage(err.message); else toast(err.message,true); } }
 
+/* ---------- staff (owner only) ---------- */
+let me = null, staff = null;
+const AREA_NAMES = { food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
+const tabBoxes = (sel, attr) => Object.entries(AREA_NAMES).map(([k,n])=>`<label><input type="checkbox" ${attr} value="${k}"${sel.includes(k)?" checked":""}> ${esc(n)}</label>`).join("");
+function renderStaff(){
+  $("#stf-list").innerHTML = staff.members.length ? staff.members.map(m=>`<div class="card stf-card" data-id="${esc(m.id)}">
+    <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"}</span></span>
+      <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
+    <div class="stf-tabs">${tabBoxes(m.tabs, 'data-stftab')}</div>
+    <div class="stf-btns"><button class="btn" type="button" data-stfsave>Save Tabs</button><button class="btn ghost" type="button" data-stfpin>Change PIN</button><button class="btn ghost rm-site" type="button" data-stfrm>Remove</button></div></div>`).join("")
+    : '<p class="help">No staff PINs yet.</p>';
+}
+async function staffCall(body, msg){ try{ staff = await api("/api/staff", body); renderStaff(); if(msg) toast(msg); }catch(err){ toast(err.message,true); } }
+const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-newtab'); staffCall({action:"list"}); };
+$("#stf-add").onclick = async ()=>{
+  const name = $("#stf-name").value.trim(), np = $("#stf-pin").value.trim(), tabs = $$("[data-newtab]:checked").map(i=>i.value);
+  if(!name){ toast("Type the person's name.",true); return; }
+  if(!/^\d{4,12}$/.test(np)){ toast("PINs are 4 to 12 numbers.",true); return; }
+  if(!tabs.length){ toast("Pick at least one tab.",true); return; }
+  await staffCall({action:"add", name, newPin:np, tabs}, name + ": Added");
+  $("#stf-name").value = ""; $("#stf-pin").value = ""; $("#stf-tabs").innerHTML = tabBoxes(["food"], "data-newtab");
+};
+$("#stf-list").addEventListener("click", async e=>{
+  const card = e.target.closest(".stf-card"); if(!card) return; const id = card.dataset.id, m = staff.members.find(x=>x.id===id);
+  if(e.target.closest("[data-stfon]")){ staffCall({action:"update", id, on: !m.on}, m.name + (m.on ? ": PIN Turned Off" : ": PIN Turned On")); return; }
+  if(e.target.closest("[data-stfsave]")){ staffCall({action:"update", id, tabs: [...card.querySelectorAll("[data-stftab]:checked")].map(i=>i.value)}, m.name + ": Saved"); return; }
+  if(e.target.closest("[data-stfrm]")){ if(await askYes("Remove " + m.name + "? Their PIN stops working right away.", "Remove", true)) staffCall({action:"remove", id}, m.name + ": Removed"); return; }
+  if(e.target.closest("[data-stfpin]")){ const np = await askPin("New PIN for " + m.name + " (4 to 12 numbers)"); if(np) staffCall({action:"update", id, newPin: np}, m.name + ": PIN Changed"); }
+});
+// small pop-up that asks for a new PIN
+function askPin(msg){
+  return new Promise(res=>{ const box=$("#ask"); $("#ask-msg").innerHTML = esc(msg) + '<input id="ask-in" inputmode="numeric" maxlength="12" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;font:700 20px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:10px">';
+    const y=$("#ask-yes"), n=$("#ask-no"); y.textContent = "Save PIN"; y.classList.remove("ask-yes-red"); box.hidden = false; $("#ask-in").focus();
+    const done = v => { box.hidden = true; y.onclick = n.onclick = null; res(v); };
+    y.onclick = ()=>{ const v = $("#ask-in").value.trim(); if(!/^\d{4,12}$/.test(v)){ toast("PINs are 4 to 12 numbers.",true); return; } done(v); };
+    n.onclick = ()=>done(null); });
+}
+// show only the tabs this PIN may use
+function applyAccess(){
+  const can = t => t==="staff" ? me.owner : me.tabs.includes(t);
+  $$(".tab").forEach(b=>{ b.hidden = !can(b.dataset.tab); });
+  $("#who").hidden = false; $("#who").textContent = me.owner ? "Owner" : me.name;
+}
+
 /* ---------- tabs ---------- */
 async function openTab(name){
-  if(!TABS.includes(name)) name = "food";
+  const can = t => me && (t==="staff" ? me.owner : me.tabs.includes(t));
+  if(!TABS.includes(name) || !can(name)) name = TABS.find(can) || "food";
   tab = name;
   $$(".tab").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===name));
   TABS.forEach(t=>$("#p-"+t).hidden = t!==name);
@@ -1130,6 +1194,7 @@ async function openTab(name){
   if(name==="notify"){ loadNotify(); return; }
   if(name==="layout"){ loadLayout(); return; }
   if(name==="banners"){ loadSite(); return; }
+  if(name==="staff"){ loadStaff(); return; }
   if(name==="club"){ loadClub(); return; }
   try{
     await loadReport(name==="requests" ? "" : week);
@@ -1144,7 +1209,7 @@ document.addEventListener("click", async e=>{
   const tb = e.target.closest(".tab"); if(tb){ openTab(tb.dataset.tab); return; }
   const wk = e.target.closest(".wk");
   if(wk){ try{ await loadReport(wk.dataset.week); renderReport(); }catch(err){ toast(err.message,true); } return; }
-  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw):not(.bt-sw)");
+  const sw = e.target.closest(".sw:not(.club-sw):not(.sl-sw):not(.hr-sw):not(.nt-sw):not(.ly-sw):not(.bt-sw):not(.stf-sw)");
   if(sw){
     const name = sw.dataset.name, next = sw.getAttribute("aria-checked")!=="true";
     sw.disabled = true;
@@ -1217,8 +1282,9 @@ document.addEventListener("click", async e=>{
 /* ---------- PIN ---------- */
 async function unlock(p){
   pin = p;
-  await api("/api/food-stock",{ check:true });
+  me = await api("/api/staff",{ action:"whoami" });
   ss.set("bd-pin", pin);
+  applyAccess();
   const [sw, st] = await Promise.all([
     fetch("/api/food-stock",{cache:"no-store"}).then(r=>r.ok?r.json():{items:{}}).catch(()=>({items:{}})),
     fetch("/api/stock").then(r=>r.ok?r.json():{items:[]}).catch(()=>({items:[]})),
@@ -1231,7 +1297,7 @@ async function unlock(p){
   clearInterval(unlock.t); unlock.t = setInterval(refreshBadges, 60000);
 }
 function lockPage(message){
-  pin=""; ss.set("bd-pin",""); clearInterval(unlock.t);
+  pin=""; me = null; ss.set("bd-pin",""); clearInterval(unlock.t); $("#who").hidden = true;
   TABS.forEach(t=>$("#p-"+t).hidden = true); $("#tabs").hidden = true; $("#lock").hidden = true; $("#pin-form").hidden = false;
   $("#pin").value=""; $("#pin-msg").textContent = message || ""; $("#pin").focus();
 }

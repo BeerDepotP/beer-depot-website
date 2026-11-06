@@ -34,7 +34,7 @@ export default async (req) => {
   }
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
-  const bad = await checkPin(store, b.pin);
+  const bad = await checkPin(store, b.pin, "banners");
   if (bad) return json({ error: bad.error }, bad.status);
   if (b.action === "save") {
     const next = merged(cur);

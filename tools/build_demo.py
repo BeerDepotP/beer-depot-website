@@ -25,6 +25,7 @@ function menuPhoto(f, key){
     layout:{items:[],groups:["Beer - Domestic","Beer - Craft","Hard Seltzer","Whiskey","Bourbon","Vodka","Wine - Red","Wine - White","Tequila","Cigars (Not Shown)","Craft Cans","Kombucha"]},
     site:{hotHam:{on:true,day:0,from:"09:00",until:"15:00",text:"Hot Ham Available Now Until {until}"},announce:{on:true,text:"Now Taking Thanksgiving Orders: Smoked Turkeys and Hams",link:"#catering",color:"red",until:""},
       text:{heroTitle:"See what's on our shelves",searchHint:"Search Tito's, Spotted Cow, ribs…",madeHereIntro:"Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.",cateringTitle:"Party & Catering Orders",cateringText:"Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.",cateringButton:"Call to Order"}},
+    staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true}],
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
@@ -86,6 +87,15 @@ function menuPhoto(f, key){
       return ok({ok:true,items:l.items,groupNames:l.groups,groupError:"",builtin:{"made-here":"Made Here","on-sale":"On Sale","seasonal":"Seasonal","local-favorites":"Local Favorites","grilling-outdoor":"Grilling & Outdoor","new-arrivals":"New Arrivals",cocktails:"Ready to Drink Cocktails",beer:"Beer",nonalc:"Non-Alcoholic",seltzer:"Hard Seltzers",thc:"THC",whiskey:"Whiskey & Bourbon",wine:"Wine",tequila:"Tequila",vodka:"Vodka",brandy:"Brandy",gin:"Gin",rum:"Rum",liqueur:"Liqueur",mixers:"Soda & Mixers"}}); }
     if(url.startsWith("/api/site")){ if(b.action==="save"){ for(const k of ["hotHam","announce"]) if(b[k]) DB.site[k] = Object.assign({},b[k],k==="hotHam"?{day:+b[k].day}:{}); if(b.text) for(const k in b.text) if(b.text[k].trim()) DB.site.text[k] = b.text[k]; }
       return ok({ok:true,...DB.site}); }
+    if(url.startsWith("/api/staff")){ const S = DB.staff, ALL = ["food","sales","seasonal","hours","notify","layout","banners","nofind","top","requests","club"];
+      const m = S.find(x=>x.on && x.pin===String(b.pin));
+      if(b.action==="whoami") return ok(m ? {owner:false,name:m.name,tabs:m.tabs} : {owner:true,name:"Owner",tabs:ALL});
+      if(m) return ok({error:"Your PIN doesn't have access to that. Ask the owner."},403);
+      if((b.action==="add" || b.newPin) && S.some(x=>x.pin===String(b.newPin) && x.id!==b.id)) return ok({error:"That PIN is already used. Pick another."},400);
+      if(b.action==="add") S.push({id:"s"+Date.now().toString(36),name:b.name,pin:String(b.newPin),tabs:b.tabs,on:true});
+      if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); }
+      if(b.action==="remove") DB.staff = S.filter(x=>x.id!==b.id);
+      return ok({ok:true,members:DB.staff.map(({pin,...x})=>x)}); }
     if(url.startsWith("/api/insights")){
       if(b.type==="seen"){ report.badges[b.tab]=0; return ok({ok:true,badges:report.badges,seen:report.seen}); }
       if(b.type==="badges") return ok({badges:report.badges,seen:report.seen});
