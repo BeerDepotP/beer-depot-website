@@ -4,7 +4,7 @@
 //                     requests:[...], settings:{ approval, ownerName, hide:[ids] }, updated }
 //   who = "owner", a person on the schedule (settings.people, they do not need a PIN), a staff id with no person, or "" for an Open Shift.
 //   settings.people = [{id,name,staffId?}]: staffId links a person to a Store Tools PIN so that person sees their own shifts.
-//   The first time (nothing saved yet) the November 2026 paper calendar in lib/schedule-seed.json is loaded.
+//   The first time (nothing saved yet) the schedule starts blank: just the owner (Tyler). The owner can also wipe it with Setup > Start Over.
 // POST /api/schedule { pin, action, ... }
 //   anyone with a PIN: get {from,to} | badge | give | swap | take | answer | cancel
 //   manager only:      batch (add one shift to many days) | batchRemove | save | delete | copyWeek | clearWeek | presets | settings | resolve
@@ -50,7 +50,7 @@ export function clean(d) {
   d.requests = Array.isArray(d.requests) ? d.requests : [];
   d.settings = d.settings && typeof d.settings === "object" ? d.settings : {};
   d.settings.approval = true;   // employees can never change shifts without the owner's OK
-  d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
+  d.settings.ownerName = one(d.settings.ownerName, 30) || "Tyler";
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
   const rp = d.settings.report && typeof d.settings.report === "object" ? d.settings.report : {};   // Friday hours email to the owner
   d.settings.report = { on: rp.on !== false, email: rp.email === undefined ? "tyler@beerdepotpewaukee.com" : (validEmail(rp.email) ? String(rp.email).trim() : "") };
@@ -107,7 +107,7 @@ export function sweepClocks(d, t, hm) {
 }
 
 export function seeded() {
-  const d = clean({ presets: null, shifts: JSON.parse(JSON.stringify(seed.shifts)), settings: { approval: true, ownerName: seed.ownerName, people: seed.people.map(p => ({ ...p })) } });
+  const d = clean({ presets: null, shifts: {}, settings: { approval: true, ownerName: "Tyler", people: [] } });   // starts blank: just the owner; staff logins appear on the schedule by themselves
   return d;
 }
 async function staffOf(store) { return (((await store.get("staff", { type: "json" })) || { members: [] }).members || []).filter(m => m.on !== false); }
@@ -254,6 +254,15 @@ export default async (req) => {
     const sent = await sendPush([me.push], "Test alert", "Phone alerts are working. This came from the Beer Depot schedule.");
     return json({ ok: true, message: sent ? "Sent. It should pop up on your phone in a few seconds." : "OneSignal did not accept it. Turn On Notifications on this phone first." });
   }
+  if (act === "startOver") {   // owner only: wipe shifts, requests, timecards, clocks and people; keep shift presets, alert wording and the Friday email setting
+    if (!who.owner) return json({ error: "Only the owner can do that." }, 403);
+    if (b.confirm !== true) return json({ error: "Please confirm first." }, 400);
+    try { await backupNow(store); } catch (e) { /* a missing safety copy should not block the owner */ }
+    d.shifts = {}; d.requests = []; d.cards = []; d.clocks = {};
+    d.settings.people = []; d.settings.colors = {}; d.settings.pay = {}; d.settings.pending = { who: {}, open: [] }; d.settings.published = [];
+    d.settings.ownerName = "Tyler";
+    return ok();
+  }
   if (act === "backupDownload" || act === "backupNow" || act === "reportTest") {   // owner only
     if (!who.owner) return json({ error: "Only the owner can do that." }, 403);
     if (act === "backupDownload") return json({ ok: true, file: { saved: new Date().toISOString(), schedule: d, staff: await store.get("staff", { type: "json" }) } });
@@ -387,7 +396,7 @@ export default async (req) => {
     return ok();
   }
   if (act === "settings") {
-    if (b.ownerName !== undefined) d.settings.ownerName = one(b.ownerName, 30) || "Owner";
+    if (b.ownerName !== undefined) d.settings.ownerName = one(b.ownerName, 30) || "Tyler";
     if (b.colors && typeof b.colors === "object") {
       const c = {};
       for (const [k, x] of Object.entries(b.colors).slice(0, 80)) if (/^#[0-9A-Fa-f]{6}$/.test(String(x))) c[String(k).slice(0, 24)] = String(x);

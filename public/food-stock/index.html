@@ -1564,7 +1564,7 @@ function askPin(msg){
 function applyAccess(){
   const can = t => t==="schedule" || (t==="staff" ? me.owner : me.tabs.includes(t));
   $$(".tab").forEach(b=>{ b.hidden = !can(b.dataset.tab); });
-  $("#who").hidden = false; $("#who").textContent = me.owner ? "Owner" : me.name;
+  $("#who").hidden = false; $("#who").textContent = me.owner ? "Tyler" : me.name;
 }
 
 /* ---------- drinks: hide or move a KORONA product ---------- */
@@ -1866,6 +1866,7 @@ function renderSchedule(){
   if(mgr) pills.push(["setup","Setup"]);
   $("#sch-pills").innerHTML = pills.map(([k,n,red]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}${red ? ` <span class="sch-red" aria-label="${red} need your hours">${red}</span>` : ""}</button>`).join("");
   setSchBadge(waiting);
+  if(d.me.root){ const w = $("#who"); if(w) w.textContent = d.settings.ownerName || "Tyler"; }
   $("#sch-body").innerHTML = (mgr && sch.view !== "time" && sch.view !== "mytime" ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, time: mgr ? viewTime : viewEmpTime, mytime: viewEmpTime, setup: viewSetup })[sch.view]();
   selPaint();
 }
@@ -2174,6 +2175,9 @@ function safetyBlock(){   // owner only: nightly backup + Friday hours email
     <div class="card sp-card"><span class="help" style="margin:0" id="sch-bklast">${sch.bkLast ? "Last safety copy: <b>" + esc(fDay(sch.bkLast)) + "</b>" : ""}</span>
       <button class="btn" type="button" id="sch-bknow">Save a Safety Copy Now</button>
       <button class="btn ghost" type="button" id="sch-bkdl">Download a Copy to This Device</button></div>
+    <h3 class="grp">Start Over</h3>
+    <p class="help">Wipes every shift, timecard, request and person on the schedule so you can start fresh. A safety copy is saved first. Your shift times and alert wording stay.</p>
+    <div class="card sp-card"><button class="btn ghost rm-site" type="button" id="sch-startover">Start Over With a Blank Schedule</button></div>
     <h3 class="grp">Friday Hours Email</h3>
     <p class="help">Every Friday morning around 7:30 AM you get an email: who is being paid that day, their hours, and any timecard still missing.</p>
     <div class="card sp-card"><div class="sch-prt"><b>Send the Friday Email</b><button type="button" class="sw sch-sw" role="switch" aria-checked="${r.on !== false}" aria-label="Send the Friday email" id="sch-rpon"></button></div>
@@ -2194,12 +2198,6 @@ function viewSetup(){
     <p class="help">Swaps happen as soon as both people agree, and anyone can take an Open Shift. If an employee gives a shift away and a coworker takes it, that waits for your OK (only the owner can OK it).</p>
     ${alertsBlock()}
     ${safetyBlock()}
-    <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
-    ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
-      <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
-      <label class="help" style="margin:0">Their Login<select data-ppf="staffId"><option value="">No Login Yet</option>${(d.staff || []).map(m => `<option value="${esc(m.id)}"${m.id === pe.staffId ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
-      <button type="button" class="btn ghost sch-sm" data-ppsave="${esc(pe.id)}" style="justify-self:start">Save</button></div>`).join("")}
-    <div class="card sp-card"><input id="sch-pnew" maxlength="30" placeholder="New Person's Name (Example: Gayle)" aria-label="New person's name"><p class="help" style="margin:6px 0">Pick a color:</p><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === newCol() ? " on" : ""}${colorsUsed([]).has(c.toLowerCase()) ? " off" : ""}"${colorsUsed([]).has(c.toLowerCase()) ? " disabled" : ""} style="background:${c}" data-ncol="${c}" aria-label="Color"></button>`).join("")}</div><button class="btn" type="button" id="sch-pnadd">+ Add a Person</button></div>
     <h3 class="grp">Employee Colors</h3><p class="help">Each person's shifts show in their color on the calendar.</p>
     ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b>${p.color ? `<span class="help" style="margin:0">Color is set in the Staff tab (owner).</span>` : ""}<div class="sch-cols"${p.color ? " hidden" : ""}>${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}${colorsUsed([p.id]).has(c.toLowerCase()) ? " off" : ""}"${colorsUsed([p.id]).has(c.toLowerCase()) ? " disabled" : ""} style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
     <h3 class="grp">Day and Night</h3>
@@ -2207,7 +2205,7 @@ function viewSetup(){
     <h3 class="grp">Who Is on the Schedule</h3>
     <ul class="sw-list">${people}</ul>
     <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Only a Manager can edit the schedule. Turn on Manager for that person in the Staff tab.</p>
-    <div class="card sp-card" style="margin-top:8px"><label class="help" for="sch-oname" style="margin:0">Your Name on the Schedule</label><input id="sch-oname" maxlength="30" value="${esc(d.settings.ownerName)}"><button class="btn ghost" type="button" id="sch-osave">Save Name</button></div>
+    <div class="card sp-card" style="margin-top:8px"><label class="help" for="sch-oname" style="margin:0">Your Name (Shows on the Schedule)</label><input id="sch-oname" maxlength="30" value="${esc(d.settings.ownerName)}"><button class="btn ghost" type="button" id="sch-osave">Save Name</button></div>
     <h3 class="grp">This Week (${esc(fDayS(sch.start))})</h3>
     <button class="btn ghost" type="button" id="sch-copy">Copy Last Week Into This Week</button>
     <button class="btn ghost rm-site" type="button" id="sch-clear">Clear This Week</button>`;
@@ -2514,6 +2512,7 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-confirm-no")){ if(await askYes("Throw away the waiting alerts without sending them? The shifts stay as they are.", "Don't Send", true)){ await schDo({ action: "discardPending" }, "Alerts cleared, nothing sent", true); } return; }
   if(el.closest("#sch-alsave")){ await schDo({ action: "settings", notify: alertsRead() }, "Alert wording saved", true); return; }
   if(el.closest("#sch-alreset")){ if(await askYes("Put every alert back to the standard wording?", "Put Back")){ const o = alertsRead(); for(const k of Object.keys(o.kinds)){ o.kinds[k].title = ""; o.kinds[k].body = ""; } await schDo({ action: "settings", notify: o }, "Standard wording back", true); } return; }
+  if(el.closest("#sch-startover")){ if(await askYes("Erase every shift, timecard and request? A safety copy is saved first.", "Yes, Start Over")) { sch.draft = null; await schDo({ action: "startOver", confirm: true }, "Blank schedule ready", true); } return; }
   if(el.closest("#sch-rpon")){ const b = el.closest("#sch-rpon"); b.setAttribute("aria-checked", b.getAttribute("aria-checked") === "true" ? "false" : "true"); return; }
   if(el.closest("#sch-rpsave")){ await schDo({ action: "settings", report: { on: $("#sch-rpon").getAttribute("aria-checked") === "true", email: $("#sch-rpem").value } }, "Saved", true); return; }
   if(el.closest("#sch-rptest")){ try{ await schDo({ action: "settings", report: { on: $("#sch-rpon").getAttribute("aria-checked") === "true", email: $("#sch-rpem").value } }, "", true); const j = await api("/api/schedule", { action: "reportTest" }); toast(j.message); }catch(err){ toast(err.message, true); } return; }

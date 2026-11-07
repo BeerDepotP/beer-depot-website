@@ -150,7 +150,7 @@ sched_demo = r"""
   const sendMail = async () => {}, SITE = "https://beerdepotpewaukee.com", storeInfo = async () => ({});
   __SCHED__
   // the real November schedule (from the paper calendar), with a few people linked to demo logins
-  SCH.schedule = seeded();
+  SCH.schedule = clean({ presets: null, shifts: JSON.parse(JSON.stringify(seed.shifts)), settings: { approval: true, ownerName: seed.ownerName, people: seed.people.map(p => ({ ...p })) } });   // demo only: sample November data (the real site now starts blank)
   const link = { "pe-jo":"s1", "pe-dave":"s2", "pe-scott":"s3", "pe-heather":"s4" };
   SCH.schedule.settings.people.forEach(p => { if(link[p.id]) p.staffId = link[p.id]; });
   SCH.schedule.settings.ownerName = "Ty";
