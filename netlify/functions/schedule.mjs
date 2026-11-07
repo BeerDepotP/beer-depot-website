@@ -200,16 +200,24 @@ export default async (req) => {
       if (!T.test(String(b.start || "")) || !T.test(String(b.end || "")) || b.start >= b.end) return json({ error: "Pick a start time that is before the end time." }, 400);
       const w = b.who ? String(b.who) : "";
       if (w && !team.some(p => p.id === w)) return json({ error: "Pick someone from the team." }, 400);
-      let added = 0, skipped = 0;
+      let added = 0, changed = 0, skipped = 0;
       for (const date of dates) {
         const list = d.shifts[date] = d.shifts[date] || [];
-        const dup = w ? clash(d, date, w, b.start, b.end, []) : list.some(s => !s.who && s.start === b.start && s.end === b.end);
-        if (dup) { skipped++; continue; }
-        list.push({ id: rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) });
+        if (!w) {                                   // Open Shifts: don't pile up exact copies
+          if (list.some(s => !s.who && s.start === b.start && s.end === b.end)) { skipped++; continue; }
+          list.push({ id: rid(), who: "", start: b.start, end: b.end, note: one(b.note, 60) }); added++;
+        } else {
+          const over = list.filter(s => s.who === w && s.start < b.end && b.start < s.end);   // their shift(s) at that time: change it to the new hours
+          if (over.length) {
+            const keep = over[0]; keep.start = b.start; keep.end = b.end; if (b.note) keep.note = one(b.note, 60);
+            for (const x of over.slice(1)) list.splice(list.indexOf(x), 1);
+            changed++;
+          } else { list.push({ id: rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) }); added++; }
+        }
         list.sort((x, y) => x.start.localeCompare(y.start) || x.end.localeCompare(y.end));
-        added++;
       }
-      return ok({ added, skipped });
+      sweep(d);
+      return ok({ added, changed, skipped });
     }
     const all = b.who === undefined || b.who === null; let removed = 0;
     for (const date of dates) {

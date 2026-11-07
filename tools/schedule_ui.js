@@ -382,7 +382,7 @@ async function batchCall(body, msg){
   try{ const j = await schCall(body); schClose(); const S = selS(); S.dates.clear(); S.anchor = ""; renderSchedule(); toast(msg(j)); }
   catch(err){ if(err.status === 401 || err.status === 429){ lockPage(err.message); return; } toast(err.message, true); }
 }
-const batchAddMsg = j => `Added to ${j.added} day${j.added === 1 ? "" : "s"}` + (j.skipped ? `, skipped ${j.skipped} (already there)` : "");
+const batchAddMsg = j => { const n = (j.added || 0), c = (j.changed || 0), parts = []; if(n) parts.push(`Added to ${n} day${n === 1 ? "" : "s"}`); if(c) parts.push(`${n ? "changed" : "Changed"} ${c} day${c === 1 ? "" : "s"} to the new hours`); if(j.skipped) parts.push(`${j.skipped} already there`); return parts.join(", ") || "Nothing to change"; };
 const batchDates = () => [...selS().dates].sort();
 
 /* ---------- actions ---------- */
