@@ -535,7 +535,7 @@ export default async (req) => {
     if (act === "clockIn") {
       if (cur) return json({ error: "You're already clocked in." }, 400);
       const t0 = today(), hm = nowHM();
-      const free = (d.shifts[t0] || []).filter(x => x.who === me.id && !d.cards.some(c => c.shiftId === x.id && c.who === me.id) && x.end > x.start).sort((x, y) => Math.abs(mm(x.start) - mm(hm)) - Math.abs(mm(y.start) - mm(hm)));
+      const free = (d.shifts[t0] || []).filter(x => x.who === me.id && !d.cards.some(c => c.shiftId === x.id && c.who === me.id)).sort((x, y) => Math.abs(mm(x.start) - mm(hm)) - Math.abs(mm(y.start) - mm(hm)));
       d.clocks[me.id] = { date: t0, in: hm, shiftId: free[0] ? free[0].id : "", at: new Date().toISOString() };
       return ok();
     }

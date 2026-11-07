@@ -1905,8 +1905,11 @@ function clockCard(){   // Clock In / Clock Out
     const hmM = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)), m = Math.max(0, Math.round((spd(t) - spd(c.date)) / 86400000) * 1440 + hmM(schNow()) - hmM(c.in)), old = m > 16 * 60;
     return `<div class="card sp-card sch-clock on"><b>● You're Clocked In</b><span class="help" style="margin:0">Since ${esc(fT(c.in))}${c.date !== t ? " on " + esc(fDay(c.date)) : ""}${old ? "" : " · " + esc(fDur(m)) + " so far"}</span>${old ? `<span class="help" style="margin:0;color:#C8102E"><b>This has been running a long time.</b> Tap Clock Out and type when you really left.</span>` : ""}<button type="button" class="btn sch-big" data-clockout>Clock Out</button><button type="button" class="btn ghost sch-sm" data-clockedit style="justify-self:start">Wrong Start Time?</button></div>`;
   }
-  const me = d.me.id, now = schNow(), mine = schShifts(t).filter(x => x.who === me && !tcCardOf(x, me) && x.end > x.start).sort((a, b) => a.start.localeCompare(b.start));
-  return `<div class="card sp-card sch-clock"><b>Ready to Work?</b>${mine.length ? `<span class="help" style="margin:0">Today: ${esc(mine.map(x => fR(x.start, x.end)).join(" and "))}</span>` : `<span class="help" style="margin:0">Tap Clock In when you start. If you forget to clock out, we clock you out an hour after your shift ends.</span>`}<button type="button" class="btn sch-big" data-clockin>Clock In</button></div>`;
+  const me = d.me.id, hmM = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)), nowM = hmM(schNow());
+  // only on days I work: today's shift that has no timecard yet and has not been over for more than an hour (overnight shifts stay open)
+  const mine = schShifts(t).filter(x => x.who === me && !tcCardOf(x, me) && (hmM(x.end) <= hmM(x.start) || nowM < hmM(x.end) + 60)).sort((a, b) => a.start.localeCompare(b.start));
+  if(!mine.length) return "";
+  return `<div class="card sp-card sch-clock"><b>Ready to Work?</b><span class="help" style="margin:0">Today: ${esc(mine.map(x => fR(x.start, x.end)).join(" and "))}. If you forget to clock out, we clock you out an hour after your shift ends.</span><button type="button" class="btn sch-big" data-clockin>Clock In</button></div>`;
 }
 function schTimeBox(title, note, inV, outV, saveId){
   schOpen(`<h3 class="sch-h">${esc(title)}</h3><p class="help" style="margin:0 0 8px">${note}</p>
