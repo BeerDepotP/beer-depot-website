@@ -54,9 +54,6 @@ export function clean(d) {
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
   const rp = d.settings.report && typeof d.settings.report === "object" ? d.settings.report : {};   // Friday hours email to the owner
   d.settings.report = { on: rp.on !== false, email: rp.email === undefined ? "tyler@beerdepotpewaukee.com" : (validEmail(rp.email) ? String(rp.email).trim() : "") };
-  const gp = d.settings.geo && typeof d.settings.geo === "object" ? d.settings.geo : {};   // clock-in location check: mode off|flag|block, store spot, how close (feet)
-  const lt = Number(gp.lat), ln = Number(gp.lng), hasPt = gp.lat !== null && gp.lat !== "" && gp.lng !== null && gp.lng !== "" && Number.isFinite(lt) && Number.isFinite(ln) && Math.abs(lt) <= 90 && Math.abs(ln) <= 180;
-  d.settings.geo = { mode: hasPt && ["flag", "block"].includes(gp.mode) ? gp.mode : "off", lat: hasPt ? lt : null, lng: hasPt ? ln : null, feet: Math.min(2000, Math.max(100, Math.round(Number(gp.feet)) || 500)) };
   d.settings.notify = alertSettings(d.settings.notify);   // push alerts: {on, kinds:{swapAsk,..:{on,title,body}}}
   const pe = d.settings.pending && typeof d.settings.pending === "object" ? d.settings.pending : {};   // alerts waiting for "Confirm Schedule": { who:{personId:[dates]}, open:[dates] }
   const ds = a => [...new Set((Array.isArray(a) ? a : []).filter(x => D.test(String(x))))].sort().slice(0, 400);
@@ -70,7 +67,7 @@ export function clean(d) {
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   // Timecards: one per worked shift {id,date,who,name,shiftId,in,out,sent,paid,paidAt}. Paid ones are kept for 30 days (the "Past Hours" list), then dropped.
   // Who is clocked in right now: { personId: {date, in, shiftId, at} } (one running clock per person; becomes a timecard when they clock out)
-  const ck = {}; for (const [k, v] of Object.entries(d.clocks && typeof d.clocks === "object" ? d.clocks : {})) if (v && D.test(String(v.date)) && T.test(String(v.in))) ck[String(k).slice(0, 40)] = { date: v.date, in: v.in, shiftId: String(v.shiftId || "").slice(0, 40), at: String(v.at || new Date().toISOString()), reminded: !!v.reminded, ...(v.gin && ["at", "away", "none"].includes(v.gin.s) ? { gin: { s: v.gin.s, ft: Math.round(Number(v.gin.ft)) || 0 } } : {}) };
+  const ck = {}; for (const [k, v] of Object.entries(d.clocks && typeof d.clocks === "object" ? d.clocks : {})) if (v && D.test(String(v.date)) && T.test(String(v.in))) ck[String(k).slice(0, 40)] = { date: v.date, in: v.in, shiftId: String(v.shiftId || "").slice(0, 40), at: String(v.at || new Date().toISOString()), reminded: !!v.reminded };
   d.clocks = ck;
   d.cards = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && typeof c.id === "string" && D.test(String(c.date)) && T.test(String(c.in)) && T.test(String(c.out)) && (!c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000)).slice(-1500);
   // How each person wants to be paid: mode "weekly" (every Friday, the default) or "ask" (only when they tap Pay Me); req = the Friday they asked for.
@@ -102,7 +99,7 @@ export function sweepClocks(d, t, hm) {
     if (nowAbs >= closeAt) {
       const sid = cur.shiftId && !d.cards.some(c => c.shiftId === cur.shiftId && c.who === who) ? cur.shiftId : "";
       const out = fmt(endAbs); if (out === cur.in) { delete d.clocks[who]; changed = true; continue; }
-      d.cards.push({ id: rid(), date: cur.date, who, name: (d.settings.people.find(p => p.id === who) || {}).name || "", shiftId: sid || "x-" + rid(), extra: !sid, clock: true, auto: true, in: cur.in, out, off: false, sent: new Date().toISOString(), by: "auto", paid: false, paidAt: "", ...(cur.gin ? { gin: cur.gin } : {}) });
+      d.cards.push({ id: rid(), date: cur.date, who, name: (d.settings.people.find(p => p.id === who) || {}).name || "", shiftId: sid || "x-" + rid(), extra: !sid, clock: true, auto: true, in: cur.in, out, off: false, sent: new Date().toISOString(), by: "auto", paid: false, paidAt: "" });
       delete d.clocks[who]; closed.push({ who, out }); changed = true;
     } else if (nowAbs >= remindAt && !cur.reminded) { cur.reminded = true; remind.push({ who, out: fmt(endAbs) }); changed = true; }
   }
@@ -180,7 +177,6 @@ function view(d, team, me, from, to, staff) {
   const requests = d.requests.filter(r => !hid(r.date) && !(r.withDate && hid(r.withDate))).filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
   if (!me.manager) delete settings.pay;   // nobody sees how coworkers get paid
-  settings.geo = me.root ? d.settings.geo : { mode: d.settings.geo.mode, feet: d.settings.geo.feet };   // only the owner sees the store's exact spot
   return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), pay: me.manager ? d.settings.pay : { [me.id]: d.settings.pay[me.id] || { mode: "weekly", req: "" } }, clock: d.clocks[me.id] || null, clocks: me.manager ? d.clocks : undefined, payday: nextPayday(), ...counts(d, me), today: today() };
 }
 function counts(d, me) {
@@ -404,14 +400,6 @@ export default async (req) => {
       const em = String(b.report.email || "").trim(); if (em && !validEmail(em)) return json({ error: "That email address doesn't look right." }, 400);
       d.settings.report = { on: b.report.on !== false, email: em };
     }
-    if (b.geo && typeof b.geo === "object") {
-      if (!who.owner) return json({ error: "Only the owner can change the clock-in location." }, 403);
-      const g0 = d.settings.geo, lat = b.geo.lat !== undefined ? Number(b.geo.lat) : g0.lat, lng = b.geo.lng !== undefined ? Number(b.geo.lng) : g0.lng;
-      if (b.geo.lat !== undefined && !(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return json({ error: "That location doesn't look right." }, 400);
-      const mode = ["off", "flag", "block"].includes(b.geo.mode) ? b.geo.mode : g0.mode;
-      if (mode !== "off" && (lat === null || lng === null)) return json({ error: "Tap Set Store Location first, while you're at the store." }, 400);
-      d.settings.geo = { mode, lat, lng, feet: Number(b.geo.feet) || g0.feet };
-    }
     if (b.notify && typeof b.notify === "object") d.settings.notify = alertSettings(b.notify);
     if (Array.isArray(b.hide)) d.settings.hide = b.hide.filter(x => typeof x === "string").slice(0, 60);
     return ok();
@@ -544,22 +532,11 @@ export default async (req) => {
       return ok();
     }
     const target = act === "clockOut" && me.manager && b.who ? String(b.who).slice(0, 40) : me.id, cur = d.clocks[target];
-    let geoRes = null;   // where the phone was when clocking in / out: {s:"at"|"away"|"none", ft}. Only this result is saved, never the coordinates.
-    if ((act === "clockIn" || act === "clockOut") && target === me.id && d.settings.geo.mode !== "off") {
-      const g = d.settings.geo, la = Number(b.lat), lo = Number(b.lng), ac = Math.min(200, Math.max(0, Number(b.acc) || 0));
-      if (b.lat !== undefined && Number.isFinite(la) && Number.isFinite(lo) && Math.abs(la) <= 90 && Math.abs(lo) <= 180) {
-        const R = 6371000, rad = x => x * Math.PI / 180, a1 = Math.sin(rad(la - g.lat) / 2) ** 2 + Math.cos(rad(g.lat)) * Math.cos(rad(la)) * Math.sin(rad(lo - g.lng) / 2) ** 2;
-        const ft = Math.round(2 * R * Math.asin(Math.sqrt(a1)) * 3.28084), near = ft - ac * 3.28084 <= g.feet;
-        geoRes = { s: near ? "at" : "away", ft };
-      } else geoRes = { s: "none", ft: 0 };
-      if (g.mode === "block" && geoRes.s !== "at") return json({ error: geoRes.s === "none" ? "We couldn't find your location. Turn on Location for this app, then try again." : `You need to be at the store to ${act === "clockIn" ? "clock in" : "clock out"}. You are about ${geoRes.ft >= 1000 ? (Math.round(geoRes.ft / 528) / 10) + " miles" : geoRes.ft + " feet"} away.`, geo: geoRes.s }, 400);
-    }
     if (act === "clockIn") {
       if (cur) return json({ error: "You're already clocked in." }, 400);
       const t0 = today(), hm = nowHM();
       const free = (d.shifts[t0] || []).filter(x => x.who === me.id && !d.cards.some(c => c.shiftId === x.id && c.who === me.id)).sort((x, y) => Math.abs(mm(x.start) - mm(hm)) - Math.abs(mm(y.start) - mm(hm)));
       d.clocks[me.id] = { date: t0, in: hm, shiftId: free[0] ? free[0].id : "", at: new Date().toISOString() };
-      if (geoRes) d.clocks[me.id].gin = geoRes;
       return ok();
     }
     if (!cur) return json({ error: act === "clockOut" ? "You're not clocked in." : "You're not clocked in." }, 400);
@@ -573,7 +550,7 @@ export default async (req) => {
     delete d.clocks[target];
     if (b.out === cur.in) return ok({ note: "That was under a minute, so I cancelled the clock-in." });
     const sid = cur.shiftId && !d.cards.some(c => c.shiftId === cur.shiftId && c.who === target) ? cur.shiftId : "";
-    d.cards.push({ id: rid(), date: cur.date, who: target, name: name(target), shiftId: sid || "x-" + rid(), extra: !sid, clock: true, in: cur.in, out: b.out, off: false, sent: new Date().toISOString(), by: me.id, paid: false, paidAt: "", ...(cur.gin ? { gin: cur.gin } : {}), ...(geoRes ? { gout: geoRes } : {}) });
+    d.cards.push({ id: rid(), date: cur.date, who: target, name: name(target), shiftId: sid || "x-" + rid(), extra: !sid, clock: true, in: cur.in, out: b.out, off: false, sent: new Date().toISOString(), by: me.id, paid: false, paidAt: "" });
     return ok({ note: "Clocked out. Thank you!" });
   }
   if (act === "tcAdd" || act === "tcDel") {   // extra hours with no scheduled shift (came in to help out, a last-minute shift). Employees do their own; managers can do anyone's.
