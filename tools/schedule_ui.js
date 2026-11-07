@@ -200,12 +200,11 @@ function viewEmpTime(){   // employee Timecards tab: the clock on top; fixing ho
   const big = (k, title, sub) => `<button type="button" class="btn ghost sch-big2" data-tcopen="${k}" aria-expanded="${open === k}"><b>${title}</b><span>${sub}</span></button>`;
   const editBody = open !== "edit" ? "" : `<div class="sch-fold"><button type="button" class="btn sch-sm" data-tcadd style="justify-self:start">+ Add Hours I Forgot</button>`
     + `<h3 class="grp" style="margin:12px 2px 4px">Recent Shifts</h3>`
-    + (mineRows(recent, true, false, true) || (extras.length ? "" : `<p class="help" style="margin:4px 2px">Nothing here.</p>`))
-    + (extras.length ? `<h3 class="grp" style="margin:10px 2px 4px">Extra Hours</h3>` + extras.map(c => tcRow(c, false)).join("") : "")
-    + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
+    + (mineRows(recent, true, false, true) || `<p class="help" style="margin:4px 2px">Nothing here.</p>`)
     + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") + `</div>`;
   const payBody = open !== "pay" ? "" : `<div class="sch-fold"><div class="card sp-card"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>${empPayBox(me)}</div>`;
-  return notice + (miss.length ? tcBanner(true) : "")
+  const unList = mineUn.length ? `<h3 class="grp" style="margin:12px 2px 4px">Hours Not Paid Yet · ${tcH(unTot)}</h3>` + [...mineUn].sort((x, y) => y.date.localeCompare(x.date) || y.in.localeCompare(x.in)).map(c => tcRow(c, false)).join("") : "";
+  return notice + (miss.length ? tcBanner(true) : "") + unList
     + `<div class="sch-bigrow">` + big("edit", "Fix My Hours", "Wrong time? Forgot something?") + editBody + big("pay", "Get Paid", tcH(unTot) + " not paid yet") + payBody + `</div>`;
 }
 
