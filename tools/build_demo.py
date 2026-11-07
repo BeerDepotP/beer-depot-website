@@ -153,6 +153,27 @@ sched_demo = r"""
   const link = { "pe-jo":"s1", "pe-dave":"s2", "pe-scott":"s3", "pe-heather":"s4" };
   SCH.schedule.settings.people.forEach(p => { if(link[p.id]) p.staffId = link[p.id]; });
   SCH.schedule.settings.ownerName = "Ty";
+  // demo timecards: extra past shifts for each person with different hours, some unpaid, some paid, a few with no timecard yet (so you can send them)
+  (() => {
+    const S = SCH.schedule, t = today(); S.cards = [];
+    const plan = [   // who, days ago, scheduled start-end, card in-out ("" = no card yet), paid?
+      ["pe-jo", 1, "09:00","17:00", "08:55","17:20", 0], ["pe-jo", 2, "12:00","20:00", "12:00","19:30", 0], ["pe-jo", 4, "16:30","21:00", "16:25","21:40", 1], ["pe-jo", 6, "08:30","16:00", "", "", 0],
+      ["pe-dave", 1, "12:00","20:00", "12:10","20:00", 0], ["pe-dave", 3, "08:30","16:00", "08:30","16:45", 0], ["pe-dave", 5, "12:00","21:00", "11:55","21:15", 1],
+      ["pe-scott", 2, "08:30","15:00", "08:20","15:05", 0], ["pe-scott", 3, "16:30","21:00", "16:30","22:10", 0], ["pe-scott", 6, "12:00","20:00", "12:00","20:00", 0],
+      ["pe-heather", 1, "08:30","16:00", "", "", 0], ["pe-heather", 4, "12:00","20:00", "12:15","20:30", 0], ["pe-heather", 5, "16:30","21:00", "16:30","21:00", 1],
+      ["owner", 2, "12:00","20:00", "11:45","20:15", 0], ["owner", 5, "08:30","16:00", "08:30","16:30", 1]];
+    let n = 0;
+    for (let [who, ago, ss, ee, ci, co, paid] of plan) {
+      const date = addDays(t, -ago); const list = (S.shifts[date] = S.shifts[date] || []);
+      const mm = x => { const [h, m] = x.split(":").map(Number); return h * 60 + m; }, hm = v => String(Math.floor(((v % 1440) + 1440) % 1440 / 60)).padStart(2, "0") + ":" + String(((v % 60) + 60) % 60).padStart(2, "0");
+      let sh = list.find(x => x.who === who);   // that person already works that day on the paper calendar: use that shift, with the same early/late differences
+      if (sh) { if (ci) { const di = mm(ci) - mm(ss), dout = mm(co) - mm(ee); ci = hm(mm(sh.start) + di); co = hm(mm(sh.end) + dout); } }
+      else { if (list.some(x => x.start < ee && ss < x.end && x.who === who)) continue; sh = { id: "demo" + (++n), who, start: ss, end: ee, note: "" }; list.push(sh); }
+      if (S.cards.some(c => c.shiftId === sh.id)) continue;
+      n++;
+      if (ci) S.cards.push({ id: "dc" + n, date, who, name: "", shiftId: sh.id, in: ci, out: co, sent: new Date().toISOString(), paid: !!paid, paidAt: paid ? new Date(Date.now() - 86400000 * (paid ? 1 : 0)).toISOString() : "", by: who });
+    }
+  })();
   const prev = window.fetch.bind(window);
   window.fetch = async (url, opt) => String(url).startsWith("/api/schedule") ? handler(new Request("https://demo.local/api/schedule", { method:"POST", body:opt.body })) : prev(url, opt);
 })();
