@@ -192,7 +192,7 @@ function viewEmpTime(){   // employee Timecards tab: the clock on top; fixing ho
   const d = sch.data, me = d.me.id, t = schToday(), back = addD(t, -7);
   const mineUn = tcUnpaid().filter(c => c.who === me), oldUn = mineUn.filter(c => c.date < back).sort((x, y) => x.date.localeCompare(y.date));
   const paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
-  const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x)));
+  const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x))).reverse();
   const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing(), extras = mineUn.filter(c => c.extra && c.date >= back).sort((x, y) => x.date.localeCompare(y.date));
   const autos = mineUn.filter(c => c.auto && c.date >= addD(t, -3));
   const open = sch.tcOpen || "";
