@@ -1916,7 +1916,15 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
   const pv = payOf(me), payShort = pv.mode === "weekly" ? "Paid every Friday" : pv.req ? "Paid " + fDay(pv.req) : "Paid when you ask";
   const money = `<div class="card sp-card" style="margin-top:8px"><span class="help" style="margin:0">Not paid yet: <b>${tcH(unTot)}</b>${d.me.manager ? "" : ` · ${esc(payShort)} · <a href="#" data-payopen>${sch.payOpen ? "Close" : "Change"}</a>`}</span></div>` + (d.me.manager || !sch.payOpen ? "" : `<div style="margin-top:8px">${empPayBox(me)}</div>`);
   const tog = `<div class="sch-togrow"><div class="sch-tog"><button type="button" data-mmode="list" aria-pressed="${sch.mmode !== "cal"}">List</button><button type="button" data-mmode="cal" aria-pressed="${sch.mmode === "cal"}">Calendar</button></div></div>`;
-  const top = nextShiftBanner() + tcBanner() + swapsBlock();
+  const payTop = (() => {   // "When I Ask" people: the Pay Me button sits right under the Next Shift box
+    if(d.me.manager || pv.mode !== "ask") return "";
+    const miss = missFor(me);
+    if(pv.req) return `<div class="card sp-card" style="margin-top:8px"><b>You're on the list to be paid ${esc(fDay(pv.req))}</b><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel</button></div>`;
+    if(miss.length) return `<div class="card sp-card" style="margin-top:8px"><b>Want to be paid?</b><span class="help" style="margin:0">Send your timecard first for ${miss.map(m => esc(fDay(m.date))).join(" and ")}.</span></div>`;
+    if(payCards(me).length) return `<button type="button" class="btn" data-tcask style="margin-top:8px;width:100%">Pay Me ${payWord()}</button>`;
+    return "";
+  })();
+  const top = nextShiftBanner() + tcBanner() + payTop + swapsBlock();
   if(sch.mmode === "cal") return top + tog + monthCal(true) + money;
   return top + tog + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">This week: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> · ${monthName(m0)}: <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b></p>`
     + (rowsOf(upDates, false, true) || `<p class="help" style="margin:10px 2px">No shifts yet. They show up once the owner confirms the month.</p>`)
