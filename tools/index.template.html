@@ -162,6 +162,7 @@
   .sale-card .was{color:var(--muted);font-size:16px;text-decoration:line-through}
   .chip.sale-chip{background:#D7261E;border-color:#D7261E;color:#fff}
   .chip.sale-chip.on{border-color:var(--ink)}
+  .sale-card[hidden]{display:none}
   .seasonal{background:#F6EEE4}
   .seasonal .shelf-head{border-bottom-color:var(--orange)}
   .seasonal .shelf-head h2{color:var(--orange-deep)}
@@ -762,8 +763,20 @@ function renderSeasonal(j){
       <div class="body"><h3>${esc(s.name)}</h3>${s.note?`<p class="note">${esc(s.note)}</p>`:""}
       ${s.price?`<div class="pricing"><span class="now">$${esc(s.price)}</span></div>`:""}</div></article>`;
   }).join("");
+  filterShelves();
 }
-let saleItems = [];
+let saleItems = [], saleShown = 0, seaShown = 0;
+// While someone is searching, On Sale and Seasonal (gift packs, etc.) only show the cards that match what they typed; the box hides if nothing matches
+function filterShelves(){
+  const q = ($("#q") ? $("#q").value.trim() : "");
+  const one = (id, items, countId, word1, wordN) => { const sec = $("#"+id); if(!sec) return 0; let n = 0;
+    sec.querySelectorAll(".sale-card").forEach(c=>{ const ok = !q || matches(c.textContent, q); c.hidden = !ok; if(ok) n++; });
+    sec.hidden = !items.length || (!!q && !n);
+    const ct = $("#"+countId); if(ct) ct.textContent = items.length ? n + (n===1?word1:wordN) : "";
+    return sec.hidden ? 0 : n; };
+  saleShown = one("on-sale", saleItems, "sale-count", " Deal", " Deals");
+  seaShown = one("seasonal", seasonal.items, "seasonal-count", " Item", " Items");
+}
 function renderSales(list){
   saleItems = (list||[]).filter(s=>s && s.name && s.price);
   const sec = $("#on-sale"); sec.hidden = !saleItems.length;
@@ -776,6 +789,7 @@ function renderSales(list){
       <div class="body"><h3>${esc(s.name)}</h3>${s.note?`<p class="note">${esc(s.note)}</p>`:""}
       <div class="pricing"><span class="now">$${esc(s.price)}</span>${s.was?`<span class="was">Reg. $${esc(s.was)}</span>`:""}</div></div></article>`;
   }).join("");
+  filterShelves();
 }
 function cached(){ try{ return JSON.parse(localStorage.getItem("bd-stock")||"null"); }catch(e){ return null; } }
 function saveCache(data, sw){ try{ localStorage.setItem("bd-stock", JSON.stringify({ data, sw, swp: swPrices, swe: swEdits, swt: swToppings, swm: swMenu })); }catch(e){} }
@@ -894,6 +908,7 @@ function render(){
     if(cards) menuHtml += `<h3 class="grp">${esc(gname)}</h3>` + (note ? `<p class="maker-note">${esc(note)}</p>` : "") + `<div class="menu">${cards}</div>`;
   }
   $("#menu").innerHTML = menuHtml;
+  filterShelves();
   $("#made-here").hidden = (qRaw && !foodShown);
   $("#food-count").textContent = foodShown + (foodShown===1?" Item":" Items");
 
@@ -1039,8 +1054,8 @@ function render(){
   $("#chips").dataset.built = "0";
   const navHtml = {
     "made-here": foodShown && `<a class="chip food" href="#made-here">${esc(navName("made-here","Made Here"))}</a>`,
-    "on-sale": saleItems.length && `<a class="chip sale-chip" href="#on-sale">${esc(navName("on-sale","On Sale"))}</a>`,
-    "seasonal": seasonal.items.length && `<a class="chip seasonal-chip" href="#seasonal">${esc(seasonal.title)}</a>`,
+    "on-sale": saleShown && `<a class="chip sale-chip" href="#on-sale">${esc(navName("on-sale","On Sale"))}</a>`,
+    "seasonal": seaShown && `<a class="chip seasonal-chip" href="#seasonal">${esc(seasonal.title)}</a>`,
     "local-favorites": localShown && `<a class="chip" href="#local-favorites">${esc(navName("local-favorites","Local Favorites"))}</a>`,
     "grilling-outdoor": gearShown && `<a class="chip" href="#grilling-outdoor">${esc(navName("grilling-outdoor","Grilling & Outdoor"))}</a>`,
     "new-arrivals": fresh.length && `<a class="chip" href="#new-arrivals">${esc(navName("new-arrivals","New Arrivals"))}</a>`,
