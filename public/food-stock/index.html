@@ -1850,10 +1850,21 @@ function renderSchedule(){
   if(mgr) pills.push(["setup","Setup"]);
   $("#sch-pills").innerHTML = pills.map(([k,n]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}</button>`).join("");
   setSchBadge(waiting);
-  $("#sch-body").innerHTML = ({ mine: viewMine, team: viewTeam, swaps: viewSwaps, setup: viewSetup })[sch.view]();
+  $("#sch-body").innerHTML = (mgr ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, swaps: viewSwaps, setup: viewSetup })[sch.view]();
   selPaint();
 }
 
+function pendingInfo(){
+  const pe = (sch.data.settings || {}).pending || { who: {}, open: [] }, t = schToday();
+  const people = Object.values(pe.who).filter(a => a.some(x => x >= t)).length, open = (pe.open || []).filter(x => x >= t).length;
+  return { people, open };
+}
+function confirmBar(){
+  const { people, open } = pendingInfo();
+  if(!people && !open) return "";
+  const bits = [people ? people + (people === 1 ? " person" : " people") : "", open ? open + (open === 1 ? " open day" : " open days") : ""].filter(Boolean).join(" and ");
+  return `<div class="card sp-card sch-confirm" style="border:2px solid #F26B1D;margin-bottom:10px"><b>Alerts Are On Hold</b><span class="help" style="margin:0">Nobody has been told yet about your changes (${bits}). Tap Confirm Schedule when this month is done and everyone gets one alert.</span><button class="btn" type="button" id="sch-confirm">Confirm Schedule</button><button class="btn ghost" type="button" id="sch-confirm-no">Don't Send Alerts</button></div>`;
+}
 function nextShiftBanner(){
   const d = sch.data, me = d.me.id, t = schToday(), now = schNow();
   const dates = Object.keys(d.shifts).sort();
@@ -1957,6 +1968,7 @@ function alertsBlock(){
       <label class="help" style="margin:0;display:grid;gap:4px">Message<input style="width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F" data-alf="body" maxlength="200" value="${esc(c.body || m.body)}"></label></div>`; }).join("");
   return `<h3 class="grp">Phone Alerts</h3>
     <p class="help">Alerts pop up on an employee's phone once they tap Turn On Notifications at the top of this tab. Switch any alert off, or change its wording. You can use {who} (the person), {shift} (the day and time), {other} (the other shift in a swap) and {answer} (yes or no).</p>
+    <div class="card sp-card"><div class="sch-prt"><span><b>Hold Schedule Alerts Until I Confirm</b><br><span class="help" style="margin:0">When you add, change or remove shifts, nobody is told until you tap Confirm Schedule. Swaps and give-aways still alert right away.</span></span><button type="button" class="sw sch-sw" role="switch" aria-checked="${n.hold !== false}" aria-label="Hold schedule alerts until I confirm" data-alsw="hold"></button></div></div>
     <div class="card sp-card"><div class="sch-prt"><b>All Phone Alerts</b><button type="button" class="sw sch-sw" role="switch" aria-checked="${n.on !== false}" aria-label="All phone alerts" data-alsw="all"></button></div></div>
     ${rows}
     <button class="btn" type="button" id="sch-alsave">Save Alert Wording</button>
@@ -1964,7 +1976,8 @@ function alertsBlock(){
     <button class="btn ghost" type="button" id="sch-altest">Send Me a Test Alert</button>`;
 }
 function alertsRead(){
-  const out = { on: (document.querySelector('[data-alsw=all]') || {}).getAttribute ? document.querySelector('[data-alsw=all]').getAttribute("aria-checked") === "true" : true, kinds: {} };
+  const hs = document.querySelector('[data-alsw=hold]');
+  const out = { hold: hs ? hs.getAttribute("aria-checked") === "true" : true, on: (document.querySelector('[data-alsw=all]') || {}).getAttribute ? document.querySelector('[data-alsw=all]').getAttribute("aria-checked") === "true" : true, kinds: {} };
   document.querySelectorAll(".sch-al").forEach(card => { const k = card.dataset.alk; out.kinds[k] = { on: card.querySelector("[data-alsw]").getAttribute("aria-checked") === "true", title: card.querySelector("[data-alf=title]").value, body: card.querySelector("[data-alf=body]").value }; });
   return out;
 }
@@ -2255,7 +2268,9 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-pnadd")){ const nm = $("#sch-pnew").value.trim(); if(!nm){ toast("Type a name first.", true); return; } const nc = newCol(); sch.newCol = ""; await schDo({ action: "addPerson", name: nm, color: nc }, nm + " added", true); return; }
   const nco = el.closest("[data-ncol]"); if(nco){ const keep = $("#sch-pnew") ? $("#sch-pnew").value : ""; sch.newCol = nco.dataset.ncol; renderSchedule(); if($("#sch-pnew")) $("#sch-pnew").value = keep; return; }
   const alsw = el.closest("[data-alsw]");
-  if(alsw){ const o = alertsRead(), k = alsw.dataset.alsw; if(k === "all") o.on = !o.on; else o.kinds[k].on = !o.kinds[k].on; await schDo({ action: "settings", notify: o }, null, true); return; }
+  if(alsw){ const o = alertsRead(), k = alsw.dataset.alsw; if(k === "all") o.on = !o.on; else if(k === "hold") o.hold = !o.hold; else o.kinds[k].on = !o.kinds[k].on; await schDo({ action: "settings", notify: o }, null, true); return; }
+  if(el.closest("#sch-confirm")){ const pi = pendingInfo(); if(await askYes(`Send alerts now to ${pi.people} ${pi.people === 1 ? "person" : "people"}${pi.open ? " and tell everyone about the open days" : ""}?`, "Confirm")){ try{ await schCall({ action: "confirm" }); renderSchedule(); toast("Schedule confirmed. Alerts sent."); }catch(err){ toast(err.message, true); } } return; }
+  if(el.closest("#sch-confirm-no")){ if(await askYes("Throw away the waiting alerts without sending them? The shifts stay as they are.", "Don't Send", true)){ await schDo({ action: "discardPending" }, "Alerts cleared, nothing sent", true); } return; }
   if(el.closest("#sch-alsave")){ await schDo({ action: "settings", notify: alertsRead() }, "Alert wording saved", true); return; }
   if(el.closest("#sch-alreset")){ if(await askYes("Put every alert back to the standard wording?", "Put Back")){ const o = alertsRead(); for(const k of Object.keys(o.kinds)){ o.kinds[k].title = ""; o.kinds[k].body = ""; } await schDo({ action: "settings", notify: o }, "Standard wording back", true); } return; }
   if(el.closest("#sch-altest")){ try{ const j = await api("/api/schedule", { action: "pushTest" }); toast(j.message); }catch(err){ toast(err.message, true); } return; }

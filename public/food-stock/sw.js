@@ -11,7 +11,7 @@ const USE_ONESIGNAL = true;
 
 const APP_URL = "/food-stock/";
 const ICON = "/img/icon-192.png";
-const BADGE = "/img/favicon-64.png";
+const BADGE = "/img/notify-badge.png";
 
 if (USE_ONESIGNAL) importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
 

@@ -5,6 +5,8 @@
 
 export const ONESIGNAL_APP_ID = "e59380ac-42e7-46f8-97c7-7da768e2e8e2";
 const LINK = "https://beerdepotpewaukee.com/food-stock/#schedule";
+const ICON = "https://beerdepotpewaukee.com/img/icon-192.png";          // the Beer Depot logo (the picture on the right of an Android notification)
+const BADGE = "https://beerdepotpewaukee.com/img/notify-badge.png";    // small white logo in the phone's top bar
 
 // The six alerts. {who} {shift} {other} {answer} are filled in; the owner can reword and switch each one off.
 export const ALERTS = {
@@ -18,7 +20,7 @@ export const ALERTS = {
 
 export function alertSettings(s) {
   const n = (s && typeof s === "object") ? s : {};
-  const out = { on: n.on !== false, kinds: {} };
+  const out = { on: n.on !== false, hold: n.hold !== false, kinds: {} };   // hold = manager schedule edits wait for "Confirm Schedule"
   for (const [k, def] of Object.entries(ALERTS)) {
     const c = (n.kinds && n.kinds[k]) || {};
     out.kinds[k] = {
@@ -55,6 +57,9 @@ export async function sendPush(to, title, body) {
         headings: { en: title },
         contents: { en: body },
         url: LINK,
+        chrome_web_icon: ICON,
+        chrome_web_badge: BADGE,
+        firefox_icon: ICON,
       }),
     });
     if (!r.ok) console.error("onesignal", r.status, await r.text().catch(() => ""));

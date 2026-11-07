@@ -48,6 +48,10 @@ function clean(d) {
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
   d.settings.notify = alertSettings(d.settings.notify);   // push alerts: {on, kinds:{swapAsk,..:{on,title,body}}}
+  const pe = d.settings.pending && typeof d.settings.pending === "object" ? d.settings.pending : {};   // alerts waiting for "Confirm Schedule": { who:{personId:[dates]}, open:[dates] }
+  const ds = a => [...new Set((Array.isArray(a) ? a : []).filter(x => D.test(String(x))))].sort().slice(0, 400);
+  d.settings.pending = { who: {}, open: ds(pe.open) };
+  for (const [k, v] of Object.entries(pe.who && typeof pe.who === "object" ? pe.who : {})) { const a = ds(v); if (a.length) d.settings.pending.who[String(k).slice(0, 40)] = a; }
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
@@ -141,7 +145,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
@@ -159,6 +163,19 @@ export default async (req) => {
   const managers = async () => ["owner", ...(await staffOf(store)).filter(m => m.manager).map(m => m.id)];
   const queue = (kind, people, tokens) => { const ids = [...new Set((people || []).map(pushId).filter(x => x && x !== me.push))]; if (ids.length) outbox.push({ kind, ids, tokens: { who: me.name, ...tokens } }); };
   const queueIds = (kind, ids, tokens) => { ids = [...new Set(ids.filter(x => x && x !== me.push))]; if (ids.length) outbox.push({ kind, ids, tokens: { who: me.name, ...tokens } }); };
+  const holding = () => d.settings.notify.on !== false && d.settings.notify.hold !== false;
+  const span = ups => ups.length === 1 ? fD(ups[0]) : `${ups.length} days between ${fD(ups[0])} and ${fD(ups[ups.length - 1])}`;
+  // A manager edit: wait for "Confirm Schedule" (so nobody gets a pile of alerts while a month is being built), or tell right away if holding is off.
+  const noteChange = (pid, date, text) => {
+    if (!pid || date < today()) return;
+    if (holding()) { const w = d.settings.pending.who; w[pid] = [...new Set([...(w[pid] || []), date])].sort().slice(0, 400); }
+    else queue("shiftChanged", [pid], { shift: text });
+  };
+  const noteOpen = (dates, text) => {
+    const ups = dates.filter(x => x >= today()); if (!ups.length) return;
+    if (holding()) d.settings.pending.open = [...new Set([...d.settings.pending.open, ...ups])].sort().slice(0, 400);
+    else queue("openShift", everyone(), { shift: text });
+  };
   const colorOf = (p, i) => String(p.color || (d.settings.colors || {})[p.id] || PAL[i % PAL.length]).toLowerCase();
   const colorTaken = (id, col) => { const c = String(col).toLowerCase(); return team.some((p, i) => p.id !== id && colorOf(p, i) === c); };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
@@ -203,9 +220,9 @@ export default async (req) => {
     const prevWho = cur ? cur.who : null;
     if (cur) Object.assign(cur, row); else list.push(row);
     if (b.date >= today()) {
-      if (!w) { if (prevWho !== "") queue("openShift", everyone(), { shift: fS(b.date, row) }); }
-      else queue("shiftChanged", [w], { shift: fS(b.date, row) });
-      if (prevWho && prevWho !== w) queue("shiftChanged", [prevWho], { shift: `${fS(b.date, cur ? { start: b.start, end: b.end } : row)} is no longer yours` });
+      if (!w) { if (prevWho !== "") noteOpen([b.date], fS(b.date, row)); }
+      else noteChange(w, b.date, fS(b.date, row));
+      if (prevWho && prevWho !== w) noteChange(prevWho, b.date, `${fS(b.date, row)} is no longer yours`);
     }
     list.sort((x, y) => x.start.localeCompare(y.start) || x.end.localeCompare(y.end));
     return ok();
@@ -214,7 +231,7 @@ export default async (req) => {
     if (!isDate(b.date)) return json({ error: "Bad request." }, 400);
     const gone = (d.shifts[b.date] || []).find(s => s.id === b.id);
     d.shifts[b.date] = (d.shifts[b.date] || []).filter(s => s.id !== b.id);
-    if (gone && gone.who && b.date >= today()) queue("shiftChanged", [gone.who], { shift: `${fS(b.date, gone)} was removed` });
+    if (gone && gone.who) noteChange(gone.who, b.date, `${fS(b.date, gone)} was removed`);
     return ok();
   }
   if (act === "batch" || act === "batchRemove") {
@@ -244,9 +261,9 @@ export default async (req) => {
       sweep(d);
       const upcoming = hit.filter(x => x >= today()).sort();
       if (upcoming.length) {
-        const span = upcoming.length === 1 ? `${fS(upcoming[0], b)}` : `${upcoming.length} days (${fD(upcoming[0])} to ${fD(upcoming[upcoming.length - 1])}, ${fT(b.start)} – ${fT(b.end)})`;
-        if (w) queue("shiftChanged", [w], { shift: span });
-        else queue("openShift", everyone(), { shift: span });
+        const txt = upcoming.length === 1 ? `${fS(upcoming[0], b)}` : `${upcoming.length} days (${fD(upcoming[0])} to ${fD(upcoming[upcoming.length - 1])}, ${fT(b.start)} – ${fT(b.end)})`;
+        if (w) for (const x of upcoming) noteChange(w, x, txt);
+        else noteOpen(upcoming, txt);
       }
       return ok({ added, changed, skipped });
     }
@@ -254,21 +271,33 @@ export default async (req) => {
     const lost = {};
     for (const date of dates) {
       const list = d.shifts[date] || [], keep = list.filter(s => !(all || s.who === String(b.who)));
-      if (date >= today()) for (const s of list) if (!keep.includes(s) && s.who) lost[s.who] = (lost[s.who] || 0) + 1;
+      if (date >= today()) for (const s of list) if (!keep.includes(s) && s.who) { lost[s.who] = (lost[s.who] || 0) + 1; noteChange(s.who, date, ""); }
       removed += list.length - keep.length; d.shifts[date] = keep;
     }
-    for (const [pid, n] of Object.entries(lost)) queue("shiftChanged", [pid], { shift: `${n} shift${n === 1 ? " was" : "s were"} removed` });
+    if (!holding()) for (const [pid, n] of Object.entries(lost)) queue("shiftChanged", [pid], { shift: `${n} shift${n === 1 ? " was" : "s were"} removed` });
     return ok({ removed });
+  }
+  if (act === "confirm" || act === "discardPending") {
+    const pe = d.settings.pending; let people = 0;
+    if (act === "confirm") {
+      for (const [pid, dates] of Object.entries(pe.who)) { const ups = dates.filter(x => x >= today()); if (ups.length) { queue("shiftChanged", [pid], { shift: span(ups) }); people++; } }
+      const open = pe.open.filter(x => x >= today());
+      if (open.length) queue("openShift", everyone(), { shift: open.length === 1 ? `${fD(open[0])}` : `${open.length} days between ${fD(open[0])} and ${fD(open[open.length - 1])}` });
+    }
+    d.settings.pending = { who: {}, open: [] };
+    return ok({ confirmed: act === "confirm" ? people : 0 });
   }
   if (act === "copyWeek" || act === "clearWeek") {
     const start = act === "copyWeek" ? b.to : b.start;
     if (!isDate(start) || (act === "copyWeek" && !isDate(b.from))) return json({ error: "Bad request." }, 400);
     for (let i = 0; i < 7; i++) {
       const dst = addDays(start, i);
-      if (act === "clearWeek" || b.replace) delete d.shifts[dst];
+      if (act === "clearWeek" || b.replace) { for (const s of d.shifts[dst] || []) if (s.who) noteChange(s.who, dst, `${fS(dst, s)} was removed`); delete d.shifts[dst]; }
       if (act === "copyWeek") {
         const src = (d.shifts[addDays(b.from, i)] || []).map(s => ({ ...s, id: rid() }));
-        d.shifts[dst] = [...(d.shifts[dst] || []), ...src.filter(s => !(d.shifts[dst] || []).some(e => e.who === s.who && e.start === s.start && e.end === s.end))];
+        const fresh = src.filter(s => !(d.shifts[dst] || []).some(e => e.who === s.who && e.start === s.start && e.end === s.end));
+        for (const s of fresh) { if (s.who) noteChange(s.who, dst, fS(dst, s)); else noteOpen([dst], fS(dst, s)); }
+        d.shifts[dst] = [...(d.shifts[dst] || []), ...fresh];
       }
     }
     return ok();
