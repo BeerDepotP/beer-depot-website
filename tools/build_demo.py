@@ -97,8 +97,8 @@ function menuPhoto(f, key){
       if(b.action==="whoami") return ok(m ? {owner:false,name:m.name,tabs:m.tabs} : {owner:true,name:"Owner",tabs:ALL});
       if(m) return ok({error:"Your PIN doesn't have access to that. Ask the owner."},403);
       if((b.action==="add" || b.newPin) && S.some(x=>x.pin===String(b.newPin) && x.id!==b.id)) return ok({error:"That PIN is already used. Pick another."},400);
-      if(b.action==="add") S.push({id:"s"+Date.now().toString(36),name:b.name,pin:String(b.newPin),tabs:b.tabs,on:true});
-      if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); }
+      if(b.action==="add") S.push({id:"s"+Date.now().toString(36),name:b.name,pin:String(b.newPin),tabs:b.tabs,on:true,color:b.color});
+      if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); if(b.color) x.color = b.color; }
       if(b.action==="remove") DB.staff = S.filter(x=>x.id!==b.id);
       return ok({ok:true,members:DB.staff.map(({pin,...x})=>x),activity:DB.activity}); }
     if(url.startsWith("/api/products")){ const R = DB.rules;
@@ -137,7 +137,7 @@ sched_demo = r"""
 (function(){
   const SCH = {};
   const staffList = () => window.__DEMO_STAFF || [];
-  const getStore = () => ({ async get(k){ if(k==="staff") return { members: staffList().map(s=>({id:s.id,name:s.name,on:s.on})) }; return SCH[k] ? JSON.parse(JSON.stringify(SCH[k])) : null; }, async setJSON(k,v){ SCH[k] = JSON.parse(JSON.stringify(v)); } });
+  const getStore = () => ({ async get(k){ if(k==="staff") return { members: staffList().map(s=>({id:s.id,name:s.name,on:s.on,color:s.color})) }; return SCH[k] ? JSON.parse(JSON.stringify(SCH[k])) : null; }, async setJSON(k,v){ SCH[k] = JSON.parse(JSON.stringify(v)); } });
   const pinUser = async (st, pin) => { const m = staffList().find(x => x.on && x.pin === String(pin)); return m ? { staff:true, id:m.id, name:m.name, tabs:(m.tabs||[]) } : { owner:true, name:"Owner", tabs:[] }; };
   const checkPin = async (st, pin, area) => { if(area){ const w = await pinUser(st, pin); if(!w.owner && !w.tabs.includes(area)) return { error:"Your PIN doesn't have access to that. Ask the owner.", status:403 }; } return null; };
   const json = (b, s) => Response.json(b, { status: s || 200 });

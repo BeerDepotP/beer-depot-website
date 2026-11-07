@@ -58,7 +58,8 @@ export function seeded() {
 async function staffOf(store) { return (((await store.get("staff", { type: "json" })) || { members: [] }).members || []).filter(m => m.on !== false); }
 async function teamOf(store, d) {
   const staff = await staffOf(store), linked = new Set(d.settings.people.map(p => p.staffId).filter(Boolean));
-  return [{ id: "owner", name: d.settings.ownerName }, ...d.settings.people.map(p => ({ id: p.id, name: p.name, staffId: p.staffId })), ...staff.filter(m => !linked.has(m.id)).map(m => ({ id: m.id, name: m.name }))]
+  const col = id => { const c = (staff.find(m => m.id === id) || {}).color; return /^#[0-9A-Fa-f]{6}$/.test(c || "") ? c : undefined; };
+  return [{ id: "owner", name: d.settings.ownerName }, ...d.settings.people.map(p => ({ id: p.id, name: p.name, staffId: p.staffId, color: col(p.staffId) })), ...staff.filter(m => !linked.has(m.id)).map(m => ({ id: m.id, name: m.name, color: col(m.id) }))]
     .map(p => ({ ...p, hidden: d.settings.hide.includes(p.id) }));
 }
 
@@ -142,6 +143,7 @@ export default async (req) => {
   if (bad) return json({ error: bad.error }, bad.status);
 
   const who = await pinUser(store, b.pin);
+  if (act === "presets" && !who.owner) return json({ error: "Only the owner can add or remove shift presets." }, 403);
   const raw = await store.get(KEY, { type: "json" });
   const d = raw ? clean(raw) : seeded();
   let team = await teamOf(store, d);

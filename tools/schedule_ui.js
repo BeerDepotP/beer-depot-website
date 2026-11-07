@@ -22,9 +22,9 @@ const schIsMgr = () => !!(sch.data && sch.data.me.manager);
 const schName = id => { const p = sch.data.team.find(x => x.id === id); return id === sch.data.me.id ? (p ? p.name : "You") : (p ? p.name : "Former Employee"); };
 const schPreset = (s, e) => sch.data.presets.find(p => p.start === s && p.end === e);
 const schColor = (s, e) => (schPreset(s, e) || {}).color || "#6F6259";
-const SCH_PAL = ["#F26B1D","#1F7A3A","#2F6DB5","#8A4FBF","#C8102E","#B8860B","#0E8A8A","#D6336C","#5B6770","#7A4A1E","#1B3A6B","#6B8E23","#A3238E","#2A9DD8","#E8574A","#7C7A1E","#4B4FBF","#145A32","#B03060","#333F48"];
+const SCH_PAL = ["#E6194B","#F58231","#D9A000","#6BA814","#1E8E3E","#008080","#0097B2","#4363D8","#1B1F6B","#911EB4","#8E7CC3","#D81FD1","#F06292","#800000","#8B5A2B","#808000","#5B6770","#222222","#3FA7E0","#5E2750"];
 function newCol(){ if(sch.newCol) return sch.newCol; const used = new Set(sch.data.team.map(p => empColor(p.id))); return SCH_PAL.find(c => !used.has(c)) || SCH_PAL[0]; }
-function empColor(id){ const d = sch.data; if(!id) return "#8C7F74"; const c = (d.settings.colors || {})[id]; if(c) return c; const i = d.team.findIndex(p => p.id === id); return SCH_PAL[(i < 0 ? 0 : i) % SCH_PAL.length]; }
+function empColor(id){ const d = sch.data; if(!id) return "#8C7F74"; const tm = d.team.find(p => p.id === id); if(tm && tm.color) return tm.color; const c = (d.settings.colors || {})[id]; if(c) return c; const i = d.team.findIndex(p => p.id === id); return SCH_PAL[(i < 0 ? 0 : i) % SCH_PAL.length]; }
 const nightFrom = () => (sch.data.settings.nightFrom || "12:00");
 const isNight = s => s.start >= nightFrom();
 const myHours = (from, to) => { let h = 0; for(let d = from; d <= to; d = addD(d, 1)) schShifts(d).forEach(s => { if(s.who === sch.data.me.id) h += hrs(s.start, s.end); }); return h; };
@@ -193,8 +193,9 @@ function viewSetup(){
       <div class="sch-prt"><label class="help" style="margin:0">From<input type="time" data-pf="start" value="${esc(p.start)}"></label><label class="help" style="margin:0">To<input type="time" data-pf="end" value="${esc(p.end)}"></label></div>
       <div class="sch-cols">${SCH_COLORS.map(c => `<button type="button" class="sch-col${c === p.color ? " on" : ""}" style="background:${c}" data-pcol="${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("");
   const people = d.team.map(p => `<li><span><span class="nm">${esc(p.name)}</span><span class="st${p.hidden ? "" : " on"}">${p.hidden ? "Not on the schedule" : "On the schedule"}</span></span><button class="sw sch-sw" role="switch" aria-checked="${!p.hidden}" aria-label="${esc(p.name)} on the schedule" data-schhide="${esc(p.id)}"></button></li>`).join("");
-  return `<h3 class="grp">Shift Presets</h3><p class="help">These are the one-tap buttons you use to add a shift. Tap Remove to delete one, tap + Add a Preset for a new one, or change a name or time and tap Save Presets. Shifts already on the calendar are not changed.</p>${presets}
-    <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>
+  const ownerP = d.me.owner;
+  return `<h3 class="grp">Shift Presets</h3>${!ownerP ? `<p class="help">Only the owner can add or remove shift presets.</p>` : `<p class="help">These are the one-tap buttons you use to add a shift. Tap Remove to delete one, tap + Add a Preset for a new one, or change a name or time and tap Save Presets. Shifts already on the calendar are not changed.</p>${presets}
+    <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>`}
     <h3 class="grp">Swaps</h3>
     <ul class="sw-list"><li><span><span class="nm">I Approve Swaps First</span><span class="st${d.settings.approval ? " on" : ""}">${d.settings.approval ? "On: swaps wait for your OK" : "Off: swaps happen right away"}</span></span><button class="sw sch-sw" role="switch" aria-checked="${d.settings.approval}" aria-label="Approve swaps first" id="sch-appr"></button></li></ul>
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
@@ -204,7 +205,7 @@ function viewSetup(){
       <button type="button" class="btn ghost sch-sm" data-ppsave="${esc(pe.id)}" style="justify-self:start">Save</button></div>`).join("")}
     <div class="card sp-card"><input id="sch-pnew" maxlength="30" placeholder="New Person's Name (Example: Gayle)" aria-label="New person's name"><p class="help" style="margin:6px 0">Pick a color:</p><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === newCol() ? " on" : ""}" style="background:${c}" data-ncol="${c}" aria-label="Color"></button>`).join("")}</div><button class="btn" type="button" id="sch-pnadd">+ Add a Person</button></div>
     <h3 class="grp">Employee Colors</h3><p class="help">Each person's shifts show in their color on the calendar.</p>
-    ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}" style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
+    ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b>${p.color ? `<span class="help" style="margin:0">Color is set in the Staff tab (owner).</span>` : ""}<div class="sch-cols"${p.color ? " hidden" : ""}>${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}" style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
     <h3 class="grp">Day and Night</h3>
     <div class="card sp-card"><label class="help" for="sch-night" style="margin:0">Night Shifts Start At (Or Later)</label><input id="sch-night" type="time" value="${esc(nightFrom())}"><span class="help" style="margin:0">Shifts that start before this time show on the Day row of the calendar.</span><button class="btn ghost" type="button" id="sch-nsave">Save</button></div>
     <h3 class="grp">Who Is on the Schedule</h3>
@@ -232,8 +233,8 @@ function schCell(date, half){           // owner: one half of a day
     <p class="help" style="margin:10px 0 6px">2. Tap the shift:</p><div class="sch-pgrid">${presetBtns("data-addp")}</div>
     <details class="sch-cust"><summary>Other Time</summary><div class="sch-prt"><label class="help" style="margin:0">From<input type="time" id="sch-c-s" value="09:00"></label><label class="help" style="margin:0">To<input type="time" id="sch-c-e" value="17:00"></label></div>
     <input id="sch-c-n" maxlength="60" placeholder="Note (Optional)" aria-label="Note"><button type="button" class="btn" id="sch-c-add">Add This Shift</button>
-      <input id="sch-c-pn" maxlength="24" placeholder="Preset Name (To Save This Time)" aria-label="Preset name"><button type="button" class="btn ghost" id="sch-c-sp">Save This Time as a Preset</button></details>
-    <button type="button" class="btn ghost" data-gosetup>Add or Remove Presets</button>
+      ${sch.data.me.owner ? `<input id="sch-c-pn" maxlength="24" placeholder="Preset Name (To Save This Time)" aria-label="Preset name"><button type="button" class="btn ghost" id="sch-c-sp">Save This Time as a Preset</button>` : ""}</details>
+    ${sch.data.me.owner ? `<button type="button" class="btn ghost" data-gosetup>Add or Remove Presets</button>` : ""}
     <button type="button" class="btn ghost" data-schclose>Close</button>`);
   schPaint();
 }
