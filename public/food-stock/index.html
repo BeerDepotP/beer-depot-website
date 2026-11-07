@@ -1937,7 +1937,7 @@ function viewSetup(){
   return `<h3 class="grp">Shift Presets</h3>${!ownerP ? `<p class="help">Only the owner can add or remove shift presets.</p>` : `<p class="help">These are the one-tap buttons you use to add a shift. Tap Remove to delete one, tap + Add a Preset for a new one, or change a name or time and tap Save Presets. Shifts already on the calendar are not changed.</p>${presets}
     <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>`}
     <h3 class="grp">Swaps</h3>
-    <p class="help">Employees can never change a shift on their own. Every swap, give-away or open shift they take waits for your OK (only the owner can OK it) and nothing moves until you do.</p>
+    <p class="help">Swaps happen as soon as both people agree, and anyone can take an Open Shift. If an employee gives a shift away and a coworker takes it, that waits for your OK (only the owner can OK it).</p>
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
     ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
       <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
@@ -2041,7 +2041,7 @@ function schOther(date, sid){           // employee: a coworker's or an open shi
   const s = schShifts(date).find(x => x.id === sid); if(!s) return;
   if(!s.who){
     schOpen(`<h3 class="sch-h">Open Shift</h3><p class="sch-p"><b>${esc(fDay(date))}</b><br>${esc(fR(s.start, s.end))}${s.note ? "<br>" + esc(s.note) : ""}</p>
-      <button type="button" class="btn" data-schopen="${esc(date)}|${esc(sid)}">I'll Take It</button>${sch.data.settings.approval ? `<p class="help" style="margin:4px 2px 0">The owner will need to OK it.</p>` : ""}<button type="button" class="btn ghost" data-schclose>Close</button>`); return; }
+      <button type="button" class="btn" data-schopen="${esc(date)}|${esc(sid)}">I'll Take It</button><button type="button" class="btn ghost" data-schclose>Close</button>`); return; }
   const mine = myUpcoming();
   schOpen(`<h3 class="sch-h">${esc(schName(s.who))} Works This</h3><p class="sch-p"><b>${esc(fDay(date))}</b><br>${esc(fR(s.start, s.end))}</p>
     ${pendingFor(sid) ? `<p class="help">There is already a request waiting on this shift.</p>` : mine.length ? `<h3 class="grp" style="margin-top:6px">Ask to Swap — Pick Your Shift to Give</h3><div class="sch-list">${mine.map(({ date: md, s: ms }) => `<button type="button" class="btn ghost sch-row" data-doswap2="${esc(md)}|${esc(ms.id)}|${esc(date)}|${esc(sid)}"><b>${esc(fDayS(md))}</b><span>${esc(fRs(ms.start, ms.end))}</span></button>`).join("")}</div>` : `<p class="help">You don't have an upcoming shift to swap.</p>`}
@@ -2182,10 +2182,10 @@ document.addEventListener("click", async e => {
     return; }
   const sw2 = el.closest("[data-doswap2]"); if(sw2){ const [md, ms, wd, ws] = sw2.dataset.doswap2.split("|"); await schDo({ action: "swap", date: md, shiftId: ms, withDate: wd, withShiftId: ws }, "Swap request sent"); return; }
   const cn = el.closest("[data-schcancel]"); if(cn){ await schDo({ action: "cancel", id: cn.dataset.schcancel }, "Cancelled"); return; }
-  const ot = el.closest("[data-schopen]"); if(ot){ const [d, s] = ot.dataset.schopen.split("|"); await schDo({ action: "openTake", date: d, shiftId: s }, sch.data.settings.approval ? "Asked. The owner will OK it." : "It's yours!"); return; }
+  const ot = el.closest("[data-schopen]"); if(ot){ const [d, s] = ot.dataset.schopen.split("|"); await schDo({ action: "openTake", date: d, shiftId: s }, "It's yours!"); return; }
   const rq = el.closest("[data-schreq]");
   if(rq){ const id = rq.closest("[data-rid]").dataset.rid, a = rq.dataset.schreq;
-    const m = ({ yes: [{ action: "answer", accept: true }, sch.data.settings.approval ? "Said yes. The owner will OK it." : "Swapped!"], no: [{ action: "answer", accept: false }, "Said no"],
+    const m = ({ yes: [{ action: "answer", accept: true }, "Swapped!"], no: [{ action: "answer", accept: false }, "Said no"],
       take: [{ action: "take" }, sch.data.settings.approval ? "Asked. The owner will OK it." : "It's yours!"], cancel: [{ action: "cancel" }, "Cancelled"],
       approve: [{ action: "resolve", approve: true }, "Done. The schedule is updated."], deny: [{ action: "resolve", approve: false }, "Said no"] })[a];
     await schDo({ id, ...m[0] }, m[1], true); return; }

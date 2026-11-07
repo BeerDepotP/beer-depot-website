@@ -298,7 +298,7 @@ export default async (req) => {
 
   /* ---------- everyone ---------- */
   const mine = (date, sid) => { const s = findShift(d, date, sid); return s && s.who === me.id ? s : null; };
-  const needsOk = () => "approve";   // always: every employee change waits for the owner
+  const needsOk = kind => (kind === "give" ? "approve" : "go");   // owner OKs only a shift someone gives away; swaps (both agree) and Open Shifts go through
   if (act === "give" || act === "swap") {
     if (!isDate(b.date) || b.date < today()) return json({ error: "Pick a shift that hasn't happened yet." }, 400);
     const a = mine(b.date, b.shiftId);
@@ -323,7 +323,7 @@ export default async (req) => {
     if (!a || a.who !== r.by) return json({ error: "That shift changed." }, 400);
     if (clash(d, r.date, me.id, a.start, a.end, [])) return json({ error: "You already work then." }, 400);
     r.taker = me.id;
-    if (needsOk() === "approve") r.status = "approve";
+    if (needsOk("give") === "approve") r.status = "approve";
     else { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
     return ok();
   }
@@ -332,7 +332,7 @@ export default async (req) => {
     const s = findShift(d, b.date, b.shiftId);
     if (!s || s.who) return json({ error: "Someone already has that shift." }, 400);
     if (clash(d, b.date, me.id, s.start, s.end, [])) return json({ error: "You already work then." }, 400);
-    if (needsOk() === "approve") {
+    if (needsOk("openTake") === "approve") {
       if (d.requests.some(r => r.kind === "claim" && r.shiftId === s.id && r.status === "approve")) return json({ error: "Someone already asked for that one." }, 400);
       d.requests.unshift({ id: rid(), kind: "claim", status: "approve", by: "", taker: me.id, date: b.date, shiftId: s.id, a: snap(s), at: new Date().toISOString() });
     } else s.who = me.id;
@@ -343,7 +343,7 @@ export default async (req) => {
     if (!r || r.status !== "ask" || r.withWho !== me.id) return json({ error: "That request is already finished." }, 400);
     const who2 = name(me.id), what = `your ${fS(r.date, r.a)} for their ${fS(r.withDate, r.b)}`;
     if (!b.accept) { r.status = "declined"; r.closed = new Date().toISOString(); await tell(store, d, r.by, `${who2} said no to the swap`, [`${who2} said no to swapping ${what}.`]); return ok(); }
-    if (needsOk() === "approve") r.status = "approve";
+    if (needsOk("swap") === "approve") r.status = "approve";
     else { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
     await tell(store, d, r.by, `${who2} said yes to the swap`, [`${who2} said yes to swapping ${what}.`, r.status === "approve" ? "It now waits for the owner's OK." : "The schedule is updated."]);
     return ok();
