@@ -663,10 +663,6 @@
   <section id="p-staff" hidden>
     <h2 class="sec">Staff PINs</h2>
     <p class="help">Only you see this tab. Give each employee their own PIN and pick which tabs they can use. Their PIN only opens those tabs, and you can turn a PIN off or remove it any time. Nothing needs to be set in Netlify; your own PIN stays the one in Netlify and still opens everything.</p>
-    <h3 class="grp">Staff Members</h3>
-    <div id="stf-list"></div>
-    <h3 class="grp">Changes</h3>
-    <div class="card sp-card bt-card"><label class="help" for="act-who">Show Changes By</label><select id="act-who"></select><div id="act-list"></div></div>
     <div class="card sp-card bt-card">
       <h3 class="grp" style="margin:0">Add a Staff Member</h3>
       <label class="help" for="stf-name">Name</label><input id="stf-name" maxlength="40" autocomplete="off" placeholder="Example: Jake">
@@ -675,6 +671,10 @@
       <span class="help" style="margin:0">Tabs They Can Use</span><div class="stf-tabs" id="stf-tabs"></div>
       <button class="btn" type="button" id="stf-add">Add Staff Member</button>
     </div>
+    <h3 class="grp">Staff Members</h3>
+    <div id="stf-list"></div>
+    <h3 class="grp">Changes</h3>
+    <div class="card sp-card bt-card"><label class="help" for="act-who">Show Changes By</label><select id="act-who"></select><div id="act-list"></div></div>
   </section>
 
   <section id="p-nofind" hidden>
@@ -1484,7 +1484,7 @@ function renderStaff(){ if(!stfNewCol) stfNewCol = stfFreeCol(); stfPaintNew();
       <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
     <span class="help" style="margin:0">Color on the Schedule</span><div class="sch-cols">${stfCols(m.color || "", 'data-stfcol', m.id)}</div>
     <div class="stf-tabs">${tabBoxes(m.tabs, 'data-stftab')}</div>
-    <span class="help" style="margin:0">${(()=>{ const last = (staff.activity||[]).find(a=>a.staff===m.id); return last ? "Last Change: " + esc(last.text) + " · " + esc(actWhen(last.at)) : "No changes yet."; })()}</span>
+    ${stfChanges(m)}
     <div class="stf-btns"><button class="btn" type="button" data-stfsave>Save Tabs</button><button class="btn ghost" type="button" data-stfact>See Their Changes</button><button class="btn ghost" type="button" data-stfpin>Change PIN</button><button class="btn ghost rm-site" type="button" data-stfrm>Remove</button></div></div>`).join("")
     : '<p class="help">No staff PINs yet.</p>';
   const cur = $("#act-who").value || "";
@@ -1493,11 +1493,18 @@ function renderStaff(){ if(!stfNewCol) stfNewCol = stfFreeCol(); stfPaintNew();
   renderActivity();
 }
 const actWhen = d => new Date(d).toLocaleString("en-US",{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
-function renderActivity(){
-  const f = $("#act-who").value, list = (staff.activity||[]).filter(a=> !f || (f==="owner" ? !a.staff : a.staff===f)).slice(0,150);
-  $("#act-list").innerHTML = list.length ? `<table>${list.map(a=>`<tr><td>${esc(a.text)}<br><span class="help">${esc(a.who)} · ${esc(actWhen(a.at))}</span></td></tr>`).join("")}</table>` : '<p class="help" style="margin:0">No changes yet.</p>';
+const stfShown = {};
+function stfChanges(m){
+  const all = (staff.activity||[]).filter(a => a.staff === m.id), list = all.slice(0, stfShown[m.id] || 3);
+  return list.length ? `<div class="stf-ch">${list.map(a => `<div class="help" style="margin:0 0 4px">${esc(a.text)} · ${esc(actWhen(a.at))}</div>`).join("")}${all.length > list.length ? `<button class="btn ghost" type="button" data-stfmore style="margin-top:2px">Show More (${all.length - list.length} Left)</button>` : ""}</div>` : '<span class="help" style="margin:0">No changes yet.</span>';
 }
-$("#act-who").onchange = renderActivity;
+let actShown = 5;
+function renderActivity(){
+  const f = $("#act-who").value, all = (staff.activity||[]).filter(a=> !f || (f==="owner" ? !a.staff : a.staff===f)).slice(0,150), list = all.slice(0, actShown);
+  $("#act-list").innerHTML = list.length ? `<table>${list.map(a=>`<tr><td>${esc(a.text)}<br><span class="help">${esc(a.who)} · ${esc(actWhen(a.at))}</span></td></tr>`).join("")}</table>` + (all.length > list.length ? `<button class="btn ghost" type="button" id="act-more" style="margin-top:8px">Show More (${all.length - list.length} Left)</button>` : "") : '<p class="help" style="margin:0">No changes yet.</p>';
+}
+$("#act-who").onchange = () => { actShown = 5; renderActivity(); };
+$("#act-list").addEventListener("click", e => { if(e.target.closest("#act-more")){ actShown += 10; renderActivity(); } });
 async function staffCall(body, msg){ try{ staff = await api("/api/staff", body); renderStaff(); if(msg) toast(msg); }catch(err){ toast(err.message,true); } }
 const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-newtab'); staffCall({action:"list"}); if(!sch.data) schCall({action:"get"}).then(() => { if(staff) renderStaff(); }).catch(()=>{}); };
 $("#stf-add").onclick = async ()=>{
@@ -1510,7 +1517,8 @@ $("#stf-add").onclick = async ()=>{
 };
 $("#stf-list").addEventListener("click", async e=>{
   const card = e.target.closest(".stf-card"); if(!card) return; const id = card.dataset.id, m = staff.members.find(x=>x.id===id);
-  if(e.target.closest("[data-stfact]")){ $("#act-who").value = id; renderActivity(); $("#act-who").scrollIntoView({block:"center"}); return; }
+  if(e.target.closest("[data-stfmore]")){ stfShown[id] = (stfShown[id] || 3) + 5; renderStaff(); return; }
+  if(e.target.closest("[data-stfact]")){ $("#act-who").value = id; actShown = 5; renderActivity(); $("#act-who").scrollIntoView({block:"center"}); return; }
   const sc = e.target.closest("[data-stfcol]"); if(sc){ staffCall({action:"update", id, color: sc.dataset.stfcol}, m.name + ": Color Changed"); return; }
   if(e.target.closest("[data-stfon]")){ staffCall({action:"update", id, on: !m.on}, m.name + (m.on ? ": PIN Turned Off" : ": PIN Turned On")); return; }
   if(e.target.closest("[data-stfsave]")){ staffCall({action:"update", id, tabs: [...card.querySelectorAll("[data-stftab]:checked")].map(i=>i.value)}, m.name + ": Saved"); return; }
