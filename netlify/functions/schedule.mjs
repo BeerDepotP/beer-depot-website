@@ -66,6 +66,9 @@ export function clean(d) {
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   // Timecards: one per worked shift {id,date,who,name,shiftId,in,out,sent,paid,paidAt}. Paid ones are kept for 30 days (the "Past Hours" list), then dropped.
+  // Who is clocked in right now: { personId: {date, in, shiftId, at} } (one running clock per person; becomes a timecard when they clock out)
+  const ck = {}; for (const [k, v] of Object.entries(d.clocks && typeof d.clocks === "object" ? d.clocks : {})) if (v && D.test(String(v.date)) && T.test(String(v.in))) ck[String(k).slice(0, 40)] = { date: v.date, in: v.in, shiftId: String(v.shiftId || "").slice(0, 40), at: String(v.at || new Date().toISOString()) };
+  d.clocks = ck;
   d.cards = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && typeof c.id === "string" && D.test(String(c.date)) && T.test(String(c.in)) && T.test(String(c.out)) && (!c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000)).slice(-1500);
   // How each person wants to be paid: mode "weekly" (every Friday, the default) or "ask" (only when they tap Pay Me); req = the Friday they asked for.
   const pay = d.settings.pay && typeof d.settings.pay === "object" ? d.settings.pay : {}; d.settings.pay = {};
@@ -79,7 +82,7 @@ export function clean(d) {
 export function missingTimecards(d, who, pd, t = today(), hm = nowHM()) {
   const out = [], lo = addDays(t, -7), from = addDays(pd, -7);
   for (let x = from < lo ? lo : from; x < pd && x <= t; x = addDays(x, 1))
-    for (const s of d.shifts[x] || []) if (s.who === who && (x < t || (s.end > s.start && hm >= s.end)) && !d.cards.some(c => c.shiftId === s.id && c.who === who)) out.push({ date: x, s });
+    for (const s of d.shifts[x] || []) if (s.who === who && (x < t || (s.end > s.start && hm >= s.end)) && !d.cards.some(c => c.shiftId === s.id && c.who === who) && !(d.clocks && d.clocks[who] && d.clocks[who].shiftId === s.id)) out.push({ date: x, s });
   return out;
 }
 
@@ -154,7 +157,7 @@ function view(d, team, me, from, to, staff) {
   const requests = d.requests.filter(r => !hid(r.date) && !(r.withDate && hid(r.withDate))).filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
   if (!me.manager) delete settings.pay;   // nobody sees how coworkers get paid
-  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), pay: me.manager ? d.settings.pay : { [me.id]: d.settings.pay[me.id] || { mode: "weekly", req: "" } }, payday: nextPayday(), ...counts(d, me), today: today() };
+  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), pay: me.manager ? d.settings.pay : { [me.id]: d.settings.pay[me.id] || { mode: "weekly", req: "" } }, clock: d.clocks[me.id] || null, clocks: me.manager ? d.clocks : undefined, payday: nextPayday(), ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -489,8 +492,46 @@ export default async (req) => {
     let c = d.cards.find(x => x.shiftId === s.id && x.who === s.who);
     if (c && c.paid) return json({ error: "That day is already marked paid, so it can't be changed." }, 400);
     if (!c) { c = { id: rid(), date, who: s.who, name: name(s.who), shiftId: s.id, paid: false, paidAt: "" }; d.cards.push(c); }
+    if (c.in !== undefined && (c.in !== b.in || c.out !== b.out || !!c.off !== off)) { c.orig = c.orig || { in: c.in, out: c.out, off: !!c.off }; c.edited = true; }   // owner can see a time was changed
     c.in = b.in; c.out = b.out; c.off = off; c.sent = new Date().toISOString(); c.by = me.id;
     return ok();
+  }
+  /* ---------- clock in / clock out ---------- */
+  if (act === "clockIn" || act === "clockOut" || act === "clockEdit" || act === "tcEdit") {
+    const mm = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3));
+    const span = (i, o) => { const a0 = mm(i); let b0 = mm(o); if (b0 <= a0) b0 += 1440; return [a0, b0]; };
+    if (act === "tcEdit") {   // change the clock in / out of a timecard until it is paid (employee: own; manager: anyone's)
+      const c = d.cards.find(x => x.id === b.id); if (!c) return json({ error: "I can't find that timecard." }, 400);
+      if (c.who !== me.id && !me.manager) return json({ error: "That isn't your timecard." }, 403);
+      if (c.paid) return json({ error: "That day is already marked paid, so it can't be changed." }, 400);
+      if (!T.test(String(b.in || "")) || !T.test(String(b.out || "")) || b.in === b.out) return json({ error: "Enter the time you clocked in and the time you clocked out." }, 400);
+      const [n0, n1] = span(b.in, b.out);
+      if (d.cards.some(x => x !== c && x.who === c.who && x.date === c.date && !x.off && (() => { const [c0, c1] = span(x.in, x.out); return n0 < c1 && c0 < n1; })())) return json({ error: "That overlaps other hours that day." }, 400);
+      if (c.in !== b.in || c.out !== b.out || c.off) { c.orig = c.orig || { in: c.in, out: c.out, off: !!c.off }; c.edited = true; }
+      c.in = b.in; c.out = b.out; c.off = false; c.sent = new Date().toISOString(); c.by = me.id;
+      return ok();
+    }
+    const target = act === "clockOut" && me.manager && b.who ? String(b.who).slice(0, 40) : me.id, cur = d.clocks[target];
+    if (act === "clockIn") {
+      if (cur) return json({ error: "You're already clocked in." }, 400);
+      const t0 = today(), hm = nowHM();
+      const free = (d.shifts[t0] || []).filter(x => x.who === me.id && !d.cards.some(c => c.shiftId === x.id && c.who === me.id) && x.end > x.start).sort((x, y) => Math.abs(mm(x.start) - mm(hm)) - Math.abs(mm(y.start) - mm(hm)));
+      d.clocks[me.id] = { date: t0, in: hm, shiftId: free[0] ? free[0].id : "", at: new Date().toISOString() };
+      return ok();
+    }
+    if (!cur) return json({ error: act === "clockOut" ? "You're not clocked in." : "You're not clocked in." }, 400);
+    if (act === "clockEdit") {
+      if (!T.test(String(b.in || ""))) return json({ error: "Pick the time you started." }, 400);
+      if (cur.date === today() && b.in > nowHM()) return json({ error: "That time hasn't happened yet." }, 400);
+      cur.in = b.in; return ok();
+    }
+    const late = Date.now() - Date.parse(cur.at) > 16 * 3600000;
+    if (!T.test(String(b.out || ""))) { if (late) return json({ error: "You've been clocked in a long time. Type the time you really left.", needOut: true }, 400); b.out = nowHM(); }
+    delete d.clocks[target];
+    if (b.out === cur.in) return ok({ note: "That was under a minute, so I cancelled the clock-in." });
+    const sid = cur.shiftId && !d.cards.some(c => c.shiftId === cur.shiftId && c.who === target) ? cur.shiftId : "";
+    d.cards.push({ id: rid(), date: cur.date, who: target, name: name(target), shiftId: sid || "x-" + rid(), extra: !sid, clock: true, in: cur.in, out: b.out, off: false, sent: new Date().toISOString(), by: me.id, paid: false, paidAt: "" });
+    return ok({ note: "Clocked out. Thank you!" });
   }
   if (act === "tcAdd" || act === "tcDel") {   // extra hours with no scheduled shift (came in to help out, a last-minute shift). Employees do their own; managers can do anyone's.
     const target = me.manager && b.who ? String(b.who).slice(0, 40) : me.id;

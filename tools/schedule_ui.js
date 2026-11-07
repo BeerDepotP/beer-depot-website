@@ -124,13 +124,33 @@ function nextShiftBanner(){
   }
   return `<div class="card sch-next"><span class="help" style="margin:0">Your Next Shift</span><b>Nothing coming up yet</b></div>`;
 }
+const fDur = m => { const h = Math.floor(m / 60), r = m % 60; return (h ? h + " hr" + (h === 1 ? "" : "s") + " " : "") + r + " min"; };
+function clockCard(){   // Clock In / Clock Out
+  const d = sch.data, c = d.clock, t = schToday();
+  if(c){
+    const hmM = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)), m = Math.max(0, Math.round((spd(t) - spd(c.date)) / 86400000) * 1440 + hmM(schNow()) - hmM(c.in)), old = m > 16 * 60;
+    return `<div class="card sp-card sch-clock on"><b>● You're Clocked In</b><span class="help" style="margin:0">Since ${esc(fT(c.in))}${c.date !== t ? " on " + esc(fDay(c.date)) : ""}${old ? "" : " · " + esc(fDur(m)) + " so far"}</span>${old ? `<span class="help" style="margin:0;color:#C8102E"><b>This has been running a long time.</b> Tap Clock Out and type when you really left.</span>` : ""}<button type="button" class="btn sch-big" data-clockout>Clock Out</button><button type="button" class="btn ghost sch-sm" data-clockedit style="justify-self:start">Wrong Start Time?</button></div>`;
+  }
+  const me = d.me.id, now = schNow(), mine = schShifts(t).filter(x => x.who === me && !tcCardOf(x, me) && x.end > x.start).sort((a, b) => a.start.localeCompare(b.start));
+  return `<div class="card sp-card sch-clock"><b>Ready to Work?</b>${mine.length ? `<span class="help" style="margin:0">Today: ${esc(mine.map(x => fR(x.start, x.end)).join(" and "))}</span>` : `<span class="help" style="margin:0">Tap Clock In when you start.</span>`}<button type="button" class="btn sch-big" data-clockin>Clock In</button></div>`;
+}
+function schTimeBox(title, note, inV, outV, saveId){
+  schOpen(`<h3 class="sch-h">${esc(title)}</h3><p class="help" style="margin:0 0 8px">${note}</p>
+    <div class="sch-prt"><label class="help" style="margin:0">Clocked In<input type="time" id="sch-ck-in" value="${esc(inV || "")}"></label><label class="help" style="margin:0">Clocked Out<input type="time" id="sch-ck-out" value="${esc(outV || "")}"></label></div>
+    <button type="button" class="btn" id="${saveId}">Save</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
+}
+function schTcCard(id){   // edit the clock in / out of a timecard
+  const c = tcCards().find(x => x.id === id); if(!c) return;
+  sch.ed = { tcEdit: id };
+  schTimeBox("Edit Clock In / Out", `${esc(fDay(c.date))}. Fix the times you really worked. ${sch.data.me.manager && c.who !== sch.data.me.id ? "" : "The owner can see that a time was changed."}`, c.off ? "" : c.in, c.off ? "" : c.out, "sch-ck-save");
+}
 function tcMissing(){   // finished shifts (last 7 days) of mine with no timecard yet
   const d = sch.data, me = d.me.id, t = schToday(), now = schNow(), out = [];
-  Object.keys(d.shifts).sort().forEach(date => { if(date >= addD(t, -7) && date <= t) schShifts(date).forEach(x => { if(x.who === me && !tcCardOf(x, me) && (date < t || (x.end > x.start && now >= x.end))) out.push({ date, x }); }); });
+  Object.keys(d.shifts).sort().forEach(date => { if(date >= addD(t, -7) && date <= t) schShifts(date).forEach(x => { if(x.who === me && !tcCardOf(x, me) && !(d.clock && d.clock.shiftId === x.id) && (date < t || (x.end > x.start && now >= x.end))) out.push({ date, x }); }); });
   return out;
 }
 function tcBanner(all){   // big "send your timecard" box for each finished shift with no timecard yet; they type the times they really worked
-  return tcMissing().slice(0, all ? 99 : 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Send Your Timecard</b><span class="help" style="margin:0">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}</span><button type="button" class="btn" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Hours</button><button type="button" class="btn ghost" data-tcone="${esc(date)}|${esc(x.id)}">Worked Scheduled Hours</button></div>`).join("");
+  return tcMissing().slice(0, all ? 99 : 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Forgot to Clock In?</b><span class="help" style="margin:0">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}. Add the time you worked.</span><button type="button" class="btn" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Hours</button><button type="button" class="btn ghost" data-tcone="${esc(date)}|${esc(x.id)}">Worked Scheduled Hours</button></div>`).join("");
 }
 function pendingFor(shiftId){ return sch.data.requests.find(r => schActive(r) && (r.shiftId === shiftId || r.withShiftId === shiftId)); }
 
@@ -158,7 +178,7 @@ function viewMine(){   // upcoming shifts of mine (confirmed months). Employees 
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
     + (paidMine.length ? `<details style="margin:10px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") : "") : "";
   const tog = `<div class="sch-togrow"><div class="sch-tog"><button type="button" data-mmode="list" aria-pressed="${sch.mmode !== "cal"}">List</button><button type="button" data-mmode="cal" aria-pressed="${sch.mmode === "cal"}">Calendar</button></div></div>`;
-  const top = nextShiftBanner() + (emp ? "" : tcBanner()) + swapsBlock();
+  const top = nextShiftBanner() + clockCard() + (emp ? "" : tcBanner()) + swapsBlock();
   if(sch.mmode === "cal") return top + tog + monthCal(true);
   return top + tog + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">This week: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> · ${monthName(m0)}: <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b></p>`
     + (rowsOf(emp ? upDates : upDates, false, true) || `<p class="help" style="margin:10px 2px">No shifts yet. They show up once the owner confirms the month.</p>`)
@@ -171,11 +191,11 @@ function viewEmpTime(){   // employee Timecards tab: everything about hours and 
   const paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
   const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x)));
   const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing(), extras = mineUn.filter(c => c.extra && c.date >= back).sort((x, y) => x.date.localeCompare(y.date));
-  const head = miss.length ? tcBanner(true) : `<div class="card sp-card" style="margin-top:8px"><b>All Timecards Sent</b><span class="help" style="margin:0">Nothing is missing. Thank you.</span></div>`;
-  return head
+  const head = tcBanner(true);
+  return clockCard() + (miss.length ? head : "")
     + `<div class="card sp-card" style="margin-top:8px"><div class="sch-prt"><span><span class="help" style="margin:0">Hours not paid yet</span><br><b style="font-size:1.3em">${tcH(unTot)}</b></span><button type="button" class="btn sch-sm" data-tcadd>+ Add Extra Hours</button></div></div>`
     + `<div style="margin-top:8px">${empPayBox(me)}</div>`
-    + `<h3 class="grp" style="margin:16px 2px 4px">Recent Shifts</h3><p class="help" style="margin:0 2px 6px">Shifts not paid yet. Tap a button to send or fix your times.</p>`
+    + `<h3 class="grp" style="margin:16px 2px 4px">Recent Shifts</h3><p class="help" style="margin:0 2px 6px">Shifts not paid yet. Tap Edit Clock In / Out if a time is wrong.</p>`
     + (mineRows(recent, true, false, true) || (extras.length ? "" : `<p class="help" style="margin:4px 2px">Nothing here.</p>`))
     + (extras.length ? `<h3 class="grp" style="margin:10px 2px 4px">Extra Hours</h3>` + extras.map(c => tcRow(c, false)).join("") : "")
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
@@ -202,11 +222,12 @@ const tcCards = () => (sch.data.cards || []);
 const tcUnpaid = () => tcCards().filter(c => !c.paid);
 const tcCardOf = (x, who) => tcCards().find(c => c.shiftId === x.id && c.who === (who || x.who));
 const tcStarted = (date, x) => { const t = schToday(); return date >= addD(t, -7) && (date < t || (date === t && schNow() >= x.start)); };   // today once the shift starts, up to a week after
-function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : "Timecard sent"}: ${tcWhen(c)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
+function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : c.clock ? "Clocked" : "Timecard sent"}: ${tcWhen(c)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
 function tcBtn(date, x){
   const c = tcCardOf(x, sch.data.me.id);
   if(c && c.paid) return `<span class="sch-flag">Paid</span>`;
-  return `<button class="btn${c ? " ghost" : ""} sch-sm" type="button" data-schtc="${esc(date)}|${esc(x.id)}">${c ? "Fix Timecard" : "Send Timecard"}</button>`;
+  if(c) return `<button class="btn ghost sch-sm" type="button" data-tcedit="${esc(c.id)}">Edit Clock In / Out</button>`;
+  return `<button class="btn sch-sm" type="button" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Time</button>`;
 }
 function schTc(date, sid, fix){          // pop-up: what time did you come in and leave
   const x = schShifts(date).find(y => y.id === sid); if(!x) return;
@@ -231,8 +252,8 @@ function tcRow(c, mgr){   // same look as My Shifts: one box per day with the da
   const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
     : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
   return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
-    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : c.extra ? `<span class="help" style="margin:0">Extra hours (not on the schedule)</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
-      <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}${c.extra && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-tcdel="${esc(c.id)}">Remove</button>` : ""}</div></div></div></div>`;
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : c.extra ? `<span class="help" style="margin:0">Extra hours (not on the schedule)</span>` : ""}${mgr && c.edited ? `<span class="help" style="margin:0;color:#B45309"><b>Edited</b>${c.orig ? " · was " + esc(c.orig.off ? "Did not work" : fR(c.orig.in, c.orig.out)) : ""}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+      <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}${!c.paid && (!mgr || !x) ? `<button type="button" class="btn ghost sch-sm" data-tcedit="${esc(c.id)}">Edit Clock In / Out</button>` : ""}${c.extra && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-tcdel="${esc(c.id)}">Remove</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
   const cs = tcUnpaid().filter(c => c.who === who && (!ids || ids.includes(c.id))); if(!cs.length) return;
@@ -263,7 +284,8 @@ function viewTime(){
   const plRows = pl.map(id => { const cs = payCards(id), miss = missFor(id), later = un.filter(c => c.who === id && !cs.includes(c)), v = payOf(id), late = v.req && v.req < schToday();
     return `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><span class="sch-chip" style="background:${empColor(id)};display:inline-block">${esc(firstName(nm(id, cs)))}</span><br><b>${tcH(tot(cs))}</b> · ${cs.length} day${cs.length === 1 ? "" : "s"}<br><span class="help" style="margin:0">${v.req ? "Asked to be paid" + (late ? " (was for " + esc(fDay(v.req)) + ")" : "") : "Paid every Friday"}${later.length ? " · " + tcH(tot(later)) + " worked later goes on the next paycheck" : ""}</span>${miss.length ? `<br><span class="help" style="margin:0;color:#C8102E"><b>Timecard missing:</b> ${miss.map(m => esc(fDay(m.date))).join(" and ")}</span>` : ""}</span>${cs.length ? `<button type="button" class="btn sch-sm" data-tcpaypd="${esc(id)}">Mark Paid</button>` : ""}</div></div>`; }).join("");
   const payBox = `<div class="card sp-card" style="border:2px solid var(--orange)"><b>Pay on ${esc(fDay(payDay()))}</b><span class="help" style="margin:0">Paychecks go out at 9 AM. This paycheck covers ${esc(payPeriod())} (Friday through Thursday). Hours worked on a payday Friday go on the next paycheck. These people get paid: everyone on Every Friday with hours, plus anyone who tapped Pay Me.</span></div>${plRows || `<p class="help" style="margin:4px 2px">Nobody is waiting to be paid this Friday.</p>`}`;
-  return payBox + `<p class="help" style="margin:4px 2px 8px">Employees send their times from their Timecards tab. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
+  const onClock = Object.entries(d.clocks || {}).map(([id, c]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, []))}</b><br><span class="help" style="margin:0">Clocked in at ${esc(fT(c.in))}${c.date !== schToday() ? " on " + esc(fDay(c.date)) : ""}</span></span><button type="button" class="btn ghost sch-sm" data-clockoutwho="${esc(id)}">Clock Them Out</button></div></div>`).join("");
+  return (onClock ? `<h3 class="grp" style="margin:6px 2px 4px">On the Clock Now</h3>${onClock}` : "") + payBox + `<p class="help" style="margin:4px 2px 8px">Employees clock in and out on their Timecards tab. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
     <h3 class="grp" style="margin:6px 2px 4px">Not Paid Yet</h3>
     ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span><br><span class="help" style="margin:0">${payOf(id).mode === "ask" ? (payOf(id).req ? "Asked to be paid " + esc(fDay(payOf(id).req)) : "Paid when they ask (hasn't asked)") : "Paid every Friday"} · <a href="#" data-tcflip="${esc(id)}|${payOf(id).mode === "ask" ? "weekly" : "ask"}">Change</a></span></span><span style="display:flex;gap:6px;flex-wrap:wrap">${cs.filter(c => tcSel().has(c.id)).length ? `<button type="button" class="btn sch-sm" data-tcpaysel="${esc(id)}">Mark ${cs.filter(c => tcSel().has(c.id)).length} Selected Paid</button>` : ""}<button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></span></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
     <h3 class="grp" style="margin:16px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours are deleted 30 days after you mark them paid. Untick Paid to put hours back.</p>
@@ -622,6 +644,17 @@ document.addEventListener("click", async e => {
   const tcb = el.closest("[data-schtc]"); if(tcb){ e.preventDefault(); const [d, s] = tcb.dataset.schtc.split("|"); schTc(d, s, false); return; }
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   const one = el.closest("[data-tcone]"); if(one){ const [d1, s1] = one.dataset.tcone.split("|"), x1 = schShifts(d1).find(y => y.id === s1); if(x1) await schDo({ action: "tcSave", date: d1, shiftId: s1, in: x1.start, out: x1.end }, "Timecard sent"); return; }
+  if(el.closest("[data-clockin]")){ await schDo({ action: "clockIn" }, "Clocked in", true); return; }
+  if(el.closest("[data-clockout]")){
+    const c = sch.data.clock;
+    if(c && (Math.round((spd(schToday()) - spd(c.date)) / 86400000) * 1440 + Number(schNow().slice(0, 2)) * 60 + Number(schNow().slice(3)) - Number(c.in.slice(0, 2)) * 60 - Number(c.in.slice(3))) > 16 * 60){ sch.ed = { lateOut: true }; schOpen(`<h3 class="sch-h">When Did You Leave?</h3><p class="help" style="margin:0 0 8px">You clocked in ${esc(fDay(c.date))} at ${esc(fT(c.in))}. Type the time you really left.</p><label class="help" style="margin:0">Left<input type="time" id="sch-ck-late"></label><button type="button" class="btn" id="sch-ck-latego">Clock Out</button><button type="button" class="btn ghost" data-schclose>Close</button>`); return; }
+    try{ await schCall({ action: "clockOut" }); renderSchedule(); toast(sch.data.note || "Clocked out. Thank you!"); }catch(err){ toast(err.message, true); } return; }
+  if(el.closest("#sch-ck-latego")){ try{ await schCall({ action: "clockOut", out: $("#sch-ck-late").value }); schClose(); renderSchedule(); toast("Clocked out. Thank you!"); }catch(err){ toast(err.message, true); } return; }
+  if(el.closest("[data-clockedit]")){ const c = sch.data.clock; sch.ed = { clockEdit: true }; schOpen(`<h3 class="sch-h">Wrong Start Time?</h3><p class="help" style="margin:0 0 8px">Type the time you really started.</p><label class="help" style="margin:0">Clocked In<input type="time" id="sch-ck-start" value="${esc(c ? c.in : "")}"></label><button type="button" class="btn" id="sch-ck-startgo">Save</button><button type="button" class="btn ghost" data-schclose>Close</button>`); return; }
+  if(el.closest("#sch-ck-startgo")){ await schDo({ action: "clockEdit", in: $("#sch-ck-start").value }, "Start time changed", false); return; }
+  const cow = el.closest("[data-clockoutwho]"); if(cow){ if(await askYes("Clock this person out now?", "Yes, Clock Out")) { try{ await schCall({ action: "clockOut", who: cow.dataset.clockoutwho }); renderSchedule(); toast("Clocked out"); }catch(err){ toast(err.message, true); } } return; }
+  const tce = el.closest("[data-tcedit]"); if(tce){ schTcCard(tce.dataset.tcedit); return; }
+  if(el.closest("#sch-ck-save") && sch.ed && sch.ed.tcEdit){ await schDo({ action: "tcEdit", id: sch.ed.tcEdit, in: $("#sch-ck-in").value, out: $("#sch-ck-out").value }, "Times saved"); return; }
   if(el.closest("[data-tcadd]")){ schExtra(); return; }
   if(el.closest("#sch-ex-save")){ await schDo({ action: "tcAdd", date: $("#sch-ex-date").value, in: $("#sch-ex-in").value, out: $("#sch-ex-out").value }, "Extra hours added"); return; }
   const xd = el.closest("[data-tcdel]"); if(xd){ if(await askYes("Remove these extra hours?", "Yes, Remove", true)) await schDo({ action: "tcDel", id: xd.dataset.tcdel }, "Removed"); return; }
@@ -715,3 +748,6 @@ document.addEventListener("input", e => {
   const r = e.target.closest && e.target.closest("[data-pi]"); if(!r || !sch.draft || !e.target.dataset.pf) return;
   sch.draft[+r.dataset.pi][e.target.dataset.pf] = e.target.value;
 });
+
+/* keep the "so far" time fresh while someone is clocked in */
+setInterval(() => { try{ if(sch.data && sch.data.clock && sch.view !== "setup" && !document.querySelector("#sch-body").closest("[hidden]") && document.querySelector("#sch-body").offsetParent && !document.querySelector(".sch-ov, #sch-modal:not([hidden])")) renderSchedule(); }catch(e){} }, 60000);
