@@ -202,7 +202,7 @@ export default async (req) => {
     for (const k of Object.keys(d.shifts)) if (k < old || !d.shifts[k].length) delete d.shifts[k];
     d.requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > Date.now() - 30 * 86400000)).slice(0, 200);
     d.cards = d.cards.filter(c => !c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000);
-    for (const [id, v] of Object.entries(d.settings.pay)) if (v.req && !d.cards.some(c => c.who === id && !c.paid)) v.req = "";   // everything paid: the request is done
+    for (const [id, v] of Object.entries(d.settings.pay)) if (v.req && !d.cards.some(c => c.who === id && !c.paid && c.date < v.req)) v.req = "";   // pay periods run Friday-Thursday: Friday's own hours ride on the next paycheck, so only hours dated before the payday count
     sweep(d);
     d.updated = new Date().toISOString();
     await store.setJSON(KEY, d);
@@ -472,7 +472,7 @@ export default async (req) => {
   if (act === "tcAsk") {   // "Pay me on the next payday" (or cancel it)
     const cur = d.settings.pay[me.id] || { mode: "weekly", req: "" };
     if (b.cancel) cur.req = "";
-    else { if (!d.cards.some(c => c.who === me.id && !c.paid)) return json({ error: "You have no unpaid hours yet. Send a timecard first." }, 400); cur.req = nextPayday(); }
+    else { const pd = nextPayday(); if (!d.cards.some(c => c.who === me.id && !c.paid && c.date < pd)) return json({ error: "You have no hours for this paycheck yet. Hours worked through Thursday go on Friday's paycheck. Send a timecard first." }, 400); cur.req = pd; }
     d.settings.pay[me.id] = cur;
     return ok();
   }
