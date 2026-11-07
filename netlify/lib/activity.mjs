@@ -29,6 +29,10 @@ export function describe(area, b) {
     case "insights": return a === "remove" || b.type === "remove" ? `Removed "${q(b.q || b.item)}" from ${({ top: "Top Searches", nofind: "Couldn't Find It", requests: "Requests" })[b.tab] || b.tab}` : null;
     case "club": return ({ remove: `Removed ${q(b.email)} from the Bourbon Club`, sending: `Bourbon Club weekly emails: ${b.on ? "On" : "Off"}`,
       schedule: "Changed the Bourbon Club send day and time", saveEmail: "Changed the Bourbon Club email wording", test: "Sent a Bourbon Club test email" })[a] || null;
+    case "schedule": return ({ save: `Changed the schedule for ${q(b.date)}`, delete: `Removed a shift on ${q(b.date)}`, copyWeek: "Copied a week of the schedule", clearWeek: "Cleared a week of the schedule",
+      presets: "Changed the shift presets", settings: "Changed the schedule settings", resolve: b.approve ? "Approved a shift change" : "Said no to a shift change",
+      give: `Offered a shift to give away on ${q(b.date)}`, swap: `Asked to swap a shift on ${q(b.date)}`, take: "Took a shift that was offered", openTake: `Asked for an open shift on ${q(b.date)}`,
+      answer: b.accept ? "Said yes to a shift swap" : "Said no to a shift swap", cancel: "Cancelled a shift request" })[a] || null;
     case "staff": return ({ add: `Added staff member ${q(b.name)}`, update: b.newPin ? "Changed a staff PIN" : b.on !== undefined ? `Turned a staff PIN ${b.on ? "on" : "off"}` : "Changed a staff member's tabs", remove: "Removed a staff member" })[a] || null;
   }
   return null;

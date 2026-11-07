@@ -27,8 +27,9 @@ function menuPhoto(f, key){
       text:{"heroTitle": "See what's on our shelves", "searchHint": "Search Tito's, Spotted Cow, ribs\u2026", "madeHereIntro": "Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.", "cateringTitle": "Party & Catering Orders", "cateringText": "Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.", "cateringButton": "Call to Order", "saleIntro": "Deals this week, while they last.", "localIntro": "Meat, cheese and bakery from local makers.", "outdoorIntro": "", "newIntro": "Just came in over the last two weeks.", "allocNote": "Hard-to-Find Bottles. Once They're Gone, They're Gone.", "allocRules": "Stock Updates Live \u00b7 First Come, First Served \u00b7 No Reservations", "clubTitle": "Join the Bourbon Club", "clubText": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubDone": "You're in! Watch for our email Thursday at 5 PM.", "requestTitle": "Don't See It? Ask Us to Bring It In.", "requestText": "Tell us what you'd like us to carry. We read every request and will call you if we get it in.", "gateTitle": "Are you 21 or older?", "gateText": "This site lists beer and spirits. You must be 21 to see them.", "gateYes": "Yes, I'm 21 or older", "gateNo": "No, just show me the food", "clubPageTitle": "Join the Bourbon Club", "clubPageLede": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubPageSub": "Hard-to-find bottles go fast. Be the first to know what's on the shelf.", "clubPageFine": "One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.", "clubPageDone": "Watch for our email Thursday at 5 PM.", "thcNote": "A new federal law takes effect December 11, 2026 that ends sales of most hemp-derived THC drinks. We'll carry them until then, while supplies last."},info:{phone:"262-696-4602",address:"N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072"},settings:{newDays:14,thcUntil:"2026-12-11",thcNoteOn:true,newCount:20,showCount:20,allocCount:10,sodaAlwaysIn:true},email:{fromName:"The Beer Depot",replyTo:"bourbon@beerdepotpewaukee.com",footer:""},social:{on:false,facebook:"",instagram:"",tiktok:"",x:"",youtube:""},colors:{main:"#F26B1D",dark:"#2B1A10",light:"#F3ECE3"},images:{logo:"",icon:""}},
     activity:[{at:"2026-11-05T22:10:00Z",who:"Jake",staff:"s1",text:"Smoked Ribs: Out of Stock"},{at:"2026-11-05T20:02:00Z",who:"Jake",staff:"s1",text:"Changed a one-day hours change"},{at:"2026-11-05T18:30:00Z",who:"Owner",staff:"",text:"Put Smoked Pulled Pork on special"}],
     rules:{hide:{"Busch Light 30pk cans":true},move:{}},
-    staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true}],
+    staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true},{id:"s2",name:"Maria",pin:"2222",tabs:["schedule"],on:true},{id:"s3",name:"Sam",pin:"3333",tabs:["food"],on:true},{id:"s4",name:"Alex",pin:"4444",tabs:["food"],on:true}],
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
+  Object.defineProperty(window,"__DEMO_STAFF",{get:()=>DB.staff});
   const now = Date.now();
   const report = { seen:{}, badges:{nofind:2,top:0,requests:1}, week:"2026-W45", thisWeek:"2026-W45", prevWeek:"2026-W44", totalSearches:41,
     top:[{q:"titos",n:9,last:now},{q:"spotted cow",n:7,last:now},{q:"ribs",n:5,last:now}],
@@ -91,7 +92,7 @@ function menuPhoto(f, key){
     if(url.startsWith("/api/site")){ if(b.action==="save"){ for(const k of ["hotHam","announce"]) if(b[k]) DB.site[k] = Object.assign({},b[k]); if(b.text) for(const k in b.text) DB.site.text[k] = b.text[k]; if(b.info) DB.site.info = b.info; if(b.settings) DB.site.settings = {newDays:+b.settings.newDays,thcUntil:b.settings.thcUntil,newCount:+b.settings.newCount,showCount:+b.settings.showCount,allocCount:+b.settings.allocCount,sodaAlwaysIn:b.settings.sodaAlwaysIn,thcNoteOn:b.settings.thcNoteOn}; if(b.email) DB.site.email = b.email; if(b.social) DB.site.social = b.social; if(b.colors) DB.site.colors = b.colors.reset ? {main:"#F26B1D",dark:"#2B1A10",light:"#F3ECE3"} : Object.assign({},b.colors,{until:b.colors.until||undefined}); }
       if(b.action==="image"){ if(b.reset) DB.site.images[b.kind] = ""; else { const id = b.kind+Date.now().toString(36); PH[id] = b.data; DB.site.images[b.kind] = id; } }
       return ok({ok:true,...DB.site}); }
-    if(url.startsWith("/api/staff")){ const S = DB.staff, ALL = ["food","sales","seasonal","hours","notify","layout","banners","drinks","nofind","top","requests","club"];
+    if(url.startsWith("/api/staff")){ const S = DB.staff, ALL = ["schedule","food","sales","seasonal","hours","notify","layout","banners","drinks","nofind","top","requests","club"];
       const m = S.find(x=>x.on && x.pin===String(b.pin));
       if(b.action==="whoami") return ok(m ? {owner:false,name:m.name,tabs:m.tabs} : {owner:true,name:"Owner",tabs:ALL});
       if(m) return ok({error:"Your PIN doesn't have access to that. Ask the owner."},403);
@@ -126,7 +127,46 @@ function menuPhoto(f, key){
   try{ sessionStorage.setItem("bd-pin","demo"); }catch(e){}
 })();
 """.replace("SAMPLE_ITEMS", json.dumps(json.loads((here / "sample-stock.json").read_text())["items"])) % json.dumps(photos)
-html = src.replace('<script src="/menu.js"></script>', "<script>\n" + menu + "\n</script>\n<script>" + fake + "</script>", 1)
+
+import re
+sched = (root / "netlify/functions/schedule.mjs").read_text()
+sched = re.sub(r'^import .*$', '', sched, flags=re.M)
+sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS")
+sched_demo = r"""
+(function(){
+  const SCH = {};
+  const staffList = () => window.__DEMO_STAFF || [];
+  const getStore = () => ({ async get(k){ if(k==="staff") return { members: staffList().map(s=>({id:s.id,name:s.name,on:s.on})) }; return SCH[k] ? JSON.parse(JSON.stringify(SCH[k])) : null; }, async setJSON(k,v){ SCH[k] = JSON.parse(JSON.stringify(v)); } });
+  const pinUser = async (st, pin) => { const m = staffList().find(x => x.on && x.pin === String(pin)); return m ? { staff:true, id:m.id, name:m.name, tabs:(m.tabs||[]) } : { owner:true, name:"Owner", tabs:[] }; };
+  const checkPin = async (st, pin, area) => { if(area){ const w = await pinUser(st, pin); if(!w.owner && !w.tabs.includes(area)) return { error:"Your PIN doesn't have access to that. Ask the owner.", status:403 }; } return null; };
+  const json = (b, s) => Response.json(b, { status: s || 200 });
+  const randomBytes = n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), x => x.toString(16).padStart(2,"0")).join("") });
+  __SCHED__
+  // sample crew and schedule, relative to today
+  const T0 = new Intl.DateTimeFormat("en-CA",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+  const ad = (s,n) => { const t = new Date(s+"T12:00:00Z"); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
+  const ws = ad(T0, -new Date(T0+"T12:00:00Z").getUTCDay());
+  const P = { open:["08:30","16:00"], short:["08:30","15:00"], mid:["12:00","20:00"], late:["12:00","21:00"], close:["16:30","21:00"] };
+  const crew = ["owner","s1","s2","s3","s4"], shifts = {}; let n = 0;
+  for(let w=-1; w<=3; w++) for(let i=0; i<7; i++){
+    const date = ad(ws, w*7+i), plan = i===0 ? ["short","short"] : i>=5 ? ["open","late","close"] : ["open","mid"], base = (w*7+i*2+70) % 5;
+    shifts[date] = plan.map((k,j) => ({ id:"sh"+(++n), who:crew[(base+j)%5], start:P[k][0], end:P[k][1], note:"" }));
+  }
+  const sat = ad(ws,6); shifts[sat].push({ id:"sh"+(++n), who:"", start:P.mid[0], end:P.mid[1], note:"Extra help for the game" });
+  shifts[sat].sort((a,b)=>a.start.localeCompare(b.start));
+  const next = (who, from) => { for(let k=from; k<40; k++){ const d = ad(T0,k), s = (shifts[d]||[]).find(x=>x.who===who); if(s) return { d, s }; } };
+  const mk = (kind, by, a, extra) => Object.assign({ id:"rq"+(++n), kind, status:"open", by, date:a.d, shiftId:a.s.id, a:{start:a.s.start,end:a.s.end}, note:"", at:new Date().toISOString() }, extra);
+  const reqs = [];
+  const g = next("s2", 2); if(g) reqs.push(mk("give","s2",g,{note:"Dentist that morning"}));
+  const sa = next("s3", 3), sb = next("s1", 4);
+  if(sa && sb && sa.d !== sb.d) reqs.push(mk("swap","s3",sa,{status:"ask",withWho:"s1",withDate:sb.d,withShiftId:sb.s.id,b:{start:sb.s.start,end:sb.s.end},note:"Family dinner"}));
+  SCH.schedule = { presets:[{id:"p1",name:"Open",start:"08:30",end:"16:00",color:"#F26B1D"},{id:"p2",name:"Open Short",start:"08:30",end:"15:00",color:"#1F7A3A"},{id:"p3",name:"Mid",start:"12:00",end:"20:00",color:"#2F6DB5"},{id:"p4",name:"Mid Late",start:"12:00",end:"21:00",color:"#8A4FBF"},{id:"p5",name:"Close",start:"16:30",end:"21:00",color:"#C8102E"}],
+    shifts, requests:reqs, settings:{ approval:true, ownerName:"Tyler", hide:[] } };
+  const prev = window.fetch.bind(window);
+  window.fetch = async (url, opt) => String(url).startsWith("/api/schedule") ? handler(new Request("https://demo.local/api/schedule", { method:"POST", body:opt.body })) : prev(url, opt);
+})();
+""".replace("__SCHED__", sched)
+html = src.replace('<script src="/menu.js"></script>', "<script>\n" + menu + "\n</script>\n<script>" + fake + "</script>\n<script>" + sched_demo + "</script>", 1)
 html = html.replace('return "/api/site?img=" + encodeURIComponent(id);','return PH[id] || "";').replace('const imgSrc = id => "/api/site?img=" + encodeURIComponent(id);','const imgSrc = id => PH[id] || "";')
 html = html.replace("/api/sales?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace("/api/seasonal?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace('"/api/food-stock?photo=" + encodeURIComponent(d.photo)', 'DEMO_PH(d.photo)')
 html = html.replace("/img/logo-orange.png", logo).replace("/img/favicon-32.png","").replace("/img/favicon-64.png","").replace("/img/apple-touch-icon.png","")

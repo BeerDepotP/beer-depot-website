@@ -9,7 +9,7 @@ import { describe, logChange } from "./activity.mjs";
 const LOCK_KEY = "pin-lock";
 const MAX_FAILS = 8;
 const LOCK_MINUTES = 15;
-export const AREAS = ["food", "sales", "seasonal", "hours", "notify", "layout", "banners", "drinks", "nofind", "top", "requests", "club"];
+export const AREAS = ["schedule", "food", "sales", "seasonal", "hours", "notify", "layout", "banners", "drinks", "nofind", "top", "requests", "club"];
 
 function samePin(a, b) {
   a = String(a || ""); b = String(b || "");
