@@ -55,7 +55,7 @@ async function loadSchedule(){
   try{
     if(!sch.start) sch.start = wkStart(chicagoStamp().slice(0,10));
     if(!sch.month) sch.month = monthFirst(chicagoStamp().slice(0,10));
-    if(!sch.view) sch.view = (sch.data ? sch.data.me.manager : true) ? "team" : "mine";
+    if(!sch.view) sch.view = "mine";   // the tab opens on My Shifts for everyone
     await schCall({ action: "get" });
     if(window.pushLogin) pushLogin(sch.data.me.push);
     if(!sch.data.me.manager && sch.view === "team" && !sch.viewSet){ sch.view = "mine"; await schCall({ action: "get" }); }
@@ -86,7 +86,7 @@ function renderSchedule(){
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
   const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = (sch.view === "mine" && sch.mmode !== "cal") || sch.view === "time" ? "none" : "";
   const waiting = d.needs + d.offers;
-  const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"]];
+  const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Schedule"]];
   if(mgr) pills.push(["time","Timecards" + (payList().length ? " (" + payList().length + ")" : "")]);
   else pills.push(["time","Timecards",tcMissing().length]);
   if(mgr) pills.push(["setup","Setup"]);
@@ -205,7 +205,7 @@ function viewEmpTime(){   // employee Timecards tab: the clock on top; fixing ho
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
     + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") + `</div>`;
   const payBody = open !== "pay" ? "" : `<div class="sch-fold"><div class="card sp-card"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>${empPayBox(me)}</div>`;
-  return clockCard() + notice + (miss.length ? tcBanner(true) : "")
+  return notice + (miss.length ? tcBanner(true) : "")
     + `<div class="sch-bigrow">` + big("edit", "Fix My Hours", "Wrong time? Forgot something?") + editBody + big("pay", "Get Paid", tcH(unTot) + " not paid yet") + payBody + `</div>`;
 }
 
