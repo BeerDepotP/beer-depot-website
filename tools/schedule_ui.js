@@ -60,7 +60,7 @@ async function loadSchedule(){
     if(window.pushLogin) pushLogin(sch.data.me.push);
     if(!sch.data.me.manager && sch.view === "team" && !sch.viewSet){ sch.view = "mine"; await schCall({ action: "get" }); }
     sch.viewSet = true;
-    if((sch.view === "setup" || sch.view === "time") && !sch.data.me.manager) sch.view = "mine";
+    if(sch.view === "setup" && !sch.data.me.manager) sch.view = "mine";
     renderSchedule();
   }catch(err){ if(err.status === 401 || err.status === 429) lockPage(err.message); else toast(err.message, true); }
 }
@@ -88,10 +88,11 @@ function renderSchedule(){
   const waiting = d.needs + d.offers;
   const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"]];
   if(mgr) pills.push(["time","Timecards" + (payList().length ? " (" + payList().length + ")" : "")]);
+  else pills.push(["time","Timecards",tcMissing().length]);
   if(mgr) pills.push(["setup","Setup"]);
-  $("#sch-pills").innerHTML = pills.map(([k,n]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}</button>`).join("");
+  $("#sch-pills").innerHTML = pills.map(([k,n,red]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}${red ? ` <span class="sch-red" aria-label="${red} need your hours">${red}</span>` : ""}</button>`).join("");
   setSchBadge(waiting);
-  $("#sch-body").innerHTML = (mgr && sch.view !== "time" ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, time: viewTime, setup: viewSetup })[sch.view]();
+  $("#sch-body").innerHTML = (mgr && sch.view !== "time" ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, time: mgr ? viewTime : viewEmpTime, setup: viewSetup })[sch.view]();
   selPaint();
 }
 
@@ -123,49 +124,61 @@ function nextShiftBanner(){
   }
   return `<div class="card sch-next"><span class="help" style="margin:0">Your Next Shift</span><b>Nothing coming up yet</b></div>`;
 }
-function tcBanner(){   // big "send your timecard" box for each finished shift with no timecard yet; they type the times they really worked
+function tcMissing(){   // finished shifts (last 7 days) of mine with no timecard yet
   const d = sch.data, me = d.me.id, t = schToday(), now = schNow(), out = [];
   Object.keys(d.shifts).sort().forEach(date => { if(date >= addD(t, -7) && date <= t) schShifts(date).forEach(x => { if(x.who === me && !tcCardOf(x, me) && (date < t || (x.end > x.start && now >= x.end))) out.push({ date, x }); }); });
-  return out.slice(0, 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Send Your Timecard</b><span class="help" style="margin:0">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}</span><button type="button" class="btn" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Hours</button><button type="button" class="btn ghost" data-tcone="${esc(date)}|${esc(x.id)}">Worked Scheduled Hours</button></div>`).join("");
+  return out;
+}
+function tcBanner(all){   // big "send your timecard" box for each finished shift with no timecard yet; they type the times they really worked
+  return tcMissing().slice(0, all ? 99 : 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Send Your Timecard</b><span class="help" style="margin:0">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}</span><button type="button" class="btn" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Hours</button><button type="button" class="btn ghost" data-tcone="${esc(date)}|${esc(x.id)}">Worked Scheduled Hours</button></div>`).join("");
 }
 function pendingFor(shiftId){ return sch.data.requests.find(r => schActive(r) && (r.shiftId === shiftId || r.withShiftId === shiftId)); }
 
-function viewMine(){   // upcoming shifts of mine (confirmed months); shifts from the last 7 days that are not paid yet sit behind a Past Shifts button
-  const d = sch.data, me = d.me.id, t = schToday(), w0 = wkStart(t), m0 = monthFirst(t), back = addD(t, -7);
-  const paidShift = x => { const c = tcCardOf(x, me); return !!(c && c.paid); };
-  const mineOn = date => schShifts(date).filter(x => x.who === me);
-  const all = Object.keys(d.shifts).sort().filter(date => date >= back && mineOn(date).length);
-  const upDates = all.filter(date => date >= t), pastDates = all.filter(date => date < t && mineOn(date).some(x => !paidShift(x)));
-  const rowsOf = (dates, past, months) => { let last = ""; return dates.map(date => {
-    const mine = mineOn(date).filter(x => !past || !paidShift(x)), mo = date.slice(0, 7);
+const paidShiftOf = x => { const c = tcCardOf(x, sch.data.me.id); return !!(c && c.paid); };
+const mineOn = date => schShifts(date).filter(x => x.who === sch.data.me.id);
+function mineRows(dates, past, months, emp){   // one box per day with my shifts; past = timecard buttons, otherwise Trade or Give Away (managers still get a timecard button on shifts that started)
+  const d = sch.data, me = d.me.id, t = schToday(); let last = "";
+  return dates.map(date => {
+    const mine = mineOn(date).filter(x => !past || (!paidShiftOf(x) && tcStarted(date, x))), mo = date.slice(0, 7);
     const head = months && mo !== last ? `<h3 class="grp" style="margin:14px 2px 4px">${monthName(date)} ${spd(date).getFullYear()}</h3>` : ""; last = mo;
     return head + `<div class="sch-day${date === t ? " today" : ""}"><div class="sch-dl"${past ? ` style="opacity:.55"` : ""}><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
       <div class="sch-dr">${mine.map(x => { const pr = pendingFor(x.id);
-        return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}${tcLine(x)}</div>
-        ${tcStarted(date, x) ? tcBtn(date, x) : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Trade or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
-  }).join(""); };
+        return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}${past || !emp ? tcLine(x) : ""}</div>
+        ${past || (!emp && tcStarted(date, x)) ? tcBtn(date, x) : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Trade or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
+  }).join("");
+}
+function viewMine(){   // upcoming shifts of mine (confirmed months). Employees do timecards and pay on the Timecards tab; managers keep them here
+  const d = sch.data, me = d.me.id, t = schToday(), w0 = wkStart(t), m0 = monthFirst(t), back = addD(t, -7), emp = !d.me.manager;
+  const all = Object.keys(d.shifts).sort().filter(date => date >= back && mineOn(date).length);
+  const upDates = all.filter(date => date >= t), pastDates = all.filter(date => date < t && mineOn(date).some(x => !paidShiftOf(x)));
+  const rowsOf = (dates, past, months) => mineRows(dates, past, months, emp);
   const mineUn = tcUnpaid().filter(c => c.who === me), oldUn = mineUn.filter(c => c.date < back).sort((x, y) => x.date.localeCompare(y.date)), paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
   const pastCount = pastDates.length + oldUn.length;
-  const pastBtn = pastCount || paidMine.length ? `<button type="button" class="btn ghost" data-schpast style="margin:8px 0">${sch.showPast ? "Hide Past Shifts" : "Past Shifts (" + pastCount + ")"}</button>` + (sch.showPast ? `<p class="help" style="margin:0 2px 4px">Shifts not paid yet. Tap a button to send or fix your times.</p>` + rowsOf(pastDates, true, false)
+  const pastBtn = emp ? "" : pastCount || paidMine.length ? `<button type="button" class="btn ghost" data-schpast style="margin:8px 0">${sch.showPast ? "Hide Past Shifts" : "Past Shifts (" + pastCount + ")"}</button>` + (sch.showPast ? `<p class="help" style="margin:0 2px 4px">Shifts not paid yet. Tap a button to send or fix your times.</p>` + rowsOf(pastDates, true, false)
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
     + (paidMine.length ? `<details style="margin:10px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") : "") : "";
-  const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0);
-  const pv = payOf(me), payShort = pv.mode === "weekly" ? "Paid every Friday" : pv.req ? "Paid " + fDay(pv.req) : "Paid when you ask";
-  const money = `<div class="card sp-card" style="margin-top:8px"><span class="help" style="margin:0">Not paid yet: <b>${tcH(unTot)}</b>${d.me.manager ? "" : ` · ${esc(payShort)} · <a href="#" data-payopen>${sch.payOpen ? "Close" : "Change"}</a>`}</span></div>` + (d.me.manager || !sch.payOpen ? "" : `<div style="margin-top:8px">${empPayBox(me)}</div>`);
   const tog = `<div class="sch-togrow"><div class="sch-tog"><button type="button" data-mmode="list" aria-pressed="${sch.mmode !== "cal"}">List</button><button type="button" data-mmode="cal" aria-pressed="${sch.mmode === "cal"}">Calendar</button></div></div>`;
-  const payTop = (() => {   // "When I Ask" people: the Pay Me button sits right under the Next Shift box
-    if(d.me.manager || pv.mode !== "ask") return "";
-    const miss = missFor(me);
-    if(pv.req) return `<div class="card sp-card" style="margin-top:8px"><b>You're on the list to be paid ${esc(fDay(pv.req))}</b><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel</button></div>`;
-    if(miss.length) return `<div class="card sp-card" style="margin-top:8px"><b>Want to be paid?</b><span class="help" style="margin:0">Send your timecard first for ${miss.map(m => esc(fDay(m.date))).join(" and ")}.</span></div>`;
-    if(payCards(me).length) return `<button type="button" class="btn" data-tcask style="margin:8px 0 14px;width:100%">Pay Me ${payWord()} - ${payTotal(me)}</button>`;
-    return "";
-  })();
-  const top = nextShiftBanner() + tcBanner() + payTop + swapsBlock();
-  if(sch.mmode === "cal") return top + tog + monthCal(true) + money;
+  const top = nextShiftBanner() + (emp ? "" : tcBanner()) + swapsBlock();
+  if(sch.mmode === "cal") return top + tog + monthCal(true);
   return top + tog + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">This week: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> · ${monthName(m0)}: <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b></p>`
-    + (rowsOf(upDates, false, true) || `<p class="help" style="margin:10px 2px">No shifts yet. They show up once the owner confirms the month.</p>`)
-    + money + pastBtn;
+    + (rowsOf(emp ? upDates : upDates, false, true) || `<p class="help" style="margin:10px 2px">No shifts yet. They show up once the owner confirms the month.</p>`)
+    + pastBtn;
+}
+
+function viewEmpTime(){   // employee Timecards tab: everything about hours and pay
+  const d = sch.data, me = d.me.id, t = schToday(), back = addD(t, -7);
+  const mineUn = tcUnpaid().filter(c => c.who === me), oldUn = mineUn.filter(c => c.date < back).sort((x, y) => x.date.localeCompare(y.date));
+  const paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
+  const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x)));
+  const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing();
+  const head = miss.length ? tcBanner(true) : `<div class="card sp-card" style="margin-top:8px"><b>All Timecards Sent</b><span class="help" style="margin:0">Nothing is missing. Thank you.</span></div>`;
+  return head
+    + `<div class="card sp-card" style="margin-top:8px"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>`
+    + `<div style="margin-top:8px">${empPayBox(me)}</div>`
+    + `<h3 class="grp" style="margin:16px 2px 4px">Recent Shifts</h3><p class="help" style="margin:0 2px 6px">Shifts not paid yet. Tap a button to send or fix your times.</p>`
+    + (mineRows(recent, true, false, true) || `<p class="help" style="margin:4px 2px">Nothing here.</p>`)
+    + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
+    + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "");
 }
 
 /* ---------- timecards ---------- */
@@ -241,7 +254,7 @@ function viewTime(){
   const plRows = pl.map(id => { const cs = payCards(id), miss = missFor(id), later = un.filter(c => c.who === id && !cs.includes(c)), v = payOf(id), late = v.req && v.req < schToday();
     return `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><span class="sch-chip" style="background:${empColor(id)};display:inline-block">${esc(firstName(nm(id, cs)))}</span><br><b>${tcH(tot(cs))}</b> · ${cs.length} day${cs.length === 1 ? "" : "s"}<br><span class="help" style="margin:0">${v.req ? "Asked to be paid" + (late ? " (was for " + esc(fDay(v.req)) + ")" : "") : "Paid every Friday"}${later.length ? " · " + tcH(tot(later)) + " worked later goes on the next paycheck" : ""}</span>${miss.length ? `<br><span class="help" style="margin:0;color:#C8102E"><b>Timecard missing:</b> ${miss.map(m => esc(fDay(m.date))).join(" and ")}</span>` : ""}</span>${cs.length ? `<button type="button" class="btn sch-sm" data-tcpaypd="${esc(id)}">Mark Paid</button>` : ""}</div></div>`; }).join("");
   const payBox = `<div class="card sp-card" style="border:2px solid var(--orange)"><b>Pay on ${esc(fDay(payDay()))}</b><span class="help" style="margin:0">Paychecks go out at 9 AM. This paycheck covers ${esc(payPeriod())} (Friday through Thursday). Hours worked on a payday Friday go on the next paycheck. These people get paid: everyone on Every Friday with hours, plus anyone who tapped Pay Me.</span></div>${plRows || `<p class="help" style="margin:4px 2px">Nobody is waiting to be paid this Friday.</p>`}`;
-  return payBox + `<p class="help" style="margin:4px 2px 8px">Employees send their times from My Shifts. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
+  return payBox + `<p class="help" style="margin:4px 2px 8px">Employees send their times from their Timecards tab. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
     <h3 class="grp" style="margin:6px 2px 4px">Not Paid Yet</h3>
     ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span><br><span class="help" style="margin:0">${payOf(id).mode === "ask" ? (payOf(id).req ? "Asked to be paid " + esc(fDay(payOf(id).req)) : "Paid when they ask (hasn't asked)") : "Paid every Friday"} · <a href="#" data-tcflip="${esc(id)}|${payOf(id).mode === "ask" ? "weekly" : "ask"}">Change</a></span></span><span style="display:flex;gap:6px;flex-wrap:wrap">${cs.filter(c => tcSel().has(c.id)).length ? `<button type="button" class="btn sch-sm" data-tcpaysel="${esc(id)}">Mark ${cs.filter(c => tcSel().has(c.id)).length} Selected Paid</button>` : ""}<button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></span></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
     <h3 class="grp" style="margin:16px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours are deleted 30 days after you mark them paid. Untick Paid to put hours back.</p>
@@ -268,7 +281,7 @@ function monthCal(mineOnly){   // mineOnly = the My Shifts calendar: same look a
   const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""}</span>`).join("")
     + `<span class="sch-key"><i style="background:${empColor("")}"></i>Open Shift</span><span class="sch-key"><i class="pendkey"></i>Request Waiting</span>`;
   const selHelp = mgr ? (SEL.mode ? `<p class="help" style="margin:0 2px 8px"><b>Select Days is on.</b> Tap days one at a time, or touch and hold a day, then drag across the days you want (side to side and up and down). A quick swipe still scrolls the page. When you let go after dragging, pick who and the shift. On a computer you can also click a day, then hold Shift and click another day.</p>` : `<p class="help" style="margin:0 2px 8px">Tap a day to add a shift. Tap a shift to change it, give it to someone else, or remove it. To do many days at once, tap Select Days (on a computer, click a day then Shift+click another).</p>`) : "";
-  if(mineOnly) return `<p class="help" style="margin:4px 2px 8px">Only your shifts. Tap a shift to swap or give it away, or to send your timecard once it has started.</p>
+  if(mineOnly) return `<p class="help" style="margin:4px 2px 8px">Only your shifts. Tap a shift to swap or give it away.</p>
     <div class="sm-head">${SCH_DOW.map(x => `<span>${x}</span>`).join("")}</div><div class="sm-grid">${cells.join("")}</div>
     <p class="help" style="margin:8px 2px 0">Your hours in ${monthName(first)}: <b>${fHrs(myHours(first, last))}</b>. Only you can see your own hours.</p>`;
   return `${selHelp}${mgr ? "" : `<p class="help" style="margin:4px 2px 8px">Tap your own shift to swap or give it away. Tap a coworker's shift to ask to swap. Tap an open shift to take it.</p>`}
@@ -568,7 +581,7 @@ document.addEventListener("click", async e => {
   const td = el.closest(".sch-tbl td[data-d], .sm-cell[data-d]");
   if(td && sch.data && sch.view === "mine" && !el.closest("#sch-modal")){   // My Shifts calendar: only my own shifts can be tapped
     const chip = el.closest(".sch-bub"), date = td.dataset.d, x = chip && schShifts(date).find(y => y.id === chip.dataset.sid);
-    if(x && x.who === sch.data.me.id) { if(tcStarted(date, x)) schTc(date, x.id, false); else if(date >= schToday()) schMine(date, x.id); }
+    if(x && x.who === sch.data.me.id) { if(tcStarted(date, x)){ if(schIsMgr()) schTc(date, x.id, false); else { sch.view = "time"; renderSchedule(); } } else if(date >= schToday()) schMine(date, x.id); }
     return;
   }
   if(td && sch.data && !el.closest("#sch-modal")){
