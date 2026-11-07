@@ -136,7 +136,7 @@ function monthCal(){
   const people = d.team.filter(p => !p.hidden || tot[p.id]).sort((a, b) => (b.id === me) - (a.id === me));
   const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""}</span>`).join("")
     + `<span class="sch-key"><i style="background:${empColor("")}"></i>Open Shift</span><span class="sch-key"><i class="pendkey"></i>Request Waiting</span>`;
-  const selHelp = mgr ? (SEL.mode ? `<p class="help" style="margin:0 2px 8px"><b>Select Days is on.</b> Drag across the days you want (side to side and up and down), or tap days one at a time. When you let go, pick who and the shift. On a computer you can also click a day, then hold Shift and click another day.</p>` : `<p class="help" style="margin:0 2px 8px">Tap a day to add a shift. Tap a shift to change it, give it to someone else, or remove it. To do many days at once, tap Select Days (on a computer, click a day then Shift+click another).</p>`) : "";
+  const selHelp = mgr ? (SEL.mode ? `<p class="help" style="margin:0 2px 8px"><b>Select Days is on.</b> Tap days one at a time, or touch and hold a day, then drag across the days you want (side to side and up and down). A quick swipe still scrolls the page. When you let go after dragging, pick who and the shift. On a computer you can also click a day, then hold Shift and click another day.</p>` : `<p class="help" style="margin:0 2px 8px">Tap a day to add a shift. Tap a shift to change it, give it to someone else, or remove it. To do many days at once, tap Select Days (on a computer, click a day then Shift+click another).</p>`) : "";
   return `${selHelp}${mgr ? "" : `<p class="help" style="margin:4px 2px 8px">Tap your own shift to swap or give it away. Tap a coworker's shift to ask to swap. Tap an open shift to take it.</p>`}
     <div class="sm-head">${SCH_DOW.map(x => `<span>${x}</span>`).join("")}</div><div class="sm-grid${SEL.mode ? " selmode" : ""}">${cells.join("")}</div>
     <p class="help" style="margin:8px 2px 0">Your hours in ${monthName(first)}: <b>${fHrs(myHours(first, last))}</b>. Only you can see your own hours.</p>
@@ -324,9 +324,9 @@ function selPaint(){
   $$("#sch-body .sm-cell[data-d]").forEach(c => c.classList.toggle("picked", S.dates.has(c.dataset.d)));
   let bar = $("#sch-selbar");
   if(!bar){ bar = document.createElement("div"); bar.id = "sch-selbar"; bar.className = "sch-selbar"; bar.hidden = true; document.body.appendChild(bar); }
-  const show = selOn() && n > 0 && !$("#p-schedule").hidden;
+  const show = selOn() && (n > 0 || S.mode) && !$("#p-schedule").hidden;
   bar.hidden = !show;
-  if(show) bar.innerHTML = `<b>${n} Day${n === 1 ? "" : "s"} Selected</b><button type="button" class="btn" data-selgo>Edit</button><button type="button" class="btn ghost" data-selclear>Clear</button>`;
+  if(show) bar.innerHTML = (n ? `<b>${n} Day${n === 1 ? "" : "s"} Selected</b><button type="button" class="btn" data-selgo>Edit</button><button type="button" class="btn ghost" data-selclear>Clear</button>` : `<b>Select Days Is On</b>`) + (S.mode ? `<button type="button" class="btn ghost" data-seltog>Done</button>` : "");
 }
 const selCell = el => el && el.closest ? el.closest("#sch-body .sm-cell[data-d]") : null;
 function selSkip(){ const S = selS(); S.skip = true; setTimeout(() => { S.skip = false; }, 120); }
@@ -343,23 +343,26 @@ document.addEventListener("pointerdown", e => {
   }
   S.anchor = date;
   if(!S.mode){ if(S.dates.size){ S.dates.clear(); selPaint(); } return; }
-  S.drag = { start: date, last: date, moved: false };
-  try{ c.setPointerCapture(e.pointerId); }catch(_){}
-  e.preventDefault();
+  const touch = e.pointerType !== "mouse";
+  const d = S.drag = { start: date, last: date, moved: false, live: !touch, x: e.clientX, y: e.clientY, timer: 0 };
+  if(touch) d.timer = setTimeout(() => { if(S.drag === d){ d.live = d.held = true; if(navigator.vibrate) navigator.vibrate(15); S.dates.add(d.start); selPaint(); } }, 260);   // finger: touch and hold to start dragging, a quick swipe just scrolls the page
 });
+document.addEventListener("touchmove", e => { const d = selS().drag; if(d && d.live && e.cancelable) e.preventDefault(); }, { passive: false });
+document.addEventListener("contextmenu", e => { if(selS().mode && selCell(e.target)) e.preventDefault(); });
 document.addEventListener("pointermove", e => {
   const S = selS(); if(!S.drag) return;
+  if(!S.drag.live){ if(Math.abs(e.clientX - S.drag.x) + Math.abs(e.clientY - S.drag.y) > 8){ clearTimeout(S.drag.timer); S.drag = null; } return; }   // moved before the hold: it is a scroll
   const c = selCell(document.elementFromPoint(e.clientX, e.clientY)); if(!c || c.dataset.d === S.drag.last) return;
   S.drag.last = c.dataset.d; S.drag.moved = true;
   S.dates = new Set(selRect(S.drag.start, c.dataset.d)); selPaint();
 });
 document.addEventListener("pointerup", e => {
   const S = selS(); const d = S.drag; if(!d) return;
-  S.drag = null; selSkip();
-  if(!d.moved){ if(S.dates.has(d.start)) S.dates.delete(d.start); else S.dates.add(d.start); selPaint(); return; }
+  clearTimeout(d.timer); S.drag = null; selSkip();
+  if(!d.moved){ if(!d.held){ if(S.dates.has(d.start)) S.dates.delete(d.start); else S.dates.add(d.start); } selPaint(); return; }
   selPaint(); if(S.dates.size > 1) schBatch();
 });
-document.addEventListener("pointercancel", () => { const S = selS(); if(S.drag){ S.drag = null; selPaint(); } });
+document.addEventListener("pointercancel", () => { const S = selS(); if(S.drag){ clearTimeout(S.drag.timer); S.drag = null; selPaint(); } });
 function schBatch(){
   const S = selS(), dates = [...S.dates].sort(); if(!dates.length) return;
   const people = sch.data.team.filter(p => !p.hidden), n = dates.length;
