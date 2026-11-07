@@ -62,3 +62,5 @@
 
 ## Future ideas the owner wants
 - Online ordering + payment for FOOD ONLY (Made Here and catering), pickup in store. Orders would land in a new Store Tools "Orders" tab with a badge. Payment provider not chosen yet (Stripe or Square; ask whether their current card processor offers online payments).
+
+- SIMPLER FOR EMPLOYEES (drafts, 2026-11-07, owner has non-tech-savvy staff): My Shifts order = Next Shift, big "Send Your Timecard" box per finished shift with no timecard (tcBanner(); button "I Worked My Scheduled Hours" = data-tcone sends tcSave with the scheduled times; link "My Hours Were Different" opens the time pop-up), swaps only when something needs an answer (rest folded in an "Open Shifts and Requests (n)" fold-out), List/Calendar toggle, shifts, then one line "Not paid yet: X hrs · Paid every Friday · Change" (Change opens the pay box, sch.payOpen), then Past Shifts (n). Buttons: Trade or Give Away, Trade Shifts, Give Away Shift, Send Timecard / Fix Timecard. The phone setup card hides once notifications are on and leaves a small "Phone Alerts Are On · Phone Setup" link.
