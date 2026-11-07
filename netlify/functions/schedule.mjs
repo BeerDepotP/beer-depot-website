@@ -41,7 +41,7 @@ export const DEFAULT_PRESETS = [
   { id: "p5", name: "Close", start: "16:30", end: "21:00", color: COLORS[4] },
 ];
 
-function clean(d) {
+export function clean(d) {
   d = d || {};
   d.presets = Array.isArray(d.presets) && d.presets.length ? d.presets : DEFAULT_PRESETS.map(p => ({ ...p }));
   d.shifts = d.shifts && typeof d.shifts === "object" ? d.shifts : {};
@@ -68,6 +68,15 @@ function clean(d) {
   for (const [k, v] of Object.entries(pay)) if (v && typeof v === "object") d.settings.pay[String(k).slice(0, 40)] = { mode: v.mode === "ask" ? "ask" : "weekly", req: D.test(String(v.req || "")) ? v.req : "" };
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
   return d;
+}
+
+// Shifts a person already worked in the pay period before payday `pd` (Friday through Thursday) that have no timecard yet.
+// Only shifts they can still fix (up to a week after) count. Used to block "Pay Me" and to send the reminder alert.
+export function missingTimecards(d, who, pd, t = today(), hm = nowHM()) {
+  const out = [], lo = addDays(t, -7), from = addDays(pd, -7);
+  for (let x = from < lo ? lo : from; x < pd && x <= t; x = addDays(x, 1))
+    for (const s of d.shifts[x] || []) if (s.who === who && (x < t || (s.end > s.start && hm >= s.end)) && !d.cards.some(c => c.shiftId === s.id && c.who === who)) out.push({ date: x, s });
+  return out;
 }
 
 export function seeded() {
@@ -474,7 +483,7 @@ export default async (req) => {
   if (act === "tcAsk") {   // "Pay me on the next payday" (or cancel it)
     const cur = d.settings.pay[me.id] || { mode: "weekly", req: "" };
     if (b.cancel) cur.req = "";
-    else { const pd = nextPayday(); if (!d.cards.some(c => c.who === me.id && !c.paid && c.date < pd)) return json({ error: "You have no hours for this paycheck yet. Hours worked through Thursday go on Friday's paycheck. Send a timecard first." }, 400); cur.req = pd; }
+    else { const pd = nextPayday(), miss = missingTimecards(d, me.id, pd); if (miss.length) return json({ error: "Send your timecard first for " + miss.map(m => fD(m.date)).join(" and ") + ". Then tap Pay Me again." }, 400); if (!d.cards.some(c => c.who === me.id && !c.paid && c.date < pd)) return json({ error: "You have no hours for this paycheck yet. Hours worked through Thursday go on Friday's paycheck. Send a timecard first." }, 400); cur.req = pd; }
     d.settings.pay[me.id] = cur;
     return ok();
   }

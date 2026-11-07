@@ -8,7 +8,7 @@ const LINK = "https://beerdepotpewaukee.com/food-stock/#schedule";
 const ICON = "https://beerdepotpewaukee.com/img/icon-192.png";          // the Beer Depot logo (the picture on the right of an Android notification)
 const BADGE = "https://beerdepotpewaukee.com/img/notify-badge.png";    // small white logo in the phone's top bar
 
-// The six alerts. {who} {shift} {other} {answer} are filled in; the owner can reword and switch each one off.
+// The alerts. {who} {shift} {other} {answer} are filled in; the owner can reword and switch each one off.
 export const ALERTS = {
   swapAsk:      { label: "Swap request",        who: "The coworker asked to swap with",       title: "{who} wants to swap shifts", body: "They would work your {shift} and you would work their {other}. Open the app to say yes or no." },
   swapAnswer:   { label: "Swap answered",       who: "The person who asked for the swap",     title: "{who} said {answer} to your swap", body: "Your swap request for {shift} was answered." },
@@ -16,6 +16,7 @@ export const ALERTS = {
   needsOk:      { label: "Needs your OK",       who: "The owner and Managers",                title: "A shift change needs your OK", body: "{who} wants to take {shift}. Open the app to OK or deny it." },
   shiftChanged: { label: "Your shift changed",  who: "The person whose shift was changed",    title: "Your schedule changed", body: "{who} updated your shifts: {shift}." },
   monthReady:   { label: "Month schedule is done", who: "Everyone on the schedule",             title: "{month} schedule is ready", body: "The {month} schedule is done. Open the app to see your shifts." },
+  timecardMissing: { label: "Timecard missing before payday", who: "Anyone being paid that Friday who has not sent a timecard", title: "Send your timecard", body: "You get paid {payday}, but you haven't sent your hours for {shift}. Open the app to enter them." },
   openShift:    { label: "Open shift posted",   who: "Everyone on the schedule",              title: "New open shift", body: "Open shift: {shift}. Open the app to take it." },
 };
 

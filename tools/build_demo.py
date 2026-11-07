@@ -135,7 +135,7 @@ push_src = (root / "netlify/lib/push.mjs").read_text().replace("export ", "").re
 push_src += "\nconst sendPush = async (to, t, b) => { (window.__PUSHES = window.__PUSHES || []).push({ to, title: t, body: b }); return true; };\n"
 sched = push_src + "\n" + sched
 seedjson = (root / "netlify/lib/schedule-seed.json").read_text()
-sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS").replace("export function seeded", "function seeded")
+sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS").replace("export function seeded", "function seeded").replace("export function clean", "function clean").replace("export function missingTimecards", "function missingTimecards")
 sched_demo = r"""
 (function(){
   const SCH = {};
