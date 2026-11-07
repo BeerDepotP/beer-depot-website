@@ -28,6 +28,7 @@ const rid = () => randomBytes(5).toString("hex");
 const addDays = (d, n) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
+const nowHM = () => new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).replace(/^24:/, "00:");
 const PAL = ["#E6194B","#F58231","#D9A000","#6BA814","#1E8E3E","#008080","#0097B2","#4363D8","#1B1F6B","#911EB4","#8E7CC3","#D81FD1","#F06292","#800000","#8B5A2B","#808000","#5B6770","#222222","#3FA7E0","#5E2750"];   // same list as SCH_PAL in tools/schedule_ui.js (default person colors, in team order)
 const COLORS = ["#F26B1D", "#1F7A3A", "#2F6DB5", "#8A4FBF", "#C8102E", "#B8860B", "#2B1A10"];
 export const DEFAULT_PRESETS = [
@@ -58,6 +59,8 @@ function clean(d) {
     : [...new Set(Object.entries(d.shifts).filter(([, l]) => l.length).map(([k]) => k.slice(0, 7)))].sort();
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
+  // Timecards: one per worked shift {id,date,who,name,shiftId,in,out,sent,paid,paidAt}. Paid ones are kept for 30 days (the "Past Hours" list), then dropped.
+  d.cards = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && typeof c.id === "string" && D.test(String(c.date)) && T.test(String(c.in)) && T.test(String(c.out)) && (!c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000)).slice(-1500);
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
   return d;
 }
@@ -132,7 +135,7 @@ function view(d, team, me, from, to, staff) {
   const cutoff = Date.now() - 14 * 86400000;
   const requests = d.requests.filter(r => !hid(r.date) && !(r.withDate && hid(r.withDate))).filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
-  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, ...counts(d, me), today: today() };
+  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -150,7 +153,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending", "hideMonth"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending", "hideMonth", "tcFix", "tcPaid", "tcPaidAll"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
@@ -192,6 +195,7 @@ export default async (req) => {
     const old = addDays(today(), -400);
     for (const k of Object.keys(d.shifts)) if (k < old || !d.shifts[k].length) delete d.shifts[k];
     d.requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > Date.now() - 30 * 86400000)).slice(0, 200);
+    d.cards = d.cards.filter(c => !c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000);
     sweep(d);
     d.updated = new Date().toISOString();
     await store.setJSON(KEY, d);
@@ -435,6 +439,31 @@ export default async (req) => {
     else { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
     await tell(store, d, r.by, `${who2} said yes to the swap`, [`${who2} said yes to swapping ${what}.`, r.status === "approve" ? "It now waits for the owner's OK." : "The schedule is updated."]);
     return ok();
+  }
+  /* ---------- timecards ---------- */
+  if (act === "tcSave" || act === "tcFix") {   // tcSave = my own shift (the day it starts, up to a week after); tcFix = a manager fixes anyone's
+    const date = String(b.date || ""), s = isDate(date) ? findShift(d, date, b.shiftId) : null;
+    if (!s || !s.who) return json({ error: "I can't find that shift." }, 400);
+    if (act === "tcSave") {
+      const t0 = today();
+      if (s.who !== me.id) return json({ error: "That isn't your shift." }, 403);
+      if (date > t0 || date < addDays(t0, -7) || (date === t0 && nowHM() < s.start)) return json({ error: "You can fill in your timecard once your shift starts, and up to one week after." }, 400);
+    }
+    if (!T.test(String(b.in || "")) || !T.test(String(b.out || "")) || b.in === b.out) return json({ error: "Enter the time you came in and the time you left." }, 400);
+    let c = d.cards.find(x => x.shiftId === s.id && x.who === s.who);
+    if (c && c.paid) return json({ error: "That day is already marked paid, so it can't be changed." }, 400);
+    if (!c) { c = { id: rid(), date, who: s.who, name: name(s.who), shiftId: s.id, paid: false, paidAt: "" }; d.cards.push(c); }
+    c.in = b.in; c.out = b.out; c.sent = new Date().toISOString(); c.by = me.id;
+    return ok();
+  }
+  if (act === "tcPaid") {
+    const c = d.cards.find(x => x.id === b.id); if (!c) return json({ error: "I can't find that timecard." }, 400);
+    c.paid = !!b.paid; c.paidAt = c.paid ? new Date().toISOString() : "";
+    return ok();
+  }
+  if (act === "tcPaidAll") {
+    let n = 0; for (const c of d.cards) if (c.who === b.who && !c.paid) { c.paid = true; c.paidAt = new Date().toISOString(); n++; }
+    return ok({ marked: n });
   }
   if (act === "cancel") {
     const r = d.requests.find(x => x.id === b.id);
