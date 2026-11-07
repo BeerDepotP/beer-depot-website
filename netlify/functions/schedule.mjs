@@ -16,6 +16,8 @@ import { randomBytes } from "node:crypto";
 import { checkPin, pinUser, json } from "../lib/pin.mjs";
 import { sendMail, SITE } from "../lib/club-email.mjs";
 import { storeInfo } from "../lib/info.mjs";
+import { buildReport } from "../lib/schedule-report.mjs";
+import { backupNow, lastBackup } from "../lib/schedule-backup.mjs";
 import { ALERTS, alertSettings, buildAlert, sendPush } from "../lib/push.mjs";
 import seed from "../lib/schedule-seed.json" with { type: "json" };
 
@@ -50,6 +52,8 @@ export function clean(d) {
   d.settings.approval = true;   // employees can never change shifts without the owner's OK
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
+  const rp = d.settings.report && typeof d.settings.report === "object" ? d.settings.report : {};   // Friday hours email to the owner
+  d.settings.report = { on: rp.on !== false, email: rp.email === undefined ? "tyler@beerdepotpewaukee.com" : (validEmail(rp.email) ? String(rp.email).trim() : "") };
   d.settings.notify = alertSettings(d.settings.notify);   // push alerts: {on, kinds:{swapAsk,..:{on,title,body}}}
   const pe = d.settings.pending && typeof d.settings.pending === "object" ? d.settings.pending : {};   // alerts waiting for "Confirm Schedule": { who:{personId:[dates]}, open:[dates] }
   const ds = a => [...new Set((Array.isArray(a) ? a : []).filter(x => D.test(String(x))))].sort().slice(0, 400);
@@ -178,7 +182,7 @@ export default async (req) => {
   const d = raw ? clean(raw) : seeded();
   let team = await teamOf(store, d);
   const mePerson = who.owner ? null : d.settings.people.find(p => p.staffId === who.id);
-  const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!(who.owner || who.boss) };   // owner = may OK give-aways and change presets (the real owner or a staff Manager)
+  const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!(who.owner || who.boss), root: !!who.owner };   // owner = may OK give-aways and change presets (the real owner or a staff Manager)
   me.push = who.owner ? "owner" : who.id;   // OneSignal external id for this login
   const outbox = [];
   const pushId = pid => pid === "owner" ? "owner" : d.settings.people.some(p => p.id === pid) ? (d.settings.people.find(p => p.id === pid).staffId || "") : pid;
@@ -227,6 +231,15 @@ export default async (req) => {
     const sent = await sendPush([me.push], "Test alert", "Phone alerts are working. This came from the Beer Depot schedule.");
     return json({ ok: true, message: sent ? "Sent. It should pop up on your phone in a few seconds." : "OneSignal did not accept it. Turn On Notifications on this phone first." });
   }
+  if (act === "backupDownload" || act === "backupNow" || act === "reportTest") {   // owner only
+    if (!who.owner) return json({ error: "Only the owner can do that." }, 403);
+    if (act === "backupDownload") return json({ ok: true, file: { saved: new Date().toISOString(), schedule: d, staff: await store.get("staff", { type: "json" }) } });
+    if (act === "backupNow") { const day = await backupNow(store); return json({ ok: true, message: day ? "Backup saved." : "Nothing to back up yet.", last: await lastBackup(store) }); }
+    if (!d.settings.report.email) return json({ error: "Type the email first and tap Save." }, 400);
+    try { const rep = buildReport(d, Object.fromEntries(team.map(p => [p.id, p.name])), today(), today(), nowHM(), missingTimecards); await sendMail({ to: d.settings.report.email, subject: "TEST: " + rep.subject, html: rep.html, text: rep.text, info: await storeInfo(store) }); return json({ ok: true, message: "Sent to " + d.settings.report.email + "." }); }
+    catch (e) { return json({ error: "Couldn't send: " + e.message }, 500); }
+  }
+  if (act === "backupInfo") { if (!who.owner) return json({ ok: true, last: "" }); return json({ ok: true, last: await lastBackup(store) }); }
   if (act === "badge") { const c = counts(d, me); return json({ ok: true, count: c.needs + c.offers }); }
   if (act === "get" || !act) {
     const from = isDate(b.from) ? b.from : addDays(today(), -7);
@@ -359,6 +372,11 @@ export default async (req) => {
       d.settings.colors = c;
     }
     if (b.nightFrom !== undefined) { if (!T.test(String(b.nightFrom))) return json({ error: "Pick a time." }, 400); d.settings.nightFrom = String(b.nightFrom); }
+    if (b.report && typeof b.report === "object") {
+      if (!who.owner) return json({ error: "Only the owner can change the Friday email." }, 403);
+      const em = String(b.report.email || "").trim(); if (em && !validEmail(em)) return json({ error: "That email address doesn't look right." }, 400);
+      d.settings.report = { on: b.report.on !== false, email: em };
+    }
     if (b.notify && typeof b.notify === "object") d.settings.notify = alertSettings(b.notify);
     if (Array.isArray(b.hide)) d.settings.hide = b.hide.filter(x => typeof x === "string").slice(0, 60);
     return ok();

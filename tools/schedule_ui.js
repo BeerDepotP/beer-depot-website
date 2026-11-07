@@ -356,6 +356,20 @@ function alertsRead(){
   document.querySelectorAll(".sch-al").forEach(card => { const k = card.dataset.alk; out.kinds[k] = { on: card.querySelector("[data-alsw]").getAttribute("aria-checked") === "true", title: card.querySelector("[data-alf=title]").value, body: card.querySelector("[data-alf=body]").value }; });
   return out;
 }
+function safetyBlock(){   // owner only: nightly backup + Friday hours email
+  const d = sch.data; if(!d.me.root) return "";
+  const r = d.settings.report || { on: true, email: "" }, inp = "width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F";
+  return `<h3 class="grp">Safety Copy</h3>
+    <p class="help">Every night the whole schedule (shifts, timecards, pay choices, settings and the staff list) is saved. The last 14 nights are kept. If something ever goes wrong, ask Claude to put a night back.</p>
+    <div class="card sp-card"><span class="help" style="margin:0" id="sch-bklast">${sch.bkLast ? "Last safety copy: <b>" + esc(fDay(sch.bkLast)) + "</b>" : ""}</span>
+      <button class="btn" type="button" id="sch-bknow">Save a Safety Copy Now</button>
+      <button class="btn ghost" type="button" id="sch-bkdl">Download a Copy to This Device</button></div>
+    <h3 class="grp">Friday Hours Email</h3>
+    <p class="help">Every Friday morning around 7:30 AM you get an email: who is being paid that day, their hours, and any timecard still missing.</p>
+    <div class="card sp-card"><div class="sch-prt"><b>Send the Friday Email</b><button type="button" class="sw sch-sw" role="switch" aria-checked="${r.on !== false}" aria-label="Send the Friday email" id="sch-rpon"></button></div>
+      <label class="help" style="margin:0;display:grid;gap:4px">Send It To<input id="sch-rpem" type="email" maxlength="80" value="${esc(r.email || "")}" placeholder="you@example.com" style="${inp}"></label>
+      <button class="btn" type="button" id="sch-rpsave">Save</button><button class="btn ghost" type="button" id="sch-rptest">Send Me a Test Email</button></div>`;
+}
 function viewSetup(){
   const d = sch.data;
   if(!sch.draft) sch.draft = d.presets.map(p => ({ ...p }));
@@ -369,6 +383,7 @@ function viewSetup(){
     <h3 class="grp">Swaps</h3>
     <p class="help">Swaps happen as soon as both people agree, and anyone can take an Open Shift. If an employee gives a shift away and a coworker takes it, that waits for your OK (only the owner can OK it).</p>
     ${alertsBlock()}
+    ${safetyBlock()}
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
     ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
       <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
@@ -572,7 +587,7 @@ document.addEventListener("click", async e => {
   if(el.closest("[data-selclear]")){ selS().dates.clear(); selS().anchor = ""; selPaint(); return; }
   if(el.closest("[data-selgo]")){ schBatch(); return; }
   const st = el.closest("[data-seltog]"); if(st){ const S = selS(), m = !S.mode; selReset(); S.mode = m; renderSchedule(); return; }
-  const v = el.closest("[data-schview]"); if(v){ selReset(); sch.view = v.dataset.schview; if(sch.view === "setup") sch.draft = null; loadSchedule(); return; }
+  const v = el.closest("[data-schview]"); if(v){ selReset(); sch.view = v.dataset.schview; if(sch.view === "setup") sch.draft = null; await loadSchedule(); if(sch.view === "setup" && sch.data.me.root){ try{ const j = await api("/api/schedule", { action: "backupInfo" }); sch.bkLast = j.last || ""; const l = $("#sch-bklast"); if(l) l.innerHTML = sch.bkLast ? "Last safety copy: <b>" + esc(fDay(sch.bkLast)) + "</b>" : "No safety copy yet. The first one is saved tonight."; }catch(e){} } return; }
   const tm = el.closest("[data-tmode]"); if(tm){ selReset(); sch.tmode = tm.dataset.tmode; if(sch.tmode === "week"){ const t = schToday(); sch.start = monthFirst(t) === sch.month ? wkStart(t) : wkStart(sch.month); } else sch.month = monthFirst(sch.start); loadSchedule(); return; }
   if(el.closest("[data-gosetup]")){ schClose(); sch.view = "setup"; sch.draft = null; loadSchedule(); return; }
   if(el.closest("[data-schclose]")){ schClose(); return; }
@@ -674,6 +689,11 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-confirm-no")){ if(await askYes("Throw away the waiting alerts without sending them? The shifts stay as they are.", "Don't Send", true)){ await schDo({ action: "discardPending" }, "Alerts cleared, nothing sent", true); } return; }
   if(el.closest("#sch-alsave")){ await schDo({ action: "settings", notify: alertsRead() }, "Alert wording saved", true); return; }
   if(el.closest("#sch-alreset")){ if(await askYes("Put every alert back to the standard wording?", "Put Back")){ const o = alertsRead(); for(const k of Object.keys(o.kinds)){ o.kinds[k].title = ""; o.kinds[k].body = ""; } await schDo({ action: "settings", notify: o }, "Standard wording back", true); } return; }
+  if(el.closest("#sch-rpon")){ const b = el.closest("#sch-rpon"); b.setAttribute("aria-checked", b.getAttribute("aria-checked") === "true" ? "false" : "true"); return; }
+  if(el.closest("#sch-rpsave")){ await schDo({ action: "settings", report: { on: $("#sch-rpon").getAttribute("aria-checked") === "true", email: $("#sch-rpem").value } }, "Saved", true); return; }
+  if(el.closest("#sch-rptest")){ try{ await schDo({ action: "settings", report: { on: $("#sch-rpon").getAttribute("aria-checked") === "true", email: $("#sch-rpem").value } }, "", true); const j = await api("/api/schedule", { action: "reportTest" }); toast(j.message); }catch(err){ toast(err.message, true); } return; }
+  if(el.closest("#sch-bknow")){ try{ const j = await api("/api/schedule", { action: "backupNow" }); sch.bkLast = j.last || schToday(); toast(j.message); const l = $("#sch-bklast"); if(l) l.innerHTML = "Last safety copy: <b>" + esc(fDay(sch.bkLast)) + "</b>"; }catch(err){ toast(err.message, true); } return; }
+  if(el.closest("#sch-bkdl")){ try{ const j = await api("/api/schedule", { action: "backupDownload" }); const blob = new Blob([JSON.stringify(j.file, null, 1)], { type: "application/json" }), a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "beer-depot-schedule-" + schToday() + ".json"; document.body.appendChild(a); a.click(); a.remove(); toast("Copy downloaded"); }catch(err){ toast(err.message, true); } return; }
   if(el.closest("#sch-altest")){ try{ const j = await api("/api/schedule", { action: "pushTest" }); toast(j.message); }catch(err){ toast(err.message, true); } return; }
   if(el.closest("#sch-osave")){ await schDo({ action: "settings", ownerName: $("#sch-oname").value }, "Name saved", true); return; }
   if(el.closest("#sch-copy")){ if(await askYes("Copy last week's shifts into this week? Shifts already here stay.", "Copy")) await schDo({ action: "copyWeek", from: addD(sch.start, -7), to: sch.start }, "Copied last week", true); return; }
