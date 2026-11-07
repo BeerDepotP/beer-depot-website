@@ -153,7 +153,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending", "hideMonth", "tcFix", "tcPaid", "tcPaidAll"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending", "hideMonth", "tcFix", "tcPaid", "tcPay", "tcPaidAll"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
@@ -458,11 +458,16 @@ export default async (req) => {
   }
   if (act === "tcPaid") {
     const c = d.cards.find(x => x.id === b.id); if (!c) return json({ error: "I can't find that timecard." }, 400);
-    c.paid = !!b.paid; c.paidAt = c.paid ? new Date().toISOString() : "";
+    c.paid = !!b.paid; c.paidAt = c.paid ? new Date().toISOString() : ""; if (!c.paid) c.check = "";
     return ok();
   }
+  if (act === "tcPay") {   // mark the chosen timecards paid, with an optional check number
+    const ids = new Set(Array.isArray(b.ids) ? b.ids.map(String) : []), ck = one(b.check, 20); let n = 0;
+    for (const c of d.cards) if (ids.has(c.id) && !c.paid) { c.paid = true; c.paidAt = new Date().toISOString(); c.check = ck; n++; }
+    return ok({ marked: n });
+  }
   if (act === "tcPaidAll") {
-    let n = 0; for (const c of d.cards) if (c.who === b.who && !c.paid) { c.paid = true; c.paidAt = new Date().toISOString(); n++; }
+    let n = 0; for (const c of d.cards) if (c.who === b.who && !c.paid) { c.paid = true; c.paidAt = new Date().toISOString(); c.check = one(b.check, 20); n++; }
     return ok({ marked: n });
   }
   if (act === "cancel") {

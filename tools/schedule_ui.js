@@ -147,6 +147,7 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
 /* ---------- timecards ---------- */
 const tcHrs = (a, b) => { const h = hrs(a, b); return h > 0 ? h : h + 24; };   // a shift that ends after midnight counts the next day
 const tcH = h => (Math.round(h * 100) / 100) + " hrs";
+const tcSel = () => (sch.tcSel = sch.tcSel || new Set());
 const tcCards = () => (sch.data.cards || []);
 const tcUnpaid = () => tcCards().filter(c => !c.paid);
 const tcCardOf = (x, who) => tcCards().find(c => c.shiftId === x.id && c.who === (who || x.who));
@@ -170,9 +171,18 @@ function schTc(date, sid, fix){          // pop-up: what time did you come in an
 function tcRow(c, mgr){
   const x = (sch.data.shifts[c.date] || []).find(y => y.id === c.shiftId);
   return `<div class="card sch-req" style="display:flex;align-items:center;gap:10px">
-    ${mgr ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}"${c.paid ? " checked" : ""} aria-label="Paid">Paid</label>` : ""}
-    <div style="flex:1"><b>${esc(fDay(c.date))}</b><span class="help" style="margin:0">${esc(fR(c.in, c.out))} · <b>${tcH(tcHrs(c.in, c.out))}</b>${c.paid && c.paidAt ? " · paid " + esc(fDayS(c.paidAt.slice(0, 10))) : ""}</span></div>
+    ${mgr ? (c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>` : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`) : ""}
+    <div style="flex:1"><b>${esc(fDay(c.date))}</b><span class="help" style="margin:0">${esc(fR(c.in, c.out))} · <b>${tcH(tcHrs(c.in, c.out))}</b>${c.paid && c.paidAt ? " · paid " + esc(fDayS(c.paidAt.slice(0, 10))) : ""}${c.paid && c.check ? " · check #" + esc(c.check) : ""}</span></div>
     ${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div>`;
+}
+function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
+  const cs = tcUnpaid().filter(c => c.who === who && (!ids || ids.includes(c.id))); if(!cs.length) return;
+  const tot = cs.reduce((h, c) => h + tcHrs(c.in, c.out), 0);
+  sch.ed = { pay: { ids: cs.map(c => c.id) } };
+  schOpen(`<h3 class="sch-h">Mark Paid · ${esc(schName(who))}</h3>
+    <p class="help" style="margin:0 0 8px">${cs.length} day${cs.length === 1 ? "" : "s"} · <b>${tcH(tot)}</b></p>
+    <label class="help" style="margin:0;display:grid;gap:4px">Check Number (Optional)<input id="sch-pay-check" maxlength="20" inputmode="numeric" placeholder="Example: 1042" style="width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F"></label>
+    <button type="button" class="btn" id="sch-pay-go">Mark Paid</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
 function viewTime(){
   const d = sch.data, mgr = schIsMgr(), me = d.me.id;
@@ -188,9 +198,9 @@ function viewTime(){
       <h3 class="grp" style="margin:14px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours stay here for 30 days.</p>${paid.map(c => tcRow(c, false)).join("") || `<p class="help" style="margin:4px 2px">No paid hours yet.</p>`}`;
   }
   const unG = byPerson(un), paidG = byPerson(paid);
-  return `<p class="help" style="margin:4px 2px 8px">Employees send their times from My Shifts. Tick Paid when you've paid those hours and they move to Past Hours for 30 days.</p>
+  return `<p class="help" style="margin:4px 2px 8px">Employees send their times from My Shifts. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
     <h3 class="grp" style="margin:6px 2px 4px">Not Paid Yet</h3>
-    ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span></span><button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
+    ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span></span><span style="display:flex;gap:6px;flex-wrap:wrap">${cs.filter(c => tcSel().has(c.id)).length ? `<button type="button" class="btn sch-sm" data-tcpaysel="${esc(id)}">Mark ${cs.filter(c => tcSel().has(c.id)).length} Selected Paid</button>` : ""}<button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></span></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
     <h3 class="grp" style="margin:16px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours are deleted 30 days after you mark them paid. Untick Paid to put hours back.</p>
     ${paidG.map(([id, cs]) => `<details class="card sp-card" style="border-left:6px solid ${empColor(id)}"><summary><b>${esc(nm(id, cs))}</b> · ${tcH(tot(cs))} paid</summary>${cs.map(c => tcRow(c, true)).join("")}</details>`).join("") || `<p class="help" style="margin:4px 2px">No paid hours yet.</p>`}`;
 }
@@ -522,7 +532,10 @@ document.addEventListener("click", async e => {
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   if(el.closest("#sch-tc-save") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, in: $("#sch-tc-in").value, out: $("#sch-tc-out").value }, t.fix ? "Timecard saved" : "Timecard sent"); return; }
   const tpd = el.closest("[data-tcpaid]"); if(tpd){ await schDo({ action: "tcPaid", id: tpd.dataset.tcpaid, paid: tpd.checked }, tpd.checked ? "Marked paid" : "Put back in Not Paid Yet"); return; }
-  const tpa = el.closest("[data-tcpaidall]"); if(tpa){ const id = tpa.dataset.tcpaidall; if(await askYes("Mark all of " + schName(id) + "'s hours as paid?", "Mark All Paid")) await schDo({ action: "tcPaidAll", who: id }, "All marked paid"); return; }
+  const tse = el.closest("[data-tcsel]"); if(tse){ const S = tcSel(), id = tse.dataset.tcsel; if(S.has(id)) S.delete(id); else S.add(id); renderSchedule(); return; }
+  const tps = el.closest("[data-tcpaysel]"); if(tps){ schPay(tps.dataset.tcpaysel, [...tcSel()]); return; }
+  const tpa = el.closest("[data-tcpaidall]"); if(tpa){ schPay(tpa.dataset.tcpaidall, null); return; }
+  if(el.closest("#sch-pay-go") && sch.ed && sch.ed.pay){ const ids = sch.ed.pay.ids; tcSel().clear(); await schDo({ action: "tcPay", ids, check: $("#sch-pay-check").value }, "Marked paid"); return; }
   const mine = el.closest("[data-schmine]"); if(mine){ const [d, s] = mine.dataset.schmine.split("|"); schMine(d, s); return; }
   const ed = el.closest("[data-sched]"); if(ed){ schEdit(sch.ed.date, ed.dataset.sched); return; }
   const pk = el.closest("[data-pick]"); if(pk && sch.ed){ sch.ed.who = pk.dataset.pick; sch.lastWho = sch.ed.who; schPaint(); return; }
