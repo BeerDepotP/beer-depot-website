@@ -158,7 +158,7 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
     const miss = missFor(me);
     if(pv.req) return `<div class="card sp-card" style="margin-top:8px"><b>You're on the list to be paid ${esc(fDay(pv.req))}</b><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel</button></div>`;
     if(miss.length) return `<div class="card sp-card" style="margin-top:8px"><b>Want to be paid?</b><span class="help" style="margin:0">Send your timecard first for ${miss.map(m => esc(fDay(m.date))).join(" and ")}.</span></div>`;
-    if(payCards(me).length) return `<button type="button" class="btn" data-tcask style="margin-top:8px;width:100%">Pay Me ${payWord()}</button>`;
+    if(payCards(me).length) return `<button type="button" class="btn" data-tcask style="margin:8px 0 14px;width:100%">Pay Me ${payWord()} - ${payTotal(me)}</button>`;
     return "";
   })();
   const top = nextShiftBanner() + tcBanner() + payTop + swapsBlock();
@@ -175,6 +175,7 @@ const tcH = h => (Math.round(h * 100) / 100) + " hrs";
 const tcSel = () => (sch.tcSel = sch.tcSel || new Set());
 const payOf = id => (sch.data.pay || {})[id] || { mode: "weekly", req: "" };
 const payDay = () => sch.data.payday || schToday();
+const payTotal = id => { const cs = payCards(id), h = Math.round(cs.reduce((t, c) => t + tcHrs(c.in, c.out), 0) * 100) / 100; return `${cs.length} Shift${cs.length === 1 ? "" : "s"} ${h} Hr${h === 1 ? "" : "s"}`; };   // "3 Shifts 12 Hrs" for the Pay Me button
 const payWord = () => (payDay() <= addD(schToday(), 6) ? "This Friday" : "Next Friday");   // paychecks go out Friday 9 AM
 // Pay periods run Friday through Thursday and paychecks go out the Friday after: hours worked ON the payday Friday ride on the NEXT paycheck.
 const payCut = id => payOf(id).req || payDay();
@@ -221,7 +222,7 @@ function schPay(who, ids){               // pop-up: mark hours paid, with an opt
     <button type="button" class="btn" id="sch-pay-go">Mark Paid</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
 function empPayBox(me){   // how do I want to be paid + the Pay Me button (employees; opens from the Change link on My Shifts)
-    const pv = payOf(me), miss = missFor(me), askBtn = miss.length ? `<span class="help" style="margin:0"><b>Send your timecard first</b> for ${miss.map(m => esc(fDay(m.date))).join(" and ")}. Then you can ask to be paid.</span><button type="button" class="btn" data-schtc="${esc(miss[0].date)}|${esc(miss[0].s.id)}">Enter My Hours</button>` : payCards(me).length ? `<button type="button" class="btn" data-tcask>Pay Me ${payWord()}</button>` : `<span class="help" style="margin:0">No hours to pay yet.</span>`;
+    const pv = payOf(me), miss = missFor(me), askBtn = miss.length ? `<span class="help" style="margin:0"><b>Send your timecard first</b> for ${miss.map(m => esc(fDay(m.date))).join(" and ")}. Then you can ask to be paid.</span><button type="button" class="btn" data-schtc="${esc(miss[0].date)}|${esc(miss[0].s.id)}">Enter My Hours</button>` : payCards(me).length ? `<button type="button" class="btn" data-tcask>Pay Me ${payWord()} - ${payTotal(me)}</button>` : `<span class="help" style="margin:0">No hours to pay yet.</span>`;
     return `<div class="card sp-card"><b>How Do You Want to Be Paid?</b>
       <div class="sch-tog"><button type="button" data-tcmode="weekly" aria-pressed="${pv.mode === "weekly"}">Every Friday</button><button type="button" data-tcmode="ask" aria-pressed="${pv.mode === "ask"}">When I Ask</button></div>
       ${pv.mode === "weekly" ? `<span class="help" style="margin:0">You get paid every Friday.</span>`
@@ -318,8 +319,7 @@ function swapsBlock(){   // swap, give-away and open-shift items; shown at the t
     + sec("Open Shifts", openShifts.map(({ date, s }) => `<div class="card sch-req"><b>${fDay(date)} · ${fR(s.start, s.end)}</b>${s.note ? `<span class="help" style="margin:0">${esc(s.note)}</span>` : ""}<div class="sch-btns"><button type="button" class="btn sch-sm" data-schopen="${esc(date)}|${esc(s.id)}">I'll Take It</button></div></div>`).join(""))
     + sec("Your Requests", mineR.map(r => reqCard(r, B("cancel", "Cancel Request", "ghost"))).join(""))
     + (recent.length ? `<h3 class="grp" style="margin:14px 2px 4px">Recently Finished</h3>${recent.map(r => reqCard(r, "")).join("")}` : "");
-  const n = offered.length + openShifts.length + mineR.length;
-  return first + (more ? `<details style="margin:10px 2px 0"><summary class="btn ghost sch-sm" style="cursor:pointer;display:inline-block">Open Shifts and Requests${n ? " (" + n + ")" : ""}</summary>${more}</details>` : "");
+  return first + more;
 }
 
 function alertsBlock(){
