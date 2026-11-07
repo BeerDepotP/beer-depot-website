@@ -310,6 +310,9 @@
   .sm-grid{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .sm-grid.selmode{touch-action:none}
   .sm-grid.selmode .sm-cell{cursor:crosshair}
+  .sm-cell{position:relative}
+  .sm-plus{position:absolute;top:1px;right:1px;width:22px;height:22px;padding:0;border:0;border-radius:50%;background:var(--orange);color:#fff;font:700 17px/22px var(--body);text-align:center;cursor:pointer;z-index:2}
+  @media (min-width:600px){ .sm-plus{top:3px;right:3px;width:24px;height:24px;line-height:24px} }
   .sm-cell.picked{background:#FFE3C2;box-shadow:inset 0 0 0 3px var(--orange)}
   .sch-selbar{position:fixed;left:8px;right:8px;bottom:8px;z-index:60;display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;border-radius:14px;padding:8px 12px;box-shadow:0 4px 18px rgba(0,0,0,.35)}
   .sch-selbar[hidden]{display:none}
@@ -1850,7 +1853,7 @@ function monthCal(){
   for(let i = 0; i < weeks * 7; i++){
     const date = addD(start, i), inM = spd(date).getMonth() === mi, list = schShifts(date), dayL = list.filter(s => !isNight(s)), nightL = list.filter(isNight);
     if(inM) list.forEach(s => { if(s.who) tot[s.who] = (tot[s.who] || 0) + hrs(s.start, s.end); });
-    cells.push(`<div class="sm-cell${SEL.dates.has(date) ? " picked" : ""}${inM ? "" : " other"}${date === t ? " today" : ""}${date < t ? " past" : ""}${mgr ? " edit" : ""}" data-d="${date}"><span class="sm-n">${spd(date).getDate()}</span>${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`);
+    cells.push(`<div class="sm-cell${SEL.dates.has(date) ? " picked" : ""}${inM ? "" : " other"}${date === t ? " today" : ""}${date < t ? " past" : ""}${mgr ? " edit" : ""}" data-d="${date}"><span class="sm-n">${spd(date).getDate()}</span>${mgr && !SEL.mode ? `<button type="button" class="sm-plus" data-addday="${date}" aria-label="Add a shift">+</button>` : ""}${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`);
   }
   const people = d.team.filter(p => !p.hidden || tot[p.id]).sort((a, b) => (b.id === me) - (a.id === me));
   const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""}</span>`).join("")
@@ -2121,6 +2124,7 @@ document.addEventListener("click", async e => {
   const tm = el.closest("[data-tmode]"); if(tm){ selReset(); sch.tmode = tm.dataset.tmode; if(sch.tmode === "week"){ const t = schToday(); sch.start = monthFirst(t) === sch.month ? wkStart(t) : wkStart(sch.month); } else sch.month = monthFirst(sch.start); loadSchedule(); return; }
   if(el.closest("[data-gosetup]")){ schClose(); sch.view = "setup"; sch.draft = null; loadSchedule(); return; }
   if(el.closest("[data-schclose]")){ schClose(); return; }
+  const ad = el.closest("[data-addday]"); if(ad && sch.data && schIsMgr() && !selS().skip){ schCell(ad.dataset.addday, null); return; }
   const td = el.closest(".sch-tbl td[data-d], .sm-cell[data-d]");
   if(td && sch.data && !el.closest("#sch-modal")){
     if(selS().skip || (selS().mode && selOn())) return;

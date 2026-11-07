@@ -130,7 +130,7 @@ function monthCal(){
   for(let i = 0; i < weeks * 7; i++){
     const date = addD(start, i), inM = spd(date).getMonth() === mi, list = schShifts(date), dayL = list.filter(s => !isNight(s)), nightL = list.filter(isNight);
     if(inM) list.forEach(s => { if(s.who) tot[s.who] = (tot[s.who] || 0) + hrs(s.start, s.end); });
-    cells.push(`<div class="sm-cell${SEL.dates.has(date) ? " picked" : ""}${inM ? "" : " other"}${date === t ? " today" : ""}${date < t ? " past" : ""}${mgr ? " edit" : ""}" data-d="${date}"><span class="sm-n">${spd(date).getDate()}</span>${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`);
+    cells.push(`<div class="sm-cell${SEL.dates.has(date) ? " picked" : ""}${inM ? "" : " other"}${date === t ? " today" : ""}${date < t ? " past" : ""}${mgr ? " edit" : ""}" data-d="${date}"><span class="sm-n">${spd(date).getDate()}</span>${mgr && !SEL.mode ? `<button type="button" class="sm-plus" data-addday="${date}" aria-label="Add a shift">+</button>` : ""}${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`);
   }
   const people = d.team.filter(p => !p.hidden || tot[p.id]).sort((a, b) => (b.id === me) - (a.id === me));
   const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""}</span>`).join("")
@@ -401,6 +401,7 @@ document.addEventListener("click", async e => {
   const tm = el.closest("[data-tmode]"); if(tm){ selReset(); sch.tmode = tm.dataset.tmode; if(sch.tmode === "week"){ const t = schToday(); sch.start = monthFirst(t) === sch.month ? wkStart(t) : wkStart(sch.month); } else sch.month = monthFirst(sch.start); loadSchedule(); return; }
   if(el.closest("[data-gosetup]")){ schClose(); sch.view = "setup"; sch.draft = null; loadSchedule(); return; }
   if(el.closest("[data-schclose]")){ schClose(); return; }
+  const ad = el.closest("[data-addday]"); if(ad && sch.data && schIsMgr() && !selS().skip){ schCell(ad.dataset.addday, null); return; }
   const td = el.closest(".sch-tbl td[data-d], .sm-cell[data-d]");
   if(td && sch.data && !el.closest("#sch-modal")){
     if(selS().skip || (selS().mode && selOn())) return;
