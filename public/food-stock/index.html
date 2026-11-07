@@ -8,7 +8,11 @@
 <link rel="icon" type="image/png" sizes="64x64" href="/img/favicon-64.png">
 <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
 <meta name="theme-color" content="#2B1A10">
-<meta name="apple-mobile-web-app-title" content="Store Tools">
+<meta name="apple-mobile-web-app-title" content="Scheduler">
+<link rel="manifest" href="/food-stock/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Store Tools · The Beer Depot</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -384,6 +388,11 @@
 
   <section id="p-schedule" hidden>
     <h2 class="sec">Schedule</h2>
+    <div class="card sp-card" id="app-card" hidden>
+      <b>Get This on Your Phone</b>
+      <p class="help" id="app-note" style="margin:4px 0 8px"></p>
+      <div class="sch-btns"><button type="button" class="btn" id="app-install" hidden>Install the App</button><button type="button" class="btn ghost" id="app-push">Turn On Notifications</button></div>
+    </div>
     <div class="sch-nav"><button type="button" class="btn ghost sch-nb" id="sch-prev" aria-label="Last week">‹</button><div class="sch-range"><b id="sch-range"></b><button type="button" class="sch-link" id="sch-today" hidden>This Week</button></div><button type="button" class="btn ghost sch-nb" id="sch-next" aria-label="Next week">›</button></div>
     <div class="sch-pills" id="sch-pills"></div>
     <div id="sch-body"></div>
@@ -2267,6 +2276,67 @@ $("#lock").onclick = ()=>lockPage("");
 
 const saved = ss.get("bd-pin");
 if(saved){ unlock(saved).catch(err=>lockPage(err.message)); } else { $("#pin").focus(); }
+</script>
+<script>
+/* ---------- app: install + notifications ---------- */
+(function(){
+  const PUSH = {
+    provider: "none",          // "none" | "onesignal" | "webpush"
+    onesignalAppId: "",        // OneSignal: paste your App ID, set provider to "onesignal", and set USE_ONESIGNAL = true in sw.js
+    vapidPublicKey: ""         // Firebase Cloud Messaging / Web Push: your public VAPID key, set provider to "webpush"
+  };
+  const SCOPE = "/food-stock/";
+  const $ = s => document.querySelector(s);
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const installed = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  let reg = null, deferred = null;
+
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register(SCOPE + "sw.js", { scope: SCOPE }).then(r => { reg = r; }).catch(e => console.warn("Service worker not registered:", e));
+    });
+  }
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferred = e; $("#app-install").hidden = false; });
+  window.addEventListener("appinstalled", () => { deferred = null; $("#app-install").hidden = true; note(); });
+
+  function note(){
+    const c = $("#app-card"); if (!c) return;
+    const can = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
+    c.hidden = installed && can && Notification.permission === "granted";
+    $("#app-note").textContent = ios && !installed ? "On iPhone: tap the Share button, choose Add to Home Screen, then open Scheduler from your Home Screen. Notifications only work from there."
+      : !can ? "This browser can't show notifications."
+      : Notification.permission === "denied" ? "Notifications are blocked. Turn them on for this app in your phone's Settings."
+      : "Tap below so you get a message when a shift changes.";
+    $("#app-push").hidden = !can || (ios && !installed);
+  }
+  $("#app-install").addEventListener("click", async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $("#app-install").hidden = true; });
+
+  const key64 = s => { const p = "=".repeat((4 - s.length % 4) % 4), b = (s + p).replace(/-/g, "+").replace(/_/g, "/"), r = atob(b); return Uint8Array.from([...r].map(c => c.charCodeAt(0))); };
+
+  window.enableNotifications = async function(){
+    try {
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) { note(); return; }
+      const perm = await Notification.requestPermission();           // the phone asks the employee here
+      if (perm !== "granted") { note(); return; }
+      const r = reg || await navigator.serviceWorker.ready;
+      if (PUSH.provider === "onesignal" && PUSH.onesignalAppId) {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        const s = document.createElement("script"); s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"; s.defer = true; document.head.appendChild(s);
+        OneSignalDeferred.push(async OneSignal => {
+          await OneSignal.init({ appId: PUSH.onesignalAppId, serviceWorkerPath: SCOPE + "sw.js", serviceWorkerParam: { scope: SCOPE } });
+          await OneSignal.User.PushSubscription.optIn();
+        });
+      } else if (PUSH.provider === "webpush" && PUSH.vapidPublicKey) {
+        const sub = await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key64(PUSH.vapidPublicKey) });
+        console.log("Push subscription (send this to your push service):", JSON.stringify(sub));
+      }
+      await r.showNotification("Notifications are on", { body: "You will get a message here when a shift changes.", icon: "/img/icon-192.png", data: { url: SCOPE } });   // proves it works
+      note();
+    } catch (e) { console.warn("Notifications:", e); note(); }
+  };
+  $("#app-push").addEventListener("click", () => window.enableNotifications());
+  note();
+})();
 </script>
 </body>
 </html>
