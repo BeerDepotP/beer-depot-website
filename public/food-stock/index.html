@@ -242,10 +242,10 @@
   .sch-next{display:grid;gap:2px;border-left:6px solid var(--orange);margin-bottom:6px}.sch-next b{font-size:21px}
   .sch-day{display:flex;gap:12px;background:#fff;border-radius:14px;padding:10px 12px;margin-bottom:8px;align-items:center}
   .sch-day.today{outline:3px solid var(--orange)} .sch-day.past{opacity:.55}
-  .sch-dl{flex:none;width:52px;text-align:center;display:grid;line-height:1.15}.sch-dl b{font-size:18px}.sch-dl span{font-size:14px;color:var(--muted)}
+  .sch-dl{flex:none;width:88px;text-align:center;display:grid;line-height:1.15}.sch-dl b{font-size:15px}.sch-dl span{font-size:13px;color:var(--muted)}
   .sch-dr{flex:1;display:grid;gap:8px;min-width:0}
-  .sch-mine{display:flex;justify-content:space-between;align-items:center;gap:10px;border-left:6px solid var(--orange);padding:4px 0 4px 10px}
-  .sch-mine>div{display:grid;gap:1px;min-width:0}.sch-mine b{font-size:18px}
+  .sch-mine{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px;border-left:6px solid var(--orange);padding:4px 0 4px 10px}
+  .sch-mine>div{display:grid;gap:1px;min-width:0}.sch-mine b{font-size:17px}
   .sch-off{color:var(--muted);font-weight:600}
   .sch-flag{font:700 13px var(--body);color:var(--orange)}
   .sch-wrap{overflow-x:auto;background:#fff;border-radius:14px;-webkit-overflow-scrolling:touch}
@@ -1935,7 +1935,7 @@ function tcRow(c, mgr){   // same look as My Shifts: one box per day with the da
   const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
     : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
   return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
-    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(fR(c.in, c.out))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(fR(c.in, c.out))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
       <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
