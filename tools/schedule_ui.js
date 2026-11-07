@@ -277,8 +277,7 @@ function empPayBox(me){   // how do I want to be paid + the Pay Me button (emplo
       <div class="sch-tog sch-tog2"><button type="button" data-tcmode="weekly" aria-pressed="${pv.mode === "weekly"}">Every Friday</button><button type="button" data-tcmode="ask" aria-pressed="${pv.mode === "ask"}">When I Ask</button></div>
       ${pv.mode === "weekly" ? `<span class="help" style="margin:0">You get paid every Friday.</span>`
         : pv.req ? `<span class="help" style="margin:0"><b>You're on the list for ${esc(fDay(pv.req))}.</b></span><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel</button>`
-        : askBtn}
-      <span class="help" style="margin:0">Hours worked Friday through Thursday are paid the next Friday.</span></div>`;
+        : askBtn}</div>`;
 }
 function viewTime(){
   const d = sch.data, mgr = schIsMgr(), me = d.me.id;
