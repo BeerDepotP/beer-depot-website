@@ -52,6 +52,10 @@ function clean(d) {
   const ds = a => [...new Set((Array.isArray(a) ? a : []).filter(x => D.test(String(x))))].sort().slice(0, 400);
   d.settings.pending = { who: {}, open: ds(pe.open) };
   for (const [k, v] of Object.entries(pe.who && typeof pe.who === "object" ? pe.who : {})) { const a = ds(v); if (a.length) d.settings.pending.who[String(k).slice(0, 40)] = a; }
+  // Months employees may see ("YYYY-MM"). Past and current months are always visible; a later month stays hidden from non-managers until "Confirm Schedule".
+  // First time (nothing saved): every month that already has shifts counts as published, so nothing suddenly disappears.
+  d.settings.published = Array.isArray(d.settings.published) ? [...new Set(d.settings.published.filter(x => /^\d{4}-\d{2}$/.test(String(x))))].sort().slice(0, 60)
+    : [...new Set(Object.entries(d.shifts).filter(([, l]) => l.length).map(([k]) => k.slice(0, 7)))].sort();
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
@@ -123,9 +127,10 @@ async function tell(store, d, toId, subject, lines) {
 
 function view(d, team, me, from, to, staff) {
   const shifts = {};
-  for (const [date, list] of Object.entries(d.shifts)) if (date >= from && date <= to && list.length) shifts[date] = list;
+  const nowM = today().slice(0, 7), hid = date => !me.manager && date.slice(0, 7) > nowM && !d.settings.published.includes(date.slice(0, 7));   // months not confirmed yet are hidden from employees
+  for (const [date, list] of Object.entries(d.shifts)) if (date >= from && date <= to && list.length && !hid(date)) shifts[date] = list;
   const cutoff = Date.now() - 14 * 86400000;
-  const requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
+  const requests = d.requests.filter(r => !hid(r.date) && !(r.withDate && hid(r.withDate))).filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
   return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, ...counts(d, me), today: today() };
 }
@@ -145,7 +150,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove", "confirm", "discardPending", "hideMonth"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
@@ -166,13 +171,15 @@ export default async (req) => {
   const holding = () => d.settings.notify.on !== false && d.settings.notify.hold !== false;
   const span = ups => ups.length === 1 ? fD(ups[0]) : `${ups.length} days between ${fD(ups[0])} and ${fD(ups[ups.length - 1])}`;
   // A manager edit: wait for "Confirm Schedule" (so nobody gets a pile of alerts while a month is being built), or tell right away if holding is off.
+  const isPub = date => date.slice(0, 7) <= today().slice(0, 7) || d.settings.published.includes(date.slice(0, 7));   // employees can see that day
+  const monthName = m => new Date(m + "-15T12:00:00Z").toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
   const noteChange = (pid, date, text) => {
-    if (!pid || date < today()) return;
+    if (!pid || date < today() || !isPub(date)) return;   // a hidden month has nothing to tell anyone yet
     if (holding()) { const w = d.settings.pending.who; w[pid] = [...new Set([...(w[pid] || []), date])].sort().slice(0, 400); }
     else queue("shiftChanged", [pid], { shift: text });
   };
   const noteOpen = (dates, text) => {
-    const ups = dates.filter(x => x >= today()); if (!ups.length) return;
+    const ups = dates.filter(x => x >= today() && isPub(x)); if (!ups.length) return;
     if (holding()) d.settings.pending.open = [...new Set([...d.settings.pending.open, ...ups])].sort().slice(0, 400);
     else queue("openShift", everyone(), { shift: text });
   };
@@ -277,15 +284,28 @@ export default async (req) => {
     if (!holding()) for (const [pid, n] of Object.entries(lost)) queue("shiftChanged", [pid], { shift: `${n} shift${n === 1 ? " was" : "s were"} removed` });
     return ok({ removed });
   }
+  if (act === "hideMonth") {
+    const m = String(b.month || "");
+    if (!/^\d{4}-\d{2}$/.test(m) || m <= today().slice(0, 7)) return json({ error: "Only a later month can be hidden." }, 400);
+    d.settings.published = d.settings.published.filter(x => x !== m);
+    for (const k of Object.keys(d.settings.pending.who)) d.settings.pending.who[k] = d.settings.pending.who[k].filter(x => x.slice(0, 7) !== m);
+    d.settings.pending.open = d.settings.pending.open.filter(x => x.slice(0, 7) !== m);
+    return ok();
+  }
   if (act === "confirm" || act === "discardPending") {
-    const pe = d.settings.pending; let people = 0;
+    const pe = d.settings.pending; let people = 0, shown = "";
     if (act === "confirm") {
+      const m = /^\d{4}-\d{2}$/.test(String(b.month || "")) ? String(b.month) : "";
+      if (m && m > today().slice(0, 7) && !d.settings.published.includes(m)) {   // the whole month goes live and everyone hears about it once
+        d.settings.published = [...d.settings.published, m].sort(); shown = m;
+        queue("monthReady", everyone(), { month: monthName(m), shift: monthName(m) });
+      }
       for (const [pid, dates] of Object.entries(pe.who)) { const ups = dates.filter(x => x >= today()); if (ups.length) { queue("shiftChanged", [pid], { shift: span(ups) }); people++; } }
       const open = pe.open.filter(x => x >= today());
       if (open.length) queue("openShift", everyone(), { shift: open.length === 1 ? `${fD(open[0])}` : `${open.length} days between ${fD(open[0])} and ${fD(open[open.length - 1])}` });
     }
     d.settings.pending = { who: {}, open: [] };
-    return ok({ confirmed: act === "confirm" ? people : 0 });
+    return ok({ confirmed: act === "confirm" ? people : 0, shown });
   }
   if (act === "copyWeek" || act === "clearWeek") {
     const start = act === "copyWeek" ? b.to : b.start;

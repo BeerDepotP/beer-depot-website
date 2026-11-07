@@ -1859,11 +1859,18 @@ function pendingInfo(){
   const people = Object.values(pe.who).filter(a => a.some(x => x >= t)).length, open = (pe.open || []).filter(x => x >= t).length;
   return { people, open };
 }
+const viewMonthOf = () => (sch.view === "team" && sch.tmode === "month" ? sch.month : sch.start).slice(0, 7);
+const monthLabel = m => SCH_FULL[spd(m + "-01").getMonth()];
 function confirmBar(){
-  const { people, open } = pendingInfo();
-  if(!people && !open) return "";
+  const { people, open } = pendingInfo(), m = viewMonthOf(), mn = monthLabel(m), now = schToday().slice(0, 7);
+  const future = m > now, pub = ((sch.data.settings || {}).published || []).includes(m), hidden = future && !pub;
+  const hideBtn = future && pub ? `<button class="btn ghost" type="button" id="sch-hidemonth" data-month="${m}">Hide ${esc(mn)} From Employees</button>` : "";
   const bits = [people ? people + (people === 1 ? " person" : " people") : "", open ? open + (open === 1 ? " open day" : " open days") : ""].filter(Boolean).join(" and ");
-  return `<div class="card sp-card sch-confirm" style="border:2px solid #F26B1D;margin-bottom:10px"><b>Alerts Are On Hold</b><span class="help" style="margin:0">Nobody has been told yet about your changes (${bits}). Tap Confirm Schedule when this month is done and everyone gets one alert.</span><button class="btn" type="button" id="sch-confirm">Confirm Schedule</button><button class="btn ghost" type="button" id="sch-confirm-no">Don't Send Alerts</button></div>`;
+  const box = inner => `<div class="card sp-card sch-confirm" style="border:2px solid #F26B1D;margin-bottom:10px">${inner}</div>`;
+  if(hidden) return box(`<b>${esc(mn)} Is Hidden From Employees</b><span class="help" style="margin:0">Employees can't see ${esc(mn)} yet and nobody gets alerts while you build it. When it's done, tap Confirm Schedule. ${esc(mn)} shows up for everyone and they all get a "${esc(mn)} schedule is done" alert.${bits ? " Waiting changes in months they can already see (" + bits + ") are sent at the same time." : ""}</span><button class="btn" type="button" id="sch-confirm" data-month="${m}">Confirm ${esc(mn)} Schedule</button>${bits ? `<button class="btn ghost" type="button" id="sch-confirm-no">Don't Send Waiting Alerts</button>` : ""}`);
+  if(people || open) return box(`<b>Alerts Are On Hold</b><span class="help" style="margin:0">Nobody has been told yet about your changes (${bits}). Tap Confirm Schedule when you're done and everyone affected gets one alert.</span><button class="btn" type="button" id="sch-confirm" data-month="">Confirm Schedule</button><button class="btn ghost" type="button" id="sch-confirm-no">Don't Send Alerts</button>${hideBtn}`);
+  if(sch.view === "team") return `<div class="card sp-card" style="margin-bottom:10px"><b>Everything Is Confirmed</b><span class="help" style="margin:0">Employees can see ${esc(mn)}. Anything you change will wait here for your Confirm Schedule button.</span>${hideBtn}</div>`;
+  return "";
 }
 function nextShiftBanner(){
   const d = sch.data, me = d.me.id, t = schToday(), now = schNow();
@@ -2269,7 +2276,11 @@ document.addEventListener("click", async e => {
   const nco = el.closest("[data-ncol]"); if(nco){ const keep = $("#sch-pnew") ? $("#sch-pnew").value : ""; sch.newCol = nco.dataset.ncol; renderSchedule(); if($("#sch-pnew")) $("#sch-pnew").value = keep; return; }
   const alsw = el.closest("[data-alsw]");
   if(alsw){ const o = alertsRead(), k = alsw.dataset.alsw; if(k === "all") o.on = !o.on; else if(k === "hold") o.hold = !o.hold; else o.kinds[k].on = !o.kinds[k].on; await schDo({ action: "settings", notify: o }, null, true); return; }
-  if(el.closest("#sch-confirm")){ const pi = pendingInfo(); if(await askYes(`Send alerts now to ${pi.people} ${pi.people === 1 ? "person" : "people"}${pi.open ? " and tell everyone about the open days" : ""}?`, "Confirm")){ try{ await schCall({ action: "confirm" }); renderSchedule(); toast("Schedule confirmed. Alerts sent."); }catch(err){ toast(err.message, true); } } return; }
+  const cf = el.closest("#sch-confirm");
+  if(cf){ const m = cf.dataset.month || "", pi = pendingInfo(), mn = m ? monthLabel(m) : ""; const msg = m ? `Show ${mn} to everyone and tell them the ${mn} schedule is done?` : `Send alerts now to ${pi.people} ${pi.people === 1 ? "person" : "people"}${pi.open ? " and tell everyone about the open days" : ""}?`;
+    if(await askYes(msg, "Confirm")){ try{ await schCall({ action: "confirm", month: m }); renderSchedule(); toast(m ? mn + " schedule confirmed. Everyone was told." : "Schedule confirmed. Alerts sent."); }catch(err){ toast(err.message, true); } } return; }
+  const hm = el.closest("#sch-hidemonth");
+  if(hm){ const mn = monthLabel(hm.dataset.month); if(await askYes(`Hide ${mn} from employees again? They won't see it until you confirm.`, "Hide It", true)) await schDo({ action: "hideMonth", month: hm.dataset.month }, mn + " hidden from employees", true); return; }
   if(el.closest("#sch-confirm-no")){ if(await askYes("Throw away the waiting alerts without sending them? The shifts stay as they are.", "Don't Send", true)){ await schDo({ action: "discardPending" }, "Alerts cleared, nothing sent", true); } return; }
   if(el.closest("#sch-alsave")){ await schDo({ action: "settings", notify: alertsRead() }, "Alert wording saved", true); return; }
   if(el.closest("#sch-alreset")){ if(await askYes("Put every alert back to the standard wording?", "Put Back")){ const o = alertsRead(); for(const k of Object.keys(o.kinds)){ o.kinds[k].title = ""; o.kinds[k].body = ""; } await schDo({ action: "settings", notify: o }, "Standard wording back", true); } return; }

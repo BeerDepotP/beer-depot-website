@@ -15,6 +15,7 @@ export const ALERTS = {
   giveOut:      { label: "Shift given away",    who: "Everyone else on the schedule",         title: "Shift up for grabs", body: "{who} is giving away {shift}. Open the app to take it." },
   needsOk:      { label: "Needs your OK",       who: "The owner and Managers",                title: "A shift change needs your OK", body: "{who} wants to take {shift}. Open the app to OK or deny it." },
   shiftChanged: { label: "Your shift changed",  who: "The person whose shift was changed",    title: "Your schedule changed", body: "{who} updated your shifts: {shift}." },
+  monthReady:   { label: "Month schedule is done", who: "Everyone on the schedule",             title: "{month} schedule is ready", body: "The {month} schedule is done. Open the app to see your shifts." },
   openShift:    { label: "Open shift posted",   who: "Everyone on the schedule",              title: "New open shift", body: "Open shift: {shift}. Open the app to take it." },
 };
 
