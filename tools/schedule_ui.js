@@ -85,11 +85,11 @@ function renderSchedule(){
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
   const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = sch.view === "mine" ? "none" : "";
   const waiting = d.needs + d.offers;
-  const pills = [["mine","My Shifts"],["team","Whole Team"],["swaps","Swaps" + (waiting ? " (" + waiting + ")" : "")]];
+  const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"]];
   if(mgr) pills.push(["setup","Setup"]);
   $("#sch-pills").innerHTML = pills.map(([k,n]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}</button>`).join("");
   setSchBadge(waiting);
-  $("#sch-body").innerHTML = (mgr ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, swaps: viewSwaps, setup: viewSetup })[sch.view]();
+  $("#sch-body").innerHTML = (mgr ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, setup: viewSetup })[sch.view]();
   selPaint();
 }
 
@@ -135,7 +135,7 @@ function viewMine(){   // every shift of mine from the start of this week on, fo
         return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}</div>
         ${past ? "" : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
   }).join("");
-  return nextShiftBanner() + `<p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
+  return nextShiftBanner() + swapsBlock() + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
     + (rows || `<p class="help" style="margin:10px 2px">You have no shifts on the schedule yet. Shifts show up here once the owner confirms the month.</p>`)
     + `<p class="help" style="margin:12px 2px 0">This list shows every month the owner has confirmed.</p>`;
 }
@@ -190,8 +190,8 @@ function weekCal(){
 function reqCard(r, buttons){
   return `<div class="card sch-req" data-rid="${esc(r.id)}"><b>${esc(reqText(r))}</b>${r.note ? `<span class="help" style="margin:0">“${esc(r.note)}”</span>` : ""}<span class="help" style="margin:0">${esc(reqStatus(r))}${r.why ? " · " + esc(r.why) : ""}</span>${buttons ? `<div class="sch-btns">${buttons}</div>` : ""}</div>`;
 }
-function viewSwaps(){
-  const d = sch.data, me = d.me.id, mgr = d.me.manager, t = schToday();
+function swapsBlock(){   // swap, give-away and open-shift items; shown at the top of My Shifts, only the parts that have something
+  const d = sch.data, me = d.me.id, t = schToday();
   const live = d.requests.filter(r => schActive(r) && r.date >= t);
   const B = (act, label, cls) => `<button type="button" class="btn ${cls || ""} sch-sm" data-schreq="${act}">${label}</button>`;
   const youAnswer = live.filter(r => r.status === "ask" && r.withWho === me);
@@ -200,14 +200,14 @@ function viewSwaps(){
   const openShifts = [];
   Object.keys(d.shifts).sort().forEach(date => { if(date >= t) d.shifts[date].filter(s => !s.who && !d.requests.some(r => schActive(r) && r.kind === "claim" && r.shiftId === s.id)).forEach(s => openShifts.push({ date, s })); });
   const mineR = live.filter(r => r.by === me || r.taker === me).filter(r => !youAnswer.includes(r) && !okNeeded.includes(r));
-  const recent = d.requests.filter(r => !schActive(r)).slice(0, 8);
-  const sec = (title, html, empty) => `<h3 class="grp">${title}</h3>${html || `<p class="help">${empty}</p>`}`;
-  return sec("Waiting For Your Answer", youAnswer.map(r => reqCard(r, B("yes", "Yes, Swap", "") + B("no", "No Thanks", "ghost"))).join(""), "Nothing waiting on you.")
-    + (d.me.owner ? sec("Needs Your OK", okNeeded.map(r => reqCard(r, B("approve", "OK It", "") + B("deny", "Say No", "ghost"))).join(""), "Nothing to approve.") : "")
-    + sec("Shifts Offered", offered.map(r => reqCard(r, B("take", "Take This Shift", ""))).join(""), "Nobody is giving a shift away right now.")
-    + sec("Open Shifts", openShifts.map(({ date, s }) => `<div class="card sch-req"><b>${fDay(date)} · ${fR(s.start, s.end)}</b>${s.note ? `<span class="help" style="margin:0">${esc(s.note)}</span>` : ""}<div class="sch-btns"><button type="button" class="btn sch-sm" data-schopen="${esc(date)}|${esc(s.id)}">I'll Take It</button></div></div>`).join(""), "No open shifts.")
-    + sec("Your Requests", mineR.map(r => reqCard(r, B("cancel", "Cancel Request", "ghost"))).join(""), "You haven't asked for anything.")
-    + (recent.length ? sec("Recently Finished", recent.map(r => reqCard(r, "")).join("")) : "");
+  const recent = d.requests.filter(r => !schActive(r)).slice(0, 5);
+  const sec = (title, html) => html ? `<h3 class="grp" style="margin:14px 2px 4px">${title}</h3>${html}` : "";
+  return sec("Waiting For Your Answer", youAnswer.map(r => reqCard(r, B("yes", "Yes, Swap", "") + B("no", "No Thanks", "ghost"))).join(""))
+    + sec("Needs Your OK", okNeeded.map(r => reqCard(r, B("approve", "OK It", "") + B("deny", "Say No", "ghost"))).join(""))
+    + sec("Shifts Offered", offered.map(r => reqCard(r, B("take", "Take This Shift", ""))).join(""))
+    + sec("Open Shifts", openShifts.map(({ date, s }) => `<div class="card sch-req"><b>${fDay(date)} · ${fR(s.start, s.end)}</b>${s.note ? `<span class="help" style="margin:0">${esc(s.note)}</span>` : ""}<div class="sch-btns"><button type="button" class="btn sch-sm" data-schopen="${esc(date)}|${esc(s.id)}">I'll Take It</button></div></div>`).join(""))
+    + sec("Your Requests", mineR.map(r => reqCard(r, B("cancel", "Cancel Request", "ghost"))).join(""))
+    + (recent.length ? `<details style="margin:14px 2px 0"><summary class="help" style="cursor:pointer">Recently Finished Requests</summary>${recent.map(r => reqCard(r, "")).join("")}</details>` : "");
 }
 
 function alertsBlock(){
