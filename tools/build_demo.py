@@ -143,6 +143,7 @@ sched_demo = r"""
   const json = (b, s) => Response.json(b, { status: s || 200 });
   const randomBytes = n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), x => x.toString(16).padStart(2,"0")).join("") });
   const seed = __SEED__;
+  const sendMail = async () => {}, SITE = "https://beerdepotpewaukee.com", storeInfo = async () => ({});
   __SCHED__
   // the real November schedule (from the paper calendar), with a few people linked to demo logins
   SCH.schedule = seeded();

@@ -14,12 +14,15 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin, pinUser, json } from "../lib/pin.mjs";
+import { sendMail, SITE } from "../lib/club-email.mjs";
+import { storeInfo } from "../lib/info.mjs";
 import seed from "../lib/schedule-seed.json" with { type: "json" };
 
 const KEY = "schedule";
 const D = /^\d{4}-\d{2}-\d{2}$/;
 const T = /^([01]\d|2[0-3]):[0-5]\d$/;
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || "").trim()) && String(e).length <= 80;
 const rid = () => randomBytes(5).toString("hex");
 const addDays = (d, n) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -41,7 +44,7 @@ function clean(d) {
   d.settings = d.settings && typeof d.settings === "object" ? d.settings : {};
   if (typeof d.settings.approval !== "boolean") d.settings.approval = true;
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
-  d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "" }));
+  d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
@@ -93,12 +96,30 @@ function carryOut(d, r, name) {
   return "";
 }
 
+const fT = t => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + (m ? ":" + String(m).padStart(2, "0") : "") + " " + ap; };
+const fD = s => new Date(s + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const fS = (date, a) => `${fD(date)} ${fT(a.start)} – ${fT(a.end)}`;
+const hesc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// Email a person (best effort). Returns true if an email went out. People without an email just see it in Store Tools.
+async function tell(store, d, toId, subject, lines) {
+  const pe = d.settings.people.find(p => p.id === toId);
+  if (!pe || !pe.email) return false;
+  try {
+    const info = await storeInfo(store), link = SITE + "/food-stock#schedule";
+    const text = lines.join("\n\n") + "\n\nOpen the schedule: " + link;
+    const html = `<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:16px">${lines.map(l => `<p style="font-size:17px;line-height:1.4;color:#22160F">${hesc(l)}</p>`).join("")}<p><a href="${link}" style="display:inline-block;background:#F26B1D;color:#fff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:bold">Open the Schedule</a></p><p style="color:#8C7F74;font-size:12px">The Beer Depot · you can say yes or no after you sign in with your PIN.</p></div>`;
+    await sendMail({ to: pe.email, subject, html, text, info });
+    return true;
+  } catch (e) { console.error("schedule email", e); return false; }
+}
+
 function view(d, team, me, from, to, staff) {
   const shifts = {};
   for (const [date, list] of Object.entries(d.shifts)) if (date >= from && date <= to && list.length) shifts[date] = list;
   const cutoff = Date.now() - 14 * 86400000;
   const requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
-  return { ok: true, me, team, presets: d.presets, settings: d.settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], ...counts(d, me), today: today() };
+  const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
+  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -128,7 +149,7 @@ export default async (req) => {
   const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!who.owner };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
   const isDate = x => D.test(String(x || ""));
-  const ok = async () => {
+  const ok = async (extra) => {
     // tidy: drop very old shifts and old finished requests
     const old = addDays(today(), -400);
     for (const k of Object.keys(d.shifts)) if (k < old || !d.shifts[k].length) delete d.shifts[k];
@@ -138,7 +159,7 @@ export default async (req) => {
     await store.setJSON(KEY, d);
     team = await teamOf(store, d);
     const from = isDate(b.from) ? b.from : addDays(today(), -7), to = isDate(b.to) ? b.to : addDays(from, 40);
-    return json(view(d, team, me, from, to, await staffOf(store)));
+    return json({ ...view(d, team, me, from, to, await staffOf(store)), ...(extra || {}) });
   };
 
   if (act === "badge") { const c = counts(d, me); return json({ ok: true, count: c.needs + c.offers }); }
@@ -206,7 +227,7 @@ export default async (req) => {
       const nm = one(b.name, 30); if (!nm) return json({ error: "Type the person's name." }, 400);
       if (people.length >= 40) return json({ error: "That's the limit of people on the schedule." }, 400);
       if (team.some(p => p.name.toLowerCase() === nm.toLowerCase())) return json({ error: "Someone with that name is already on the schedule." }, 400);
-      people.push({ id: "pe-" + rid(), name: nm, staffId: "" });
+      people.push({ id: "pe-" + rid(), name: nm, staffId: "", email: validEmail(b.email) ? String(b.email).trim() : "" });
     } else {
       const pe = people.find(x => x.id === b.id); if (!pe) return json({ error: "Not found." }, 404);
       if (act === "removePerson") {
@@ -214,6 +235,7 @@ export default async (req) => {
         for (const list of Object.values(d.shifts)) for (const s of list) if (s.who === b.id) s.who = "";   // their shifts become Open Shifts
       } else {
         if (b.name !== undefined) { const nm = one(b.name, 30); if (nm) pe.name = nm; }
+        if (b.email !== undefined) { const em = String(b.email || "").trim(); if (em && !validEmail(em)) return json({ error: "That email doesn't look right." }, 400); pe.email = em; }
         if (b.staffId !== undefined) {
           const sid = String(b.staffId || "");
           if (sid && !staff.some(m => m.id === sid)) return json({ error: "Pick someone from the Staff tab." }, 400);
@@ -247,7 +269,9 @@ export default async (req) => {
       Object.assign(r, { status: "ask", withWho: o.who, withDate: b.withDate, withShiftId: o.id, b: snap(o) });
     }
     d.requests.unshift(r);
-    return ok();
+    let emailed = false;
+    if (act === "swap") emailed = await tell(store, d, r.withWho, `${name(me.id)} wants to swap shifts with you`, [`${name(me.id)} asked to swap shifts with you.`, `They would work your ${fS(r.withDate, r.b)} and you would work their ${fS(r.date, r.a)}.`, ...(r.note ? [`Note: ${r.note}`] : []), "Sign in to say yes or no."]);
+    return ok({ notified: act === "swap" ? (emailed ? "email" : "app") : "" });
   }
   if (act === "take") {
     const r = d.requests.find(x => x.id === b.id);
@@ -275,9 +299,11 @@ export default async (req) => {
   if (act === "answer") {
     const r = d.requests.find(x => x.id === b.id);
     if (!r || r.status !== "ask" || r.withWho !== me.id) return json({ error: "That request is already finished." }, 400);
-    if (!b.accept) { r.status = "declined"; r.closed = new Date().toISOString(); return ok(); }
+    const who2 = name(me.id), what = `your ${fS(r.date, r.a)} for their ${fS(r.withDate, r.b)}`;
+    if (!b.accept) { r.status = "declined"; r.closed = new Date().toISOString(); await tell(store, d, r.by, `${who2} said no to the swap`, [`${who2} said no to swapping ${what}.`]); return ok(); }
     if (needsOk() === "approve") r.status = "approve";
     else { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
+    await tell(store, d, r.by, `${who2} said yes to the swap`, [`${who2} said yes to swapping ${what}.`, r.status === "approve" ? "It now waits for the owner's OK." : "The schedule is updated."]);
     return ok();
   }
   if (act === "cancel") {

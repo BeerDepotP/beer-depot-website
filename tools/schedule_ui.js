@@ -194,6 +194,7 @@ function viewSetup(){
     <ul class="sw-list"><li><span><span class="nm">I Approve Swaps First</span><span class="st${d.settings.approval ? " on" : ""}">${d.settings.approval ? "On: swaps wait for your OK" : "Off: swaps happen right away"}</span></span><button class="sw sch-sw" role="switch" aria-checked="${d.settings.approval}" aria-label="Approve swaps first" id="sch-appr"></button></li></ul>
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
     ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
+      <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
       <label class="help" style="margin:0">Their Login<select data-ppf="staffId"><option value="">No Login Yet</option>${(d.staff || []).map(m => `<option value="${esc(m.id)}"${m.id === pe.staffId ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
       <button type="button" class="btn ghost sch-sm" data-ppsave="${esc(pe.id)}" style="justify-self:start">Save</button></div>`).join("")}
     <div class="card sp-card"><input id="sch-pnew" maxlength="30" placeholder="New Person's Name (Example: Gayle)" aria-label="New person's name"><button class="btn" type="button" id="sch-pnadd">+ Add a Person</button></div>
@@ -255,16 +256,41 @@ function schMine(date, sid){            // employee: one of my shifts
   const pr = pendingFor(sid);
   if(pr){ schOpen(`<h3 class="sch-h">${esc(fDay(date))} · ${esc(fR(s.start, s.end))}</h3>${reqCard(pr, "").replace('class="card sch-req"', 'class="sch-req"')}
     ${pr.by === sch.data.me.id || sch.data.me.manager ? `<button type="button" class="btn ghost rm-site" data-schcancel="${esc(pr.id)}">Cancel This Request</button>` : ""}<button type="button" class="btn ghost" data-schclose>Close</button>`); return; }
-  const t = schToday(), now = schNow(), others = [];
-  Object.keys(sch.data.shifts).sort().forEach(d => { if(d >= t) sch.data.shifts[d].forEach(x => { if(x.who && x.who !== sch.data.me.id && (d > t || x.end > now) && !pendingFor(x.id)) others.push({ d, x }); }); });
   sch.ed = { date, sid };
   schOpen(`<h3 class="sch-h">${esc(fDay(date))} · ${esc(fR(s.start, s.end))}</h3>
     <input id="sch-m-n" maxlength="80" placeholder="Note (Optional, Example: Doctor Appointment)" aria-label="Note">
-    <button type="button" class="btn" id="sch-m-give">Give Away This Shift</button><p class="help" style="margin:4px 2px 0">Everyone can see it and anyone can take it.</p>
-    <h3 class="grp" style="margin-top:14px">Or Swap With a Coworker</h3>
-    <div class="sch-list">${others.length ? others.slice(0, 30).map(({ d, x }) => `<button type="button" class="btn ghost sch-row" data-doswap="${esc(d)}|${esc(x.id)}"><b>${esc(schName(x.who))}</b><span>${esc(fDayS(d))} · ${esc(fRs(x.start, x.end))}</span></button>`).join("") : `<p class="help">No coworker shifts to swap with yet.</p>`}</div>
+    <button type="button" class="btn" id="sch-m-swap">Swap With a Coworker</button><p class="help" style="margin:4px 2px 0">You pick their shift on the calendar. They get a message to say yes or no.</p>
+    <button type="button" class="btn ghost" id="sch-m-give">Give Away This Shift</button><p class="help" style="margin:4px 2px 0">Everyone can see it and anyone can take it.</p>
     <button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
+/* the "pick their shift" calendar: this month and next month */
+function pickCanTap(s, date){ const d = sch.data, me = d.me.id, t = schToday(); return !!s.who && s.who !== me && (date > t || (date === t && s.end > schNow())) && !pendingFor(s.id); }
+function pickMonth(first){
+  const d = sch.data, me = d.me.id, mi = spd(first).getMonth(), start = wkStart(first), last = addD(shiftMonth(first, 1), -1), weeks = Math.ceil(((spd(last) - spd(start)) / 86400000 + 1) / 7), mine = sch.ed;
+  let cells = "";
+  for(let i = 0; i < weeks * 7; i++){
+    const date = addD(start, i), inM = spd(date).getMonth() === mi;
+    const list = inM ? schShifts(date) : [], dayL = list.filter(s => !isNight(s)), nightL = list.filter(isNight);
+    const bub = s => { const ok = pickCanTap(s, date), isMine = mine && date === mine.date && s.id === mine.sid;
+      return `<span class="sch-bub m${ok ? " pickable" : " dim"}${isMine ? " sel" : ""}${!s.who ? " open" : ""}" ${ok ? `data-pshift="${esc(date)}|${esc(s.id)}"` : ""} style="background:${empColor(s.who)}"><b>${esc(isMine ? "YOU" : firstName(s.who ? schName(s.who) : "Open"))}</b><span>${fRs(s.start, s.end)}</span></span>`; };
+    cells += `<div class="sm-cell${inM ? "" : " other"}${date === schToday() ? " today" : ""}"><span class="sm-n">${inM ? spd(date).getDate() : ""}</span>${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`;
+  }
+  return `<h3 class="sch-pm">${SCH_FULL[mi]} ${spd(first).getFullYear()}</h3><div class="sm-head">${SCH_DOW.map(x => `<span>${x}</span>`).join("")}</div><div class="sm-grid">${cells}</div>`;
+}
+async function schPick(){
+  const ed = sch.ed; if(!ed || !ed.sid) return;
+  const s = schShifts(ed.date).find(x => x.id === ed.sid); if(!s) return;
+  sch.pick = { date: ed.date, sid: ed.sid, note: ($("#sch-m-n") || {}).value || "" };
+  const t = schToday(), m1 = monthFirst(t), m2 = shiftMonth(m1, 1);
+  try{ const j = await api("/api/schedule", { action: "get", from: m1, to: addD(shiftMonth(m2, 1), -1) }); Object.assign(sch.data.shifts, j.shifts); sch.data.requests = j.requests; }
+  catch(err){ toast(err.message, true); return; }
+  schClose(); sch.ed = { date: sch.pick.date, sid: sch.pick.sid };
+  $("#sch-pick-sub").innerHTML = `Swapping your <b>${esc(fDay(sch.pick.date))} · ${esc(fR(s.start, s.end))}</b>.<br>Tap the shift you want. It must be another employee's shift.`;
+  $("#sch-pick-body").innerHTML = pickMonth(m1) + pickMonth(m2) + `<p class="help" style="margin:10px 2px 0">Shifts that are faded can't be picked (your own, open shifts, shifts that already passed, or shifts with a request waiting).</p>`;
+  $("#sch-pick").hidden = false; $("#sch-pick").scrollTop = 0;
+}
+function schPickClose(){ $("#sch-pick").hidden = true; sch.pick = null; }
+
 function schOther(date, sid){           // employee: a coworker's or an open shift
   const s = schShifts(date).find(x => x.id === sid); if(!s) return;
   if(!s.who){
@@ -286,7 +312,7 @@ $("#sch-prev").onclick = () => schNav(-1);
 $("#sch-next").onclick = () => schNav(1);
 $("#sch-today").onclick = () => { if(sch.view === "team" && sch.tmode === "month") sch.month = monthFirst(schToday()); else sch.start = wkStart(schToday()); loadSchedule(); };
 $("#sch-modal").addEventListener("click", e => { if(e.target.id === "sch-modal") schClose(); });
-document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("#sch-modal").hidden) schClose(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("#sch-modal").hidden) schClose(); else if(!$("#sch-pick").hidden) schPickClose(); } });
 
 document.addEventListener("click", async e => {
   const el = e.target; if(!el.closest) return;
@@ -313,7 +339,15 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-e-save") && sch.ed){ await schDo({ action: "save", id: sch.ed.sid, date: sch.ed.date, who: $("#sch-e-w").value, start: $("#sch-e-s").value, end: $("#sch-e-e").value, note: $("#sch-e-n").value }, "Saved"); return; }
   if(el.closest("#sch-e-del") && sch.ed){ const ed2 = sch.ed; schClose(); if(await askYes("Remove this shift?", "Remove It", true)) await schDo({ action: "delete", date: ed2.date, id: ed2.sid }, "Shift removed"); return; }
   if(el.closest("#sch-m-give") && sch.ed){ await schDo({ action: "give", date: sch.ed.date, shiftId: sch.ed.sid, note: $("#sch-m-n").value }, "Offered. Everyone can see it now."); return; }
-  const sw1 = el.closest("[data-doswap]"); if(sw1 && sch.ed){ const [wd, ws] = sw1.dataset.doswap.split("|"); await schDo({ action: "swap", date: sch.ed.date, shiftId: sch.ed.sid, withDate: wd, withShiftId: ws, note: $("#sch-m-n").value }, "Swap request sent"); return; }
+  if(el.closest("#sch-m-swap")){ await schPick(); return; }
+  if(el.closest("[data-pickclose]")){ schPickClose(); return; }
+  const ps = el.closest("[data-pshift]");
+  if(ps && sch.pick){ const [wd, ws] = ps.dataset.pshift.split("|"), o = schShifts(wd).find(x => x.id === ws), mine = schShifts(sch.pick.date).find(x => x.id === sch.pick.sid); if(!o || !mine) return;
+    const who = schName(o.who);
+    if(!(await askYes(`Ask ${who} to swap?\n\nYou give: ${fDayS(sch.pick.date)} ${fRs(mine.start, mine.end)}\nYou get: ${fDayS(wd)} ${fRs(o.start, o.end)}`, "Send Request"))) return;
+    const pk = sch.pick; if(await schDo({ action: "swap", date: pk.date, shiftId: pk.sid, withDate: wd, withShiftId: ws, note: pk.note }, null, true)){
+      schPickClose(); schClose(); toast(sch.data.notified === "email" ? `Sent to ${who}. They also got an email.` : `Sent to ${who}. They'll see it when they open Store Tools.`); }
+    return; }
   const sw2 = el.closest("[data-doswap2]"); if(sw2){ const [md, ms, wd, ws] = sw2.dataset.doswap2.split("|"); await schDo({ action: "swap", date: md, shiftId: ms, withDate: wd, withShiftId: ws }, "Swap request sent"); return; }
   const cn = el.closest("[data-schcancel]"); if(cn){ await schDo({ action: "cancel", id: cn.dataset.schcancel }, "Cancelled"); return; }
   const ot = el.closest("[data-schopen]"); if(ot){ const [d, s] = ot.dataset.schopen.split("|"); await schDo({ action: "openTake", date: d, shiftId: s }, sch.data.settings.approval ? "Asked. The owner will OK it." : "It's yours!"); return; }
@@ -340,7 +374,7 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-nsave")){ await schDo({ action: "settings", nightFrom: $("#sch-night").value }, "Saved. Day and night updated.", true); return; }
   const hd = el.closest("[data-schhide]"); if(hd){ const id = hd.dataset.schhide, hide = new Set(sch.data.settings.hide); if(hide.has(id)) hide.delete(id); else hide.add(id); await schDo({ action: "settings", hide: [...hide] }, null, true); return; }
   const pps = el.closest("[data-ppsave]");
-  if(pps){ const card = pps.closest(".sch-pp"); await schDo({ action: "updatePerson", id: pps.dataset.ppsave, name: card.querySelector('[data-ppf=name]').value, staffId: card.querySelector('[data-ppf=staffId]').value }, "Saved", true); return; }
+  if(pps){ const card = pps.closest(".sch-pp"); await schDo({ action: "updatePerson", id: pps.dataset.ppsave, name: card.querySelector('[data-ppf=name]').value, staffId: card.querySelector('[data-ppf=staffId]').value, email: card.querySelector('[data-ppf=email]').value }, "Saved", true); return; }
   const pdl = el.closest("[data-pdel]");
   if(pdl){ const nm = (sch.data.team.find(x => x.id === pdl.dataset.pdel) || {}).name || "this person"; if(await askYes(`Remove ${nm} from the schedule? Their shifts become Open Shifts.`, "Remove", true)) await schDo({ action: "removePerson", id: pdl.dataset.pdel }, "Removed", true); return; }
   if(el.closest("#sch-pnadd")){ const nm = $("#sch-pnew").value.trim(); if(!nm){ toast("Type a name first.", true); return; } await schDo({ action: "addPerson", name: nm }, nm + " added", true); return; }

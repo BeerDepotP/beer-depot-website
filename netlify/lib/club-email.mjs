@@ -63,7 +63,7 @@ export async function sendMail({ to, subject, html, text, unsub, info }) {
     method: "POST",
     headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json" },
     body: JSON.stringify({ sender: from, replyTo: reply, to: [{ email: to }], subject, htmlContent: html, textContent: text,
-      headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
+      ...(unsub ? { headers: { "List-Unsubscribe": `<${unsub}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}) }),
   });
   if (!r.ok) throw new Error(`Brevo ${r.status}: ${(await r.text()).slice(0, 300)}`);
 }
