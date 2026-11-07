@@ -1929,12 +1929,13 @@ function schTc(date, sid, fix){          // pop-up: what time did you come in an
     <p class="help" style="margin:8px 0">Change the times to when you really came in and left. ${fix ? "" : "It goes to the owner and managers. You can fix it until the day is marked paid."}</p>
     <button type="button" class="btn" id="sch-tc-save">${c ? "Save Changes" : "Send Timecard"}</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
-function tcRow(c, mgr){
-  const x = (sch.data.shifts[c.date] || []).find(y => y.id === c.shiftId);
-  return `<div class="card sch-req" style="display:flex;align-items:center;gap:10px">
-    ${mgr ? (c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>` : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`) : ""}
-    <div style="flex:1"><b>${esc(fDay(c.date))}</b><span class="help" style="margin:0">${esc(fR(c.in, c.out))} · <b>${tcH(tcHrs(c.in, c.out))}</b>${c.paid && c.paidAt ? " · paid " + esc(fDayS(c.paidAt.slice(0, 10))) : ""}${c.paid && c.check ? " · check #" + esc(c.check) : ""}</span></div>
-    ${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div>`;
+function tcRow(c, mgr){   // same look as My Shifts: one box per day with the date at the left, the person's name chip and color
+  const x = (sch.data.shifts[c.date] || []).find(y => y.id === c.shiftId), col = empColor(c.who), nmx = schName(c.who) === "Former Employee" && c.name ? c.name : schName(c.who);
+  const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
+    : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
+  return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(fR(c.in, c.out))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+      <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
   const cs = tcUnpaid().filter(c => c.who === who && (!ids || ids.includes(c.id))); if(!cs.length) return;
