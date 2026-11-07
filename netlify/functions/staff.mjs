@@ -34,6 +34,13 @@ export default async (req) => {
     if (!okPin(b.newPin)) return json({ error: "PINs are 4 to 12 numbers." }, 400);
     if (pinTaken(String(b.newPin), b.id)) return json({ error: "That PIN is already used. Pick another." }, 400);
   }
+  if ((b.action === "add" || b.action === "update") && okColor(b.color)) {
+    const c = String(b.color).toLowerCase(), sch = await store.get("schedule", { type: "json" }), sset = (sch && sch.settings) || {};
+    const mine = new Set([b.id, ...(sset.people || []).filter(p => p.staffId === b.id).map(p => p.id)]);
+    const used = d.members.some(m => m.id !== b.id && String(m.color || "").toLowerCase() === c)
+      || Object.entries(sset.colors || {}).some(([k, x]) => !mine.has(k) && String(x).toLowerCase() === c);
+    if (used) return json({ error: "Someone else already has that color. Pick another." }, 400);
+  }
   if (b.action === "add") {
     const name = one(b.name, 40);
     if (!name) return json({ error: "Type the person's name." }, 400);

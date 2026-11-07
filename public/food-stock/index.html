@@ -270,6 +270,7 @@
   .sch-prt input,.sch-box input,.sch-box select{font:600 17px var(--body);width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:#fff;min-width:0}
   .sch-x{flex:none;width:42px;height:42px;border-radius:10px;border:2px solid var(--line);background:#fff;font-size:24px;line-height:1;cursor:pointer;color:var(--red)}
   .sch-cols[hidden]{display:none}
+  .sch-col.off{opacity:.22;filter:grayscale(1);cursor:not-allowed}
   .sch-cols{display:flex;gap:10px;flex-wrap:wrap}
   .sch-col{width:34px;height:34px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line);cursor:pointer}
   .sch-col.on{box-shadow:0 0 0 3px var(--ink)}
@@ -1467,15 +1468,20 @@ let me = null, staff = null;
 const AREA_NAMES = { schedule:"Schedule (Can Edit)", food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", drinks:"Drinks", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
 const tabBoxes = (sel, attr) => Object.entries(AREA_NAMES).map(([k,n])=>`<label><input type="checkbox" ${attr} value="${k}"${sel.includes(k)?" checked":""}> ${esc(n)}</label>`).join("");
 let stfNewCol = "";
-const stfCols = (cur, attr) => SCH_PAL.map(c => `<button type="button" class="sch-col${c.toLowerCase() === String(cur).toLowerCase() ? " on" : ""}" style="background:${c}" ${attr}="${c}" aria-label="Color"></button>`).join("");
-function stfFreeCol(){ const used = new Set((staff ? staff.members : []).map(m => String(m.color || "").toLowerCase())); return SCH_PAL.find(c => !used.has(c.toLowerCase())) || SCH_PAL[0]; }
-function stfPaintNew(){ $("#stf-cols").innerHTML = stfCols(stfNewCol, 'data-stfnew'); }
+function stfTaken(id){            // colors other people already have (staff colors + what the schedule shows)
+  const t = new Set((staff ? staff.members : []).filter(m => m.id !== id && m.color).map(m => m.color.toLowerCase()));
+  if(sch.data) sch.data.team.filter(p => p.id !== id && !(id && p.staffId === id)).forEach(p => t.add(empColor(p.id).toLowerCase()));
+  return t;
+}
+const stfCols = (cur, attr, id) => { const t = stfTaken(id); return SCH_PAL.map(c => { const off = t.has(c.toLowerCase()) && c.toLowerCase() !== String(cur).toLowerCase(); return `<button type="button" class="sch-col${c.toLowerCase() === String(cur).toLowerCase() ? " on" : ""}${off ? " off" : ""}"${off ? " disabled" : ""} style="background:${c}" ${attr}="${c}" aria-label="Color"></button>`; }).join(""); };
+function stfFreeCol(){ const t = stfTaken(""); return SCH_PAL.find(c => !t.has(c.toLowerCase())) || SCH_PAL[0]; }
+function stfPaintNew(){ if(stfTaken("").has(stfNewCol.toLowerCase())) stfNewCol = stfFreeCol(); $("#stf-cols").innerHTML = stfCols(stfNewCol, 'data-stfnew', ""); }
 $("#stf-cols").addEventListener("click", e => { const b = e.target.closest("[data-stfnew]"); if(b){ stfNewCol = b.dataset.stfnew; stfPaintNew(); } });
 function renderStaff(){ if(!stfNewCol) stfNewCol = stfFreeCol(); stfPaintNew();
   $("#stf-list").innerHTML = staff.members.length ? staff.members.map(m=>`<div class="card stf-card" data-id="${esc(m.id)}">
     <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"}</span></span>
       <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
-    <span class="help" style="margin:0">Color on the Schedule</span><div class="sch-cols">${stfCols(m.color || "", 'data-stfcol')}</div>
+    <span class="help" style="margin:0">Color on the Schedule</span><div class="sch-cols">${stfCols(m.color || "", 'data-stfcol', m.id)}</div>
     <div class="stf-tabs">${tabBoxes(m.tabs, 'data-stftab')}</div>
     <span class="help" style="margin:0">${(()=>{ const last = (staff.activity||[]).find(a=>a.staff===m.id); return last ? "Last Change: " + esc(last.text) + " · " + esc(actWhen(last.at)) : "No changes yet."; })()}</span>
     <div class="stf-btns"><button class="btn" type="button" data-stfsave>Save Tabs</button><button class="btn ghost" type="button" data-stfact>See Their Changes</button><button class="btn ghost" type="button" data-stfpin>Change PIN</button><button class="btn ghost rm-site" type="button" data-stfrm>Remove</button></div></div>`).join("")
@@ -1492,7 +1498,7 @@ function renderActivity(){
 }
 $("#act-who").onchange = renderActivity;
 async function staffCall(body, msg){ try{ staff = await api("/api/staff", body); renderStaff(); if(msg) toast(msg); }catch(err){ toast(err.message,true); } }
-const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-newtab'); staffCall({action:"list"}); };
+const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-newtab'); staffCall({action:"list"}); if(!sch.data) schCall({action:"get"}).then(() => { if(staff) renderStaff(); }).catch(()=>{}); };
 $("#stf-add").onclick = async ()=>{
   const name = $("#stf-name").value.trim(), np = $("#stf-pin").value.trim(), tabs = $$("[data-newtab]:checked").map(i=>i.value);
   if(!name){ toast("Type the person's name.",true); return; }
@@ -1755,7 +1761,8 @@ const schName = id => { const p = sch.data.team.find(x => x.id === id); return i
 const schPreset = (s, e) => sch.data.presets.find(p => p.start === s && p.end === e);
 const schColor = (s, e) => (schPreset(s, e) || {}).color || "#6F6259";
 const SCH_PAL = ["#E6194B","#F58231","#D9A000","#6BA814","#1E8E3E","#008080","#0097B2","#4363D8","#1B1F6B","#911EB4","#8E7CC3","#D81FD1","#F06292","#800000","#8B5A2B","#808000","#5B6770","#222222","#3FA7E0","#5E2750"];
-function newCol(){ if(sch.newCol) return sch.newCol; const used = new Set(sch.data.team.map(p => empColor(p.id))); return SCH_PAL.find(c => !used.has(c)) || SCH_PAL[0]; }
+const colorsUsed = except => new Set(sch.data.team.filter(p => !except.includes(p.id)).map(p => empColor(p.id).toLowerCase()));
+function newCol(){ const used = colorsUsed([]); if(sch.newCol && !used.has(sch.newCol.toLowerCase())) return sch.newCol; return SCH_PAL.find(c => !used.has(c.toLowerCase())) || SCH_PAL[0]; }
 function empColor(id){ const d = sch.data; if(!id) return "#8C7F74"; const tm = d.team.find(p => p.id === id); if(tm && tm.color) return tm.color; const c = (d.settings.colors || {})[id]; if(c) return c; const i = d.team.findIndex(p => p.id === id); return SCH_PAL[(i < 0 ? 0 : i) % SCH_PAL.length]; }
 const nightFrom = () => (sch.data.settings.nightFrom || "12:00");
 const isNight = s => s.start >= nightFrom();
@@ -1935,9 +1942,9 @@ function viewSetup(){
       <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
       <label class="help" style="margin:0">Their Login<select data-ppf="staffId"><option value="">No Login Yet</option>${(d.staff || []).map(m => `<option value="${esc(m.id)}"${m.id === pe.staffId ? " selected" : ""}>${esc(m.name)}</option>`).join("")}</select></label>
       <button type="button" class="btn ghost sch-sm" data-ppsave="${esc(pe.id)}" style="justify-self:start">Save</button></div>`).join("")}
-    <div class="card sp-card"><input id="sch-pnew" maxlength="30" placeholder="New Person's Name (Example: Gayle)" aria-label="New person's name"><p class="help" style="margin:6px 0">Pick a color:</p><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === newCol() ? " on" : ""}" style="background:${c}" data-ncol="${c}" aria-label="Color"></button>`).join("")}</div><button class="btn" type="button" id="sch-pnadd">+ Add a Person</button></div>
+    <div class="card sp-card"><input id="sch-pnew" maxlength="30" placeholder="New Person's Name (Example: Gayle)" aria-label="New person's name"><p class="help" style="margin:6px 0">Pick a color:</p><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === newCol() ? " on" : ""}${colorsUsed([]).has(c.toLowerCase()) ? " off" : ""}"${colorsUsed([]).has(c.toLowerCase()) ? " disabled" : ""} style="background:${c}" data-ncol="${c}" aria-label="Color"></button>`).join("")}</div><button class="btn" type="button" id="sch-pnadd">+ Add a Person</button></div>
     <h3 class="grp">Employee Colors</h3><p class="help">Each person's shifts show in their color on the calendar.</p>
-    ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b>${p.color ? `<span class="help" style="margin:0">Color is set in the Staff tab (owner).</span>` : ""}<div class="sch-cols"${p.color ? " hidden" : ""}>${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}" style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
+    ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b>${p.color ? `<span class="help" style="margin:0">Color is set in the Staff tab (owner).</span>` : ""}<div class="sch-cols"${p.color ? " hidden" : ""}>${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}${colorsUsed([p.id]).has(c.toLowerCase()) ? " off" : ""}"${colorsUsed([p.id]).has(c.toLowerCase()) ? " disabled" : ""} style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
     <h3 class="grp">Day and Night</h3>
     <div class="card sp-card"><label class="help" for="sch-night" style="margin:0">Night Shifts Start At (Or Later)</label><input id="sch-night" type="time" value="${esc(nightFrom())}"><span class="help" style="margin:0">Shifts that start before this time show on the Day row of the calendar.</span><button class="btn ghost" type="button" id="sch-nsave">Save</button></div>
     <h3 class="grp">Who Is on the Schedule</h3>

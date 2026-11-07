@@ -27,6 +27,7 @@ const rid = () => randomBytes(5).toString("hex");
 const addDays = (d, n) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
+const PAL = ["#E6194B","#F58231","#D9A000","#6BA814","#1E8E3E","#008080","#0097B2","#4363D8","#1B1F6B","#911EB4","#8E7CC3","#D81FD1","#F06292","#800000","#8B5A2B","#808000","#5B6770","#222222","#3FA7E0","#5E2750"];   // same list as SCH_PAL in tools/schedule_ui.js (default person colors, in team order)
 const COLORS = ["#F26B1D", "#1F7A3A", "#2F6DB5", "#8A4FBF", "#C8102E", "#B8860B", "#2B1A10"];
 export const DEFAULT_PRESETS = [
   { id: "p1", name: "Open", start: "08:30", end: "16:00", color: COLORS[0] },
@@ -149,6 +150,8 @@ export default async (req) => {
   let team = await teamOf(store, d);
   const mePerson = who.owner ? null : d.settings.people.find(p => p.staffId === who.id);
   const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!who.owner };
+  const colorOf = (p, i) => String(p.color || (d.settings.colors || {})[p.id] || PAL[i % PAL.length]).toLowerCase();
+  const colorTaken = (id, col) => { const c = String(col).toLowerCase(); return team.some((p, i) => p.id !== id && colorOf(p, i) === c); };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
   const isDate = x => D.test(String(x || ""));
   const ok = async (extra) => {
@@ -242,6 +245,7 @@ export default async (req) => {
     if (b.colors && typeof b.colors === "object") {
       const c = {};
       for (const [k, x] of Object.entries(b.colors).slice(0, 80)) if (/^#[0-9A-Fa-f]{6}$/.test(String(x))) c[String(k).slice(0, 24)] = String(x);
+      for (const [k, x] of Object.entries(c)) if (x !== (d.settings.colors || {})[k] && (colorTaken(k, x) || Object.entries(c).some(([k2, x2]) => k2 !== k && x2.toLowerCase() === x.toLowerCase()))) return json({ error: "Someone else already has that color. Pick another." }, 400);
       d.settings.colors = c;
     }
     if (b.nightFrom !== undefined) { if (!T.test(String(b.nightFrom))) return json({ error: "Pick a time." }, 400); d.settings.nightFrom = String(b.nightFrom); }
@@ -254,6 +258,7 @@ export default async (req) => {
       const nm = one(b.name, 30); if (!nm) return json({ error: "Type the person's name." }, 400);
       if (people.length >= 40) return json({ error: "That's the limit of people on the schedule." }, 400);
       if (team.some(p => p.name.toLowerCase() === nm.toLowerCase())) return json({ error: "Someone with that name is already on the schedule." }, 400);
+      if (/^#[0-9A-Fa-f]{6}$/.test(String(b.color || "")) && colorTaken("", b.color)) return json({ error: "Someone else already has that color. Pick another." }, 400);
       const pid = "pe-" + rid();
       people.push({ id: pid, name: nm, staffId: "", email: validEmail(b.email) ? String(b.email).trim() : "" });
       if (/^#[0-9A-Fa-f]{6}$/.test(String(b.color || ""))) d.settings.colors[pid] = String(b.color);
