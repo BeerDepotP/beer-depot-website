@@ -100,7 +100,7 @@ function menuPhoto(f, key){
       if(b.action==="add") S.push({id:"s"+Date.now().toString(36),name:b.name,pin:String(b.newPin),tabs:b.tabs,on:true,color:b.color,manager:b.manager===true});
       if(b.action==="update"){ const x = S.find(y=>y.id===b.id); if(b.tabs) x.tabs = b.tabs; if(b.on!==undefined) x.on = b.on; if(b.newPin) x.pin = String(b.newPin); if(b.color) x.color = b.color; if(b.manager !== undefined) x.manager = !!b.manager; }
       if(b.action==="remove") DB.staff = S.filter(x=>x.id!==b.id);
-      return ok({ok:true,members:DB.staff.map(({pin,...x})=>x),activity:DB.activity}); }
+      return ok({ok:true,members:DB.staff,activity:DB.activity}); }
     if(url.startsWith("/api/products")){ const R = DB.rules;
       if(b.action==="hide"){ R.hide[b.name] = true; delete R.move[b.name]; } if(b.action==="unhide") delete R.hide[b.name];
       if(b.action==="move") R.move[b.name] = b.section; if(b.action==="unmove") delete R.move[b.name];

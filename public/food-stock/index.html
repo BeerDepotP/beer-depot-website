@@ -1504,7 +1504,7 @@ $("#stf-mgr").addEventListener("click", () => { const on = $("#stf-mgr").getAttr
 $("#stf-cols").addEventListener("click", e => { const b = e.target.closest("[data-stfnew]"); if(b){ stfNewCol = b.dataset.stfnew; stfPaintNew(); } });
 function renderStaff(){ if(!stfNewCol) stfNewCol = stfFreeCol(); stfPaintNew();
   $("#stf-list").innerHTML = staff.members.length ? staff.members.map(m=>`<div class="card stf-card" data-id="${esc(m.id)}">
-    <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"}</span></span>
+    <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"} · ${m.pin ? "PIN: <b>" + esc(m.pin) + "</b>" : "PIN not saved yet (tap Change PIN)"}</span></span>
       <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
     <ul class="sw-list"><li><span><span class="nm">Manager</span><span class="st${m.manager ? " on" : ""}">${m.manager ? "On: can edit the schedule, use every tab, change presets and OK schedule requests (not this Staff tab)" : "Off: only the tabs ticked below"}</span></span><button class="sw" role="switch" aria-checked="${!!m.manager}" aria-label="${esc(m.name)} is a manager" data-stfmgr></button></li></ul>
     <span class="help" style="margin:0">Color on the Schedule</span><div class="sch-cols">${stfCols(m.color || "", 'data-stfcol', m.id)}</div>
