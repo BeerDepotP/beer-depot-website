@@ -314,6 +314,10 @@
   .sch-clock.on{border-color:#1E8E3E;background:#F1FAF3}
   .sch-clock.on > b{color:#1E8E3E}
   .sch-big{font-size:22px;padding:18px 12px;width:100%}
+  .sch-bigrow{display:grid;gap:10px;margin-top:12px}
+  .sch-big2{width:100%;display:grid;gap:2px;justify-items:center;padding:16px 12px;font-size:20px}
+  .sch-big2 span{font-size:14px;font-weight:600;opacity:.8}
+  .sch-fold{display:grid;gap:10px;padding:2px 0 6px}
   .sch-tog2{display:flex;width:100%;box-sizing:border-box}
   .sch-tog2 button{flex:1 1 0;text-align:center;padding:10px 6px}
   .sm-head{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;margin-bottom:2px}
@@ -1902,7 +1906,7 @@ function clockCard(){   // Clock In / Clock Out
     return `<div class="card sp-card sch-clock on"><b>● You're Clocked In</b><span class="help" style="margin:0">Since ${esc(fT(c.in))}${c.date !== t ? " on " + esc(fDay(c.date)) : ""}${old ? "" : " · " + esc(fDur(m)) + " so far"}</span>${old ? `<span class="help" style="margin:0;color:#C8102E"><b>This has been running a long time.</b> Tap Clock Out and type when you really left.</span>` : ""}<button type="button" class="btn sch-big" data-clockout>Clock Out</button><button type="button" class="btn ghost sch-sm" data-clockedit style="justify-self:start">Wrong Start Time?</button></div>`;
   }
   const me = d.me.id, now = schNow(), mine = schShifts(t).filter(x => x.who === me && !tcCardOf(x, me) && x.end > x.start).sort((a, b) => a.start.localeCompare(b.start));
-  return `<div class="card sp-card sch-clock"><b>Ready to Work?</b>${mine.length ? `<span class="help" style="margin:0">Today: ${esc(mine.map(x => fR(x.start, x.end)).join(" and "))}</span>` : `<span class="help" style="margin:0">Tap Clock In when you start.</span>`}<button type="button" class="btn sch-big" data-clockin>Clock In</button></div>`;
+  return `<div class="card sp-card sch-clock"><b>Ready to Work?</b>${mine.length ? `<span class="help" style="margin:0">Today: ${esc(mine.map(x => fR(x.start, x.end)).join(" and "))}</span>` : `<span class="help" style="margin:0">Tap Clock In when you start. If you forget to clock out, we clock you out an hour after your shift ends.</span>`}<button type="button" class="btn sch-big" data-clockin>Clock In</button></div>`;
 }
 function schTimeBox(title, note, inV, outV, saveId){
   schOpen(`<h3 class="sch-h">${esc(title)}</h3><p class="help" style="margin:0 0 8px">${note}</p>
@@ -1955,21 +1959,25 @@ function viewMine(){   // upcoming shifts of mine (confirmed months). Employees 
     + pastBtn;
 }
 
-function viewEmpTime(){   // employee Timecards tab: everything about hours and pay
+function viewEmpTime(){   // employee Timecards tab: the clock on top; fixing hours and getting paid are two big buttons that open
   const d = sch.data, me = d.me.id, t = schToday(), back = addD(t, -7);
   const mineUn = tcUnpaid().filter(c => c.who === me), oldUn = mineUn.filter(c => c.date < back).sort((x, y) => x.date.localeCompare(y.date));
   const paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
   const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x)));
   const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing(), extras = mineUn.filter(c => c.extra && c.date >= back).sort((x, y) => x.date.localeCompare(y.date));
-  const head = tcBanner(true);
-  return clockCard() + (miss.length ? head : "")
-    + `<div class="card sp-card" style="margin-top:8px"><div class="sch-prt"><span><span class="help" style="margin:0">Hours not paid yet</span><br><b style="font-size:1.3em">${tcH(unTot)}</b></span><button type="button" class="btn sch-sm" data-tcadd>+ Add Extra Hours</button></div></div>`
-    + `<div style="margin-top:8px">${empPayBox(me)}</div>`
-    + `<h3 class="grp" style="margin:16px 2px 4px">Recent Shifts</h3><p class="help" style="margin:0 2px 6px">Shifts not paid yet. Tap Edit Clock In / Out if a time is wrong.</p>`
+  const autos = mineUn.filter(c => c.auto && c.date >= addD(t, -3));
+  const open = sch.tcOpen || "";
+  const notice = autos.map(c => `<div class="card sp-card" style="border:2px solid #B45309;margin-top:8px"><b>We Clocked You Out</b><span class="help" style="margin:0">You forgot to clock out on ${esc(fDay(c.date))}, so we clocked you out at ${esc(fT(c.out))}. Is that right?</span><button type="button" class="btn ghost" data-tcedit="${esc(c.id)}">No, Fix My Time</button></div>`).join("");
+  const big = (k, title, sub) => `<button type="button" class="btn ghost sch-big2" data-tcopen="${k}" aria-expanded="${open === k}"><b>${title}</b><span>${sub}</span></button>`;
+  const editBody = open !== "edit" ? "" : `<div class="sch-fold"><button type="button" class="btn sch-sm" data-tcadd style="justify-self:start">+ Add Hours I Forgot</button>`
+    + `<h3 class="grp" style="margin:12px 2px 4px">Recent Shifts</h3>`
     + (mineRows(recent, true, false, true) || (extras.length ? "" : `<p class="help" style="margin:4px 2px">Nothing here.</p>`))
     + (extras.length ? `<h3 class="grp" style="margin:10px 2px 4px">Extra Hours</h3>` + extras.map(c => tcRow(c, false)).join("") : "")
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
-    + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "");
+    + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") + `</div>`;
+  const payBody = open !== "pay" ? "" : `<div class="sch-fold"><div class="card sp-card"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>${empPayBox(me)}</div>`;
+  return clockCard() + notice + (miss.length ? tcBanner(true) : "")
+    + `<div class="sch-bigrow">` + big("edit", "Fix My Hours", "Wrong time? Forgot something?") + editBody + big("pay", "Get Paid", tcH(unTot) + " not paid yet") + payBody + `</div>`;
 }
 
 /* ---------- timecards ---------- */
@@ -1992,7 +2000,7 @@ const tcCards = () => (sch.data.cards || []);
 const tcUnpaid = () => tcCards().filter(c => !c.paid);
 const tcCardOf = (x, who) => tcCards().find(c => c.shiftId === x.id && c.who === (who || x.who));
 const tcStarted = (date, x) => { const t = schToday(); return date >= addD(t, -7) && (date < t || (date === t && schNow() >= x.start)); };   // today once the shift starts, up to a week after
-function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : c.clock ? "Clocked" : "Timecard sent"}: ${tcWhen(c)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
+function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : c.auto ? "Clocked out for you" : c.clock ? "Clocked" : "Timecard sent"}: ${tcWhen(c)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
 function tcBtn(date, x){
   const c = tcCardOf(x, sch.data.me.id);
   if(c && c.paid) return `<span class="sch-flag">Paid</span>`;
@@ -2022,7 +2030,7 @@ function tcRow(c, mgr){   // same look as My Shifts: one box per day with the da
   const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
     : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
   return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
-    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : c.extra ? `<span class="help" style="margin:0">Extra hours (not on the schedule)</span>` : ""}${mgr && c.edited ? `<span class="help" style="margin:0;color:#B45309"><b>Edited</b>${c.orig ? " · was " + esc(c.orig.off ? "Did not work" : fR(c.orig.in, c.orig.out)) : ""}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : c.extra ? `<span class="help" style="margin:0">Extra hours (not on the schedule)</span>` : ""}${mgr && c.auto && !c.edited ? `<span class="help" style="margin:0;color:#B45309"><b>Forgot to clock out</b> · we clocked them out at the end of the shift</span>` : ""}${mgr && c.edited ? `<span class="help" style="margin:0;color:#B45309"><b>Edited</b>${c.orig ? " · was " + esc(c.orig.off ? "Did not work" : fR(c.orig.in, c.orig.out)) : ""}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
       <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}${!c.paid && (!mgr || !x) ? `<button type="button" class="btn ghost sch-sm" data-tcedit="${esc(c.id)}">Edit Clock In / Out</button>` : ""}${c.extra && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-tcdel="${esc(c.id)}">Remove</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
@@ -2414,6 +2422,7 @@ document.addEventListener("click", async e => {
   const tcb = el.closest("[data-schtc]"); if(tcb){ e.preventDefault(); const [d, s] = tcb.dataset.schtc.split("|"); schTc(d, s, false); return; }
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   const one = el.closest("[data-tcone]"); if(one){ const [d1, s1] = one.dataset.tcone.split("|"), x1 = schShifts(d1).find(y => y.id === s1); if(x1) await schDo({ action: "tcSave", date: d1, shiftId: s1, in: x1.start, out: x1.end }, "Timecard sent"); return; }
+  const tco = el.closest("[data-tcopen]"); if(tco){ sch.tcOpen = sch.tcOpen === tco.dataset.tcopen ? "" : tco.dataset.tcopen; renderSchedule(); return; }
   if(el.closest("[data-clockin]")){ await schDo({ action: "clockIn" }, "Clocked in", true); return; }
   if(el.closest("[data-clockout]")){
     const c = sch.data.clock;

@@ -17,6 +17,8 @@ export const ALERTS = {
   shiftChanged: { label: "Your shift changed",  who: "The person whose shift was changed",    title: "Your schedule changed", body: "{who} updated your shifts: {shift}." },
   monthReady:   { label: "Month schedule is done", who: "Everyone on the schedule",             title: "{month} schedule is ready", body: "The {month} schedule is done. Open the app to see your shifts." },
   timecardMissing: { label: "Timecard missing before payday", who: "Anyone being paid that Friday who has not sent a timecard", title: "Send your timecard", body: "You get paid {payday}, but you haven't sent your hours for {shift}. Open the app to enter them." },
+  clockReminder: { label: "Still clocked in after shift", who: "The person who is still clocked in", title: "Still working?", body: "Your shift ended at {shift}. If you're done, open the app and tap Clock Out. If you forget, you will be clocked out for you." },
+  clockAuto:    { label: "Clocked out for you", who: "The person who forgot to clock out", title: "We clocked you out", body: "You forgot to clock out, so we clocked you out at {shift}. Open the app if that time is wrong." },
   openShift:    { label: "Open shift posted",   who: "Everyone on the schedule",              title: "New open shift", body: "Open shift: {shift}. Open the app to take it." },
 };
 

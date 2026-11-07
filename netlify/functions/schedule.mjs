@@ -67,7 +67,7 @@ export function clean(d) {
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   // Timecards: one per worked shift {id,date,who,name,shiftId,in,out,sent,paid,paidAt}. Paid ones are kept for 30 days (the "Past Hours" list), then dropped.
   // Who is clocked in right now: { personId: {date, in, shiftId, at} } (one running clock per person; becomes a timecard when they clock out)
-  const ck = {}; for (const [k, v] of Object.entries(d.clocks && typeof d.clocks === "object" ? d.clocks : {})) if (v && D.test(String(v.date)) && T.test(String(v.in))) ck[String(k).slice(0, 40)] = { date: v.date, in: v.in, shiftId: String(v.shiftId || "").slice(0, 40), at: String(v.at || new Date().toISOString()) };
+  const ck = {}; for (const [k, v] of Object.entries(d.clocks && typeof d.clocks === "object" ? d.clocks : {})) if (v && D.test(String(v.date)) && T.test(String(v.in))) ck[String(k).slice(0, 40)] = { date: v.date, in: v.in, shiftId: String(v.shiftId || "").slice(0, 40), at: String(v.at || new Date().toISOString()), reminded: !!v.reminded };
   d.clocks = ck;
   d.cards = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && typeof c.id === "string" && D.test(String(c.date)) && T.test(String(c.in)) && T.test(String(c.out)) && (!c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000)).slice(-1500);
   // How each person wants to be paid: mode "weekly" (every Friday, the default) or "ask" (only when they tap Pay Me); req = the Friday they asked for.
@@ -84,6 +84,26 @@ export function missingTimecards(d, who, pd, t = today(), hm = nowHM()) {
   for (let x = from < lo ? lo : from; x < pd && x <= t; x = addDays(x, 1))
     for (const s of d.shifts[x] || []) if (s.who === who && (x < t || (s.end > s.start && hm >= s.end)) && !d.cards.some(c => c.shiftId === s.id && c.who === who) && !(d.clocks && d.clocks[who] && d.clocks[who].shiftId === s.id)) out.push({ date: x, s });
   return out;
+}
+
+// Forgotten clock-outs. A person still clocked in 15 min after their shift ends gets a reminder; 60 min after it ends they are clocked out AT the scheduled end time
+// (card flagged auto). With no scheduled shift: reminder at 7.5 h, clocked out at 8 h. Returns who to tell. Called every 15 min by clock-watch.mjs.
+export function sweepClocks(d, t, hm) {
+  const mm = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)), days = (a, b) => Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
+  const fmt = n => { n = ((n % 1440) + 1440) % 1440; return String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0"); };
+  const remind = [], closed = []; let changed = false;
+  for (const [who, cur] of Object.entries(d.clocks)) {
+    const sh = cur.shiftId ? (d.shifts[cur.date] || []).find(x => x.id === cur.shiftId) : null;
+    let endAbs = sh ? mm(sh.end) + (mm(sh.end) <= mm(sh.start) ? 1440 : 0) : mm(cur.in) + 480;
+    const closeAt = sh ? endAbs + 60 : endAbs, remindAt = sh ? endAbs + 15 : endAbs - 30, nowAbs = days(cur.date, t) * 1440 + mm(hm);
+    if (nowAbs >= closeAt) {
+      const sid = cur.shiftId && !d.cards.some(c => c.shiftId === cur.shiftId && c.who === who) ? cur.shiftId : "";
+      const out = fmt(endAbs); if (out === cur.in) { delete d.clocks[who]; changed = true; continue; }
+      d.cards.push({ id: rid(), date: cur.date, who, name: (d.settings.people.find(p => p.id === who) || {}).name || "", shiftId: sid || "x-" + rid(), extra: !sid, clock: true, auto: true, in: cur.in, out, off: false, sent: new Date().toISOString(), by: "auto", paid: false, paidAt: "" });
+      delete d.clocks[who]; closed.push({ who, out }); changed = true;
+    } else if (nowAbs >= remindAt && !cur.reminded) { cur.reminded = true; remind.push({ who, out: fmt(endAbs) }); changed = true; }
+  }
+  return { remind, closed, changed };
 }
 
 export function seeded() {
