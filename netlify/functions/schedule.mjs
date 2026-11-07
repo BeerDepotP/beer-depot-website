@@ -112,7 +112,7 @@ function carryOut(d, r, name) {
 }
 
 const fT = t => { let [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + (m ? ":" + String(m).padStart(2, "0") : "") + " " + ap; };
-const fD = s => new Date(s + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const fD = s => new Date(s + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 const fS = (date, a) => `${fD(date)} ${fT(a.start)} – ${fT(a.end)}`;
 const hesc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 // Email a person (best effort). Returns true if an email went out. People without an email just see it in Store Tools.

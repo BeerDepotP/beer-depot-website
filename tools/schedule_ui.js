@@ -2,8 +2,8 @@
 // Everyone with a PIN sees the schedule. The owner (and a staff login with the Manager switch on) can edit it.
 // Employees can give a shift away, swap with a coworker, or take an open shift.
 let sch = { data: null, start: "", month: "", tmode: "month", view: "", draft: null, ed: null };
-const SCH_DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], SCH_MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const SCH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const SCH_DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];   // full words everywhere (owner 2026-11-07)
+const SCH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"], SCH_MON = SCH_FULL;
 const SCH_COLORS = ["#F26B1D","#1F7A3A","#2F6DB5","#8A4FBF","#C8102E","#B8860B","#2B1A10"];
 const p2 = n => String(n).padStart(2,"0");
 const spd = s => new Date(s + "T12:00:00");
@@ -12,7 +12,7 @@ const addD = (s, n) => { const d = spd(s); d.setDate(d.getDate() + n); return si
 const wkStart = s => addD(s, -spd(s).getDay());
 const fDay = s => SCH_DOW[spd(s).getDay()] + ", " + SCH_MON[spd(s).getMonth()] + " " + spd(s).getDate();
 const fDayS = s => SCH_DOW[spd(s).getDay()] + " " + SCH_MON[spd(s).getMonth()] + " " + spd(s).getDate();
-function fT(t, short){ let [h,m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + (m ? ":" + p2(m) : "") + (short ? ap[0].toLowerCase() : " " + ap); }
+function fT(t, short){ let [h,m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + (m ? ":" + p2(m) : "") + (short ? ap : " " + ap); }
 const fR = (s, e) => fT(s) + " – " + fT(e), fRs = (s, e) => fT(s,1) + "–" + fT(e,1);
 const hrs = (s, e) => { const [a,b] = s.split(":").map(Number), [c,d] = e.split(":").map(Number); return (c*60 + d - a*60 - b) / 60; };
 const fHrs = h => (Math.round(h * 10) / 10) + " hrs";
