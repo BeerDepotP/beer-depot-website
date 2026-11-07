@@ -1884,20 +1884,24 @@ function nextShiftBanner(){
 }
 function pendingFor(shiftId){ return sch.data.requests.find(r => schActive(r) && (r.shiftId === shiftId || r.withShiftId === shiftId)); }
 
-function viewMine(){   // every shift of mine from the start of this week on, for every month employees can see (confirmed months)
-  const d = sch.data, me = d.me.id, t = schToday(), now = schNow(), w0 = wkStart(t), m0 = monthFirst(t), back = addD(t, -7);
-  const dates = Object.keys(d.shifts).sort().filter(date => date >= back && d.shifts[date].some(x => x.who === me));
-  let last = "";
-  const rows = dates.map(date => {
-    const mine = schShifts(date).filter(x => x.who === me), past = date < t, mo = date.slice(0, 7);
-    const head = mo !== last ? `<h3 class="grp" style="margin:14px 2px 4px">${monthName(date)} ${spd(date).getFullYear()}</h3>` : ""; last = mo;
-    return head + `<div class="sch-day${date === t ? " today" : ""}${past ? " past" : ""}"><div class="sch-dl"><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
+function viewMine(){   // upcoming shifts of mine (confirmed months); shifts from the last 7 days that are not paid yet sit behind a Past Shifts button
+  const d = sch.data, me = d.me.id, t = schToday(), w0 = wkStart(t), m0 = monthFirst(t), back = addD(t, -7);
+  const paidShift = x => { const c = tcCardOf(x, me); return !!(c && c.paid); };
+  const mineOn = date => schShifts(date).filter(x => x.who === me);
+  const all = Object.keys(d.shifts).sort().filter(date => date >= back && mineOn(date).length);
+  const upDates = all.filter(date => date >= t), pastDates = all.filter(date => date < t && mineOn(date).some(x => !paidShift(x)));
+  const rowsOf = (dates, past, months) => { let last = ""; return dates.map(date => {
+    const mine = mineOn(date).filter(x => !past || !paidShift(x)), mo = date.slice(0, 7);
+    const head = months && mo !== last ? `<h3 class="grp" style="margin:14px 2px 4px">${monthName(date)} ${spd(date).getFullYear()}</h3>` : ""; last = mo;
+    return head + `<div class="sch-day${date === t ? " today" : ""}"><div class="sch-dl"${past ? ` style="opacity:.55"` : ""}><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
       <div class="sch-dr">${mine.map(x => { const pr = pendingFor(x.id);
         return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}${tcLine(x)}</div>
         ${tcStarted(date, x) ? tcBtn(date, x) : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
-  }).join("");
+  }).join(""); };
+  const pastBtn = pastDates.length ? `<button class="btn ghost" type="button" data-schpast style="margin:8px 0">${sch.showPast ? "Hide Past Shifts" : "Past Shifts (" + pastDates.length + ")"}</button>` + (sch.showPast ? `<p class="help" style="margin:0 2px 4px">Shifts from the last 7 days that aren't paid yet. Tap Timecard to add or fix your times.</p>` + rowsOf(pastDates, true, false) : "") : "";
   return nextShiftBanner() + swapsBlock() + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
-    + (rows || `<p class="help" style="margin:10px 2px">You have no shifts on the schedule yet. Shifts show up here once the owner confirms the month.</p>`)
+    + pastBtn
+    + (rowsOf(upDates, false, true) || `<p class="help" style="margin:10px 2px">You have no shifts coming up. Shifts show up here once the owner confirms the month.</p>`)
     + `<p class="help" style="margin:12px 2px 0">This list shows every month the owner has confirmed.</p>`;
 }
 
@@ -2274,6 +2278,7 @@ document.addEventListener("click", async e => {
     if(s && s.who === sch.data.me.id) schMine(date, sid); else schOther(date, sid);
     return;
   }
+  if(el.closest("[data-schpast]")){ sch.showPast = !sch.showPast; renderSchedule(); return; }
   const tcb = el.closest("[data-schtc]"); if(tcb){ const [d, s] = tcb.dataset.schtc.split("|"); schTc(d, s, false); return; }
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   if(el.closest("#sch-tc-save") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, in: $("#sch-tc-in").value, out: $("#sch-tc-out").value }, t.fix ? "Timecard saved" : "Timecard sent"); return; }
