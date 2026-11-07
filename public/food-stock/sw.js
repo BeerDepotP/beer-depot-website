@@ -7,7 +7,7 @@
    - USE_ONESIGNAL = false : this file handles the push itself (Firebase Cloud Messaging or any standard Web Push).
    - USE_ONESIGNAL = true  : OneSignal's own worker code is loaded and shows the notifications for you.
      (Two workers cannot share one folder, so OneSignal is loaded INSIDE this file instead of a second file.) */
-const USE_ONESIGNAL = false;
+const USE_ONESIGNAL = true;
 
 const APP_URL = "/food-stock/";
 const ICON = "/img/icon-192.png";

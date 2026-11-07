@@ -2281,8 +2281,8 @@ if(saved){ unlock(saved).catch(err=>lockPage(err.message)); } else { $("#pin").f
 /* ---------- app: install + notifications ---------- */
 (function(){
   const PUSH = {
-    provider: "none",          // "none" | "onesignal" | "webpush"
-    onesignalAppId: "",        // OneSignal: paste your App ID, set provider to "onesignal", and set USE_ONESIGNAL = true in sw.js
+    provider: "onesignal",        // "none" | "onesignal" | "webpush"
+    onesignalAppId: "e59380ac-42e7-46f8-97c7-7da768e2e8e2",      // OneSignal: paste your App ID, set provider to "onesignal", and set USE_ONESIGNAL = true in sw.js
     vapidPublicKey: ""         // Firebase Cloud Messaging / Web Push: your public VAPID key, set provider to "webpush"
   };
   const SCOPE = "/food-stock/";
