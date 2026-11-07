@@ -172,7 +172,7 @@ function viewSwaps(){
   const live = d.requests.filter(r => schActive(r) && r.date >= t);
   const B = (act, label, cls) => `<button type="button" class="btn ${cls || ""} sch-sm" data-schreq="${act}">${label}</button>`;
   const youAnswer = live.filter(r => r.status === "ask" && r.withWho === me);
-  const okNeeded = mgr ? live.filter(r => r.status === "approve") : [];
+  const okNeeded = d.me.owner ? live.filter(r => r.status === "approve") : [];
   const offered = live.filter(r => r.status === "open" && r.by !== me);
   const openShifts = [];
   Object.keys(d.shifts).sort().forEach(date => { if(date >= t) d.shifts[date].filter(s => !s.who && !d.requests.some(r => schActive(r) && r.kind === "claim" && r.shiftId === s.id)).forEach(s => openShifts.push({ date, s })); });
@@ -180,7 +180,7 @@ function viewSwaps(){
   const recent = d.requests.filter(r => !schActive(r)).slice(0, 8);
   const sec = (title, html, empty) => `<h3 class="grp">${title}</h3>${html || `<p class="help">${empty}</p>`}`;
   return sec("Waiting For Your Answer", youAnswer.map(r => reqCard(r, B("yes", "Yes, Swap", "") + B("no", "No Thanks", "ghost"))).join(""), "Nothing waiting on you.")
-    + (mgr ? sec("Needs Your OK", okNeeded.map(r => reqCard(r, B("approve", "OK It", "") + B("deny", "Say No", "ghost"))).join(""), "Nothing to approve.") : "")
+    + (d.me.owner ? sec("Needs Your OK", okNeeded.map(r => reqCard(r, B("approve", "OK It", "") + B("deny", "Say No", "ghost"))).join(""), "Nothing to approve.") : "")
     + sec("Shifts Offered", offered.map(r => reqCard(r, B("take", "Take This Shift", ""))).join(""), "Nobody is giving a shift away right now.")
     + sec("Open Shifts", openShifts.map(({ date, s }) => `<div class="card sch-req"><b>${fDay(date)} · ${fR(s.start, s.end)}</b>${s.note ? `<span class="help" style="margin:0">${esc(s.note)}</span>` : ""}<div class="sch-btns"><button type="button" class="btn sch-sm" data-schopen="${esc(date)}|${esc(s.id)}">I'll Take It</button></div></div>`).join(""), "No open shifts.")
     + sec("Your Requests", mineR.map(r => reqCard(r, B("cancel", "Cancel Request", "ghost"))).join(""), "You haven't asked for anything.")
@@ -198,7 +198,7 @@ function viewSetup(){
   return `<h3 class="grp">Shift Presets</h3>${!ownerP ? `<p class="help">Only the owner can add or remove shift presets.</p>` : `<p class="help">These are the one-tap buttons you use to add a shift. Tap Remove to delete one, tap + Add a Preset for a new one, or change a name or time and tap Save Presets. Shifts already on the calendar are not changed.</p>${presets}
     <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>`}
     <h3 class="grp">Swaps</h3>
-    <ul class="sw-list"><li><span><span class="nm">I Approve Swaps First</span><span class="st${d.settings.approval ? " on" : ""}">${d.settings.approval ? "On: swaps wait for your OK" : "Off: swaps happen right away"}</span></span><button class="sw sch-sw" role="switch" aria-checked="${d.settings.approval}" aria-label="Approve swaps first" id="sch-appr"></button></li></ul>
+    <p class="help">Employees can never change a shift on their own. Every swap, give-away or open shift they take waits for your OK (only the owner can OK it) and nothing moves until you do.</p>
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
     ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
       <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>

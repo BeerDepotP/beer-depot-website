@@ -43,7 +43,7 @@ function clean(d) {
   d.shifts = d.shifts && typeof d.shifts === "object" ? d.shifts : {};
   d.requests = Array.isArray(d.requests) ? d.requests : [];
   d.settings = d.settings && typeof d.settings === "object" ? d.settings : {};
-  if (typeof d.settings.approval !== "boolean") d.settings.approval = true;
+  d.settings.approval = true;   // employees can never change shifts without the owner's OK
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
@@ -128,7 +128,7 @@ function counts(d, me) {
   for (const r of d.requests) {
     if (r.date < today()) continue;
     if (r.status === "ask" && r.withWho === me.id) needs++;
-    if (r.status === "approve" && me.manager) needs++;
+    if (r.status === "approve" && me.owner) needs++;
     if (r.status === "open" && r.by !== me.id) offers++;
   }
   return { needs, offers };
@@ -248,7 +248,6 @@ export default async (req) => {
     return ok();
   }
   if (act === "settings") {
-    if (typeof b.approval === "boolean") d.settings.approval = b.approval;
     if (b.ownerName !== undefined) d.settings.ownerName = one(b.ownerName, 30) || "Owner";
     if (b.colors && typeof b.colors === "object") {
       const c = {};
@@ -289,6 +288,7 @@ export default async (req) => {
     return ok();
   }
   if (act === "resolve") {
+    if (!who.owner) return json({ error: "Only the owner can OK a change." }, 403);
     const r = d.requests.find(x => x.id === b.id);
     if (!r || r.status !== "approve") return json({ error: "That request is already finished." }, 400);
     if (b.approve) { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
@@ -298,7 +298,7 @@ export default async (req) => {
 
   /* ---------- everyone ---------- */
   const mine = (date, sid) => { const s = findShift(d, date, sid); return s && s.who === me.id ? s : null; };
-  const needsOk = () => (d.settings.approval ? "approve" : "go");
+  const needsOk = () => "approve";   // always: every employee change waits for the owner
   if (act === "give" || act === "swap") {
     if (!isDate(b.date) || b.date < today()) return json({ error: "Pick a shift that hasn't happened yet." }, 400);
     const a = mine(b.date, b.shiftId);
