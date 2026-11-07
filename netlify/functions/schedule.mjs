@@ -211,7 +211,7 @@ export default async (req) => {
   if (act === "get" || !act) {
     const from = isDate(b.from) ? b.from : addDays(today(), -7);
     let to = isDate(b.to) ? b.to : addDays(from, 13);
-    if (to > addDays(from, 62)) to = addDays(from, 62);
+    if (to > addDays(from, 160)) to = addDays(from, 160);
     return json(view(d, team, me, from, to, await staffOf(store)));
   }
 

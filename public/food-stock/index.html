@@ -1799,8 +1799,7 @@ function schRange(){
   const t = schToday();
   if(sch.view === "team" && sch.tmode === "month" && sch.month){ const f = wkStart(sch.month); return [f, addD(f, 41)]; }
   const s = sch.start || wkStart(t), e = addD(s, 6);
-  if(sch.view === "mine"){ const m = monthFirst(addD(s, 3)), me2 = addD(shiftMonth(m, 1), -1), f = m < s ? m : s, far = addD(t, 27);
-    let to2 = e > me2 ? e : me2; if(far > to2 && (spd(far) - spd(f)) / 86400000 <= 60) to2 = far; return [f < t && t < s ? f : f, to2]; }
+  if(sch.view === "mine") return [wkStart(t), addD(t, 150)];   // everything from this week on (months not confirmed yet never come back for employees)
   let from = s, to = e;
   if(Math.abs((spd(s) - spd(t)) / 86400000) <= 30){ from = s < t ? s : t; const far = addD(t, 27); to = e > far ? e : far; }
   return [from, to];
@@ -1845,6 +1844,7 @@ function renderSchedule(){
   const s = sch.start, e = addD(s, 6), same = spd(s).getMonth() === spd(e).getMonth(), inMonth = sch.view === "team" && sch.tmode === "month";
   if(inMonth){ $("#sch-range").textContent = SCH_FULL[spd(sch.month).getMonth()] + " " + spd(sch.month).getFullYear(); $("#sch-today").textContent = "This Month"; $("#sch-today").hidden = sch.month === monthFirst(schToday()); }
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
+  const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = sch.view === "mine" ? "none" : "";
   const waiting = d.needs + d.offers;
   const pills = [["mine","My Shifts"],["team","Whole Team"],["swaps","Swaps" + (waiting ? " (" + waiting + ")" : "")]];
   if(mgr) pills.push(["setup","Setup"]);
@@ -1884,17 +1884,21 @@ function nextShiftBanner(){
 }
 function pendingFor(shiftId){ return sch.data.requests.find(r => schActive(r) && (r.shiftId === shiftId || r.withShiftId === shiftId)); }
 
-function viewMine(){
-  const d = sch.data, me = d.me.id, t = schToday(); let total = 0;
-  const rows = schDays().map(date => {
-    const mine = schShifts(date).filter(x => x.who === me); mine.forEach(x => total += hrs(x.start, x.end));
-    const past = date < t;
-    return `<div class="sch-day${date === t ? " today" : ""}${past ? " past" : ""}"><div class="sch-dl"><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
-      <div class="sch-dr">${mine.length ? mine.map(x => { const pr = pendingFor(x.id);
+function viewMine(){   // every shift of mine from the start of this week on, for every month employees can see (confirmed months)
+  const d = sch.data, me = d.me.id, t = schToday(), w0 = wkStart(t), m0 = monthFirst(t);
+  const dates = Object.keys(d.shifts).sort().filter(date => date >= w0 && d.shifts[date].some(x => x.who === me));
+  let last = "";
+  const rows = dates.map(date => {
+    const mine = schShifts(date).filter(x => x.who === me), past = date < t, mo = date.slice(0, 7);
+    const head = mo !== last ? `<h3 class="grp" style="margin:14px 2px 4px">${monthName(date)} ${spd(date).getFullYear()}</h3>` : ""; last = mo;
+    return head + `<div class="sch-day${date === t ? " today" : ""}${past ? " past" : ""}"><div class="sch-dl"><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
+      <div class="sch-dr">${mine.map(x => { const pr = pendingFor(x.id);
         return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}</div>
-        ${past ? "" : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("") : `<span class="sch-off">Off</span>`}</div></div>`;
+        ${past ? "" : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
   }).join("");
-  return nextShiftBanner() + `<p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(total)}</b> this week · <b>${fHrs(myHours(monthFirst(addD(sch.start, 3)), addD(shiftMonth(monthFirst(addD(sch.start, 3)), 1), -1)))}</b> in ${monthName(addD(sch.start, 3))}. Only you can see your hours. Use the arrows above to look at other weeks.</p>` + rows;
+  return nextShiftBanner() + `<p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
+    + (rows || `<p class="help" style="margin:10px 2px">You have no shifts on the schedule yet. Shifts show up here once the owner confirms the month.</p>`)
+    + `<p class="help" style="margin:12px 2px 0">This list shows every month the owner has confirmed.</p>`;
 }
 
 function viewTeam(){
