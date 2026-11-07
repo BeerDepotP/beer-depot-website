@@ -38,6 +38,8 @@ function clean(d) {
   d.settings = d.settings && typeof d.settings === "object" ? d.settings : {};
   if (typeof d.settings.approval !== "boolean") d.settings.approval = true;
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
+  d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
+  if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
   return d;
 }
@@ -177,6 +179,12 @@ export default async (req) => {
   if (act === "settings") {
     if (typeof b.approval === "boolean") d.settings.approval = b.approval;
     if (b.ownerName !== undefined) d.settings.ownerName = one(b.ownerName, 30) || "Owner";
+    if (b.colors && typeof b.colors === "object") {
+      const c = {};
+      for (const [k, x] of Object.entries(b.colors).slice(0, 80)) if (/^#[0-9A-Fa-f]{6}$/.test(String(x))) c[String(k).slice(0, 24)] = String(x);
+      d.settings.colors = c;
+    }
+    if (b.nightFrom !== undefined) { if (!T.test(String(b.nightFrom))) return json({ error: "Pick a time." }, 400); d.settings.nightFrom = String(b.nightFrom); }
     if (Array.isArray(b.hide)) d.settings.hide = b.hide.filter(x => typeof x === "string").slice(0, 60);
     return ok();
   }

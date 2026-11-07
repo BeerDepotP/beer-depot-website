@@ -21,6 +21,11 @@ const schIsMgr = () => !!(sch.data && sch.data.me.manager);
 const schName = id => { const p = sch.data.team.find(x => x.id === id); return id === sch.data.me.id ? (p ? p.name : "You") : (p ? p.name : "Former Employee"); };
 const schPreset = (s, e) => sch.data.presets.find(p => p.start === s && p.end === e);
 const schColor = (s, e) => (schPreset(s, e) || {}).color || "#6F6259";
+const SCH_PAL = ["#F26B1D","#1F7A3A","#2F6DB5","#8A4FBF","#C8102E","#B8860B","#0E8A8A","#D6336C","#5B6770","#7A4A1E"];
+function empColor(id){ const d = sch.data; if(!id) return "#8C7F74"; const c = (d.settings.colors || {})[id]; if(c) return c; const i = d.team.findIndex(p => p.id === id); return SCH_PAL[(i < 0 ? 0 : i) % SCH_PAL.length]; }
+const nightFrom = () => (sch.data.settings.nightFrom || "12:00");
+const isNight = s => s.start >= nightFrom();
+const firstName = n => String(n).split(" ")[0];
 const schDays = () => Array.from({length:7}, (_, i) => addD(sch.start, i));
 const schShifts = date => (sch.data.shifts[date] || []);
 
@@ -87,7 +92,7 @@ function viewMine(){
     const past = date < t;
     return `<div class="sch-day${date === t ? " today" : ""}${past ? " past" : ""}"><div class="sch-dl"><b>${SCH_DOW[spd(date).getDay()]}</b><span>${SCH_MON[spd(date).getMonth()]} ${spd(date).getDate()}</span></div>
       <div class="sch-dr">${mine.length ? mine.map(x => { const pr = pendingFor(x.id);
-        return `<div class="sch-mine" style="border-left-color:${schColor(x.start, x.end)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}</div>
+        return `<div class="sch-mine" style="border-left-color:${empColor(me)}"><div><b>${fR(x.start, x.end)}</b>${x.note ? `<span class="help" style="margin:0">${esc(x.note)}</span>` : ""}${pr ? `<span class="sch-flag">Request waiting</span>` : ""}</div>
         ${past ? "" : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("") : `<span class="sch-off">Off</span>`}</div></div>`;
   }).join("");
   return nextShiftBanner() + `<p class="help" style="margin:8px 2px">This week you work <b>${fHrs(total)}</b>. Use the arrows above to look at other weeks.</p>` + rows;
@@ -95,27 +100,22 @@ function viewMine(){
 
 function viewTeam(){
   const d = sch.data, mgr = schIsMgr(), me = d.me.id, t = schToday(), days = schDays();
-  const known = new Set(d.team.map(p => p.id));
-  const people = d.team.filter(p => !p.hidden || days.some(x => schShifts(x).some(s => s.who === p.id))).sort((a, b) => (b.id === me) - (a.id === me));
-  const former = days.some(x => schShifts(x).some(s => s.who && !known.has(s.who)));
-  const rows = people.map(p => ({ id: p.id, name: p.id === me ? p.name + " (You)" : p.name }));
-  if(former) rows.push({ id: "__gone", name: "Former Employee" });
-  const hasOpen = days.some(x => schShifts(x).some(s => !s.who));
-  if(mgr || hasOpen) rows.push({ id: "", name: "Open Shifts", open: true });
   const head = days.map(x => `<th class="${x === t ? "today" : ""}">${SCH_DOW[spd(x).getDay()]}<small>${spd(x).getDate()}</small></th>`).join("");
-  const body = rows.map(r => {
-    let tot = 0;
-    const cells = days.map(x => {
-      const list = schShifts(x).filter(s => r.id === "__gone" ? (s.who && !known.has(s.who)) : s.who === r.id);
-      list.forEach(s => tot += hrs(s.start, s.end));
-      return `<td data-d="${x}" data-w="${esc(r.id)}" class="${x === t ? "today" : ""}${mgr ? " edit" : ""}">${list.map(s => `<span class="sch-chip${pendingFor(s.id) ? " pend" : ""}${s.who === me ? " me" : ""}" data-sid="${esc(s.id)}" style="background:${schColor(s.start, s.end)}">${fRs(s.start, s.end)}${s.note ? "<i>•</i>" : ""}</span>`).join("")}${mgr && !list.length ? `<span class="sch-plus">+</span>` : ""}</td>`;
-    }).join("");
-    return `<tr${r.id === me ? ' class="sch-me"' : ""}><th class="sch-nm" scope="row">${esc(r.name)}</th>${cells}<td class="sch-tot">${r.open ? "" : tot ? fHrs(tot) : "–"}</td></tr>`;
-  }).join("");
-  const legend = d.presets.map(p => `<span class="sch-key"><i style="background:${p.color}"></i>${esc(p.name || fRs(p.start, p.end))} ${fRs(p.start, p.end)}</span>`).join("");
-  return `<p class="help" style="margin:4px 2px 8px">${mgr ? "Tap a day to add a shift. Tap a shift to change it, move it to someone else, or remove it." : "Tap your own shift to swap or give it away. Tap a coworker's shift to ask to swap. Tap an open shift to take it."}</p>
-    <div class="sch-wrap"><table class="sch-tbl"><thead><tr><th class="sch-nm"></th>${head}<th class="sch-tot">Total</th></tr></thead><tbody>${body}</tbody></table></div>
-    <div class="sch-legend">${legend}<span class="sch-key"><i style="background:#6F6259"></i>Custom Time</span><span class="sch-key"><i class="pendkey"></i>Request Waiting</span></div>`;
+  const bubble = s => { const nm = s.who ? schName(s.who) : "Open";
+    return `<span class="sch-bub${pendingFor(s.id) ? " pend" : ""}${s.who === me ? " me" : ""}${!s.who ? " open" : ""}" data-sid="${esc(s.id)}" style="background:${empColor(s.who)}"><b>${esc(firstName(nm))}</b><span>${fRs(s.start, s.end)}${s.note ? " •" : ""}</span></span>`; };
+  const row = (half, label) => `<tr><th class="sch-nm sch-half">${label}</th>${days.map(x => {
+    const list = schShifts(x).filter(s => (half === "night") === isNight(s));
+    return `<td data-d="${x}" data-half="${half}" class="${x === t ? "today" : ""}${x < t ? " pastcol" : ""}${mgr ? " edit" : ""}">${list.map(bubble).join("")}${mgr ? `<span class="sch-plus">+</span>` : ""}</td>`; }).join("")}</tr>`;
+  const tot = {}; days.forEach(x => schShifts(x).forEach(s => { if(s.who) tot[s.who] = (tot[s.who] || 0) + hrs(s.start, s.end); }));
+  const known = new Set(d.team.map(p => p.id));
+  const people = d.team.filter(p => !p.hidden || tot[p.id]).sort((a, b) => (b.id === me) - (a.id === me));
+  const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""} · ${tot[p.id] ? fHrs(tot[p.id]) : "Off"}</span>`).join("")
+    + (days.some(x => schShifts(x).some(s => !s.who)) ? `<span class="sch-key"><i style="background:${empColor("")}"></i>Open Shift</span>` : "")
+    + `<span class="sch-key"><i class="pendkey"></i>Request Waiting</span>`;
+  return `<p class="help" style="margin:4px 2px 8px">${mgr ? "Tap a box to add a shift. Tap a shift to change it, give it to someone else, or remove it." : "Tap your own shift to swap or give it away. Tap a coworker's shift to ask to swap. Tap an open shift to take it."}</p>
+    <div class="sch-wrap"><table class="sch-tbl sch-cal"><thead><tr><th class="sch-nm"></th>${head}</tr></thead><tbody>${row("day", "Day")}${row("night", "Night")}</tbody></table></div>
+    <p class="help" style="margin:8px 2px 0">Day shifts start before ${esc(fT(nightFrom()))}. Night shifts start at ${esc(fT(nightFrom()))} or later.</p>
+    <div class="sch-legend">${legend}</div>`;
 }
 
 function reqCard(r, buttons){
@@ -152,6 +152,10 @@ function viewSetup(){
     <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>
     <h3 class="grp">Swaps</h3>
     <ul class="sw-list"><li><span><span class="nm">I Approve Swaps First</span><span class="st${d.settings.approval ? " on" : ""}">${d.settings.approval ? "On: swaps wait for your OK" : "Off: swaps happen right away"}</span></span><button class="sw sch-sw" role="switch" aria-checked="${d.settings.approval}" aria-label="Approve swaps first" id="sch-appr"></button></li></ul>
+    <h3 class="grp">Employee Colors</h3><p class="help">Each person's shifts show in their color on the calendar.</p>
+    ${d.team.map(p => `<div class="card sch-pr"><b>${esc(p.name)}</b><div class="sch-cols">${SCH_PAL.map(c => `<button type="button" class="sch-col${c === empColor(p.id) ? " on" : ""}" style="background:${c}" data-ecol="${esc(p.id)}|${c}" aria-label="Color"></button>`).join("")}</div></div>`).join("")}
+    <h3 class="grp">Day and Night</h3>
+    <div class="card sp-card"><label class="help" for="sch-night" style="margin:0">Night Shifts Start At (Or Later)</label><input id="sch-night" type="time" value="${esc(nightFrom())}"><span class="help" style="margin:0">Shifts that start before this time show on the Day row of the calendar.</span><button class="btn ghost" type="button" id="sch-nsave">Save</button></div>
     <h3 class="grp">Who Is on the Schedule</h3>
     <ul class="sw-list">${people}</ul>
     <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Give a person the “Schedule (Can Edit)” tab if they should be able to edit it too.</p>
@@ -165,19 +169,24 @@ function viewSetup(){
 const schBox = () => $("#sch-box");
 function schOpen(html){ schBox().innerHTML = html; $("#sch-modal").hidden = false; const f = schBox().querySelector("button,input,select"); if(f) f.focus(); }
 function schClose(){ $("#sch-modal").hidden = true; sch.ed = null; }
-const presetBtns = (attr, small) => sch.data.presets.map(p => `<button type="button" class="sch-pbtn" style="background:${p.color}" ${attr}="${esc(p.id)}"><b>${esc(p.name || "Shift")}</b><span>${fRs(p.start, p.end)}</span></button>`).join("");
+const presetBtns = (attr, small) => sch.data.presets.map(p => `<button type="button" class="sch-pbtn" ${attr}="${esc(p.id)}"><b>${esc(p.name || "Shift")}</b><span>${fRs(p.start, p.end)}</span></button>`).join("");
 
-function schCell(date, who){            // owner: a day for one person
-  const mine = schShifts(date).filter(s => s.who === who);
-  const who2 = who ? schName(who) : "Open Shifts";
-  sch.ed = { date, who, sid: null };
-  schOpen(`<h3 class="sch-h">${esc(who2)} · ${esc(fDay(date))}</h3>
-    ${mine.map(s => `<div class="sch-ex"><span class="sch-chip" style="background:${schColor(s.start, s.end)}">${fR(s.start, s.end)}</span><span class="help" style="margin:0">${esc(s.note || "")}</span><button type="button" class="btn ghost sch-sm" data-sched="${esc(s.id)}">Change</button></div>`).join("")}
-    <p class="help" style="margin:10px 0 6px">Tap a shift to add it:</p><div class="sch-pgrid">${presetBtns("data-addp")}</div>
+function schCell(date, half){           // owner: one half of a day
+  const list = schShifts(date).filter(s => (half === "night") === isNight(s));
+  const people = sch.data.team.filter(p => !p.hidden);
+  sch.ed = { date, half, who: sch.lastWho !== undefined && people.some(p => p.id === sch.lastWho) ? sch.lastWho : null };
+  schOpen(`<h3 class="sch-h">${esc(fDay(date))} · ${half === "night" ? "Night" : "Day"}</h3>
+    ${list.map(s => `<div class="sch-ex"><span class="sch-chip" style="background:${empColor(s.who)}">${esc(firstName(s.who ? schName(s.who) : "Open"))} · ${fRs(s.start, s.end)}</span><span class="help" style="margin:0">${esc(s.note || "")}</span><button type="button" class="btn ghost sch-sm" data-sched="${esc(s.id)}">Change</button></div>`).join("")}
+    <p class="help" style="margin:10px 0 6px">1. Tap who works:</p><div class="sch-people">${people.map(p => `<button type="button" class="sch-pick" data-pick="${esc(p.id)}" style="--c:${empColor(p.id)}">${esc(firstName(p.name))}</button>`).join("")}<button type="button" class="sch-pick" data-pick="" style="--c:${empColor("")}">Open Shift</button></div>
+    <p class="help" style="margin:10px 0 6px">2. Tap the shift:</p><div class="sch-pgrid">${presetBtns("data-addp")}</div>
     <details class="sch-cust"><summary>Other Time</summary><div class="sch-prt"><label class="help" style="margin:0">From<input type="time" id="sch-c-s" value="09:00"></label><label class="help" style="margin:0">To<input type="time" id="sch-c-e" value="17:00"></label></div>
     <input id="sch-c-n" maxlength="60" placeholder="Note (Optional)" aria-label="Note"><button type="button" class="btn" id="sch-c-add">Add This Shift</button></details>
     <button type="button" class="btn ghost" data-schclose>Close</button>`);
+  schPaint();
 }
+function schPaint(){ if(!sch.ed || sch.ed.who === undefined) return; const w = sch.ed.who;
+  schBox().querySelectorAll("[data-pick]").forEach(b => b.classList.toggle("on", w !== null && b.dataset.pick === w));
+  schBox().style.setProperty("--pc", w === null ? "#6F6259" : empColor(w)); }
 function schEdit(date, sid){            // owner: change one shift
   const s = schShifts(date).find(x => x.id === sid); if(!s) return;
   sch.ed = { date, who: s.who, sid };
@@ -237,8 +246,8 @@ document.addEventListener("click", async e => {
   if(el.closest("[data-schclose]")){ schClose(); return; }
   const td = el.closest(".sch-tbl td[data-d]");
   if(td && sch.data && !el.closest("#sch-modal")){
-    const date = td.dataset.d, who = td.dataset.w, chip = el.closest(".sch-chip"), sid = chip && chip.dataset.sid;
-    if(schIsMgr()){ if(sid) schEdit(date, sid); else if(who !== "__gone") schCell(date, who); return; }
+    const date = td.dataset.d, chip = el.closest(".sch-bub"), sid = chip && chip.dataset.sid;
+    if(schIsMgr()){ if(sid) schEdit(date, sid); else schCell(date, td.dataset.half); return; }
     if(!sid || date < schToday()) return;
     const s = schShifts(date).find(x => x.id === sid);
     if(s && s.who === sch.data.me.id) schMine(date, sid); else schOther(date, sid);
@@ -246,9 +255,10 @@ document.addEventListener("click", async e => {
   }
   const mine = el.closest("[data-schmine]"); if(mine){ const [d, s] = mine.dataset.schmine.split("|"); schMine(d, s); return; }
   const ed = el.closest("[data-sched]"); if(ed){ schEdit(sch.ed.date, ed.dataset.sched); return; }
+  const pk = el.closest("[data-pick]"); if(pk && sch.ed){ sch.ed.who = pk.dataset.pick; sch.lastWho = sch.ed.who; schPaint(); return; }
   const ap = el.closest("[data-addp]");
-  if(ap && sch.ed){ const p = sch.data.presets.find(x => x.id === ap.dataset.addp); await schDo({ action: "save", date: sch.ed.date, who: sch.ed.who, start: p.start, end: p.end, note: "" }, `${p.name || "Shift"} added for ${sch.ed.who ? schName(sch.ed.who) : "Open Shift"}`); return; }
-  if(el.closest("#sch-c-add") && sch.ed){ const s = $("#sch-c-s").value, en = $("#sch-c-e").value; await schDo({ action: "save", date: sch.ed.date, who: sch.ed.who, start: s, end: en, note: $("#sch-c-n").value }, "Shift added"); return; }
+  if(ap && sch.ed){ if(sch.ed.who === null){ toast("Tap who works first.", true); return; } const p = sch.data.presets.find(x => x.id === ap.dataset.addp); await schDo({ action: "save", date: sch.ed.date, who: sch.ed.who, start: p.start, end: p.end, note: "" }, `${p.name || "Shift"} added for ${sch.ed.who ? schName(sch.ed.who) : "Open Shift"}`); return; }
+  if(el.closest("#sch-c-add") && sch.ed){ if(sch.ed.who === null){ toast("Tap who works first.", true); return; } const s = $("#sch-c-s").value, en = $("#sch-c-e").value; await schDo({ action: "save", date: sch.ed.date, who: sch.ed.who, start: s, end: en, note: $("#sch-c-n").value }, "Shift added"); return; }
   const up = el.closest("[data-usep]"); if(up){ const p = sch.data.presets.find(x => x.id === up.dataset.usep); $("#sch-e-s").value = p.start; $("#sch-e-e").value = p.end; return; }
   if(el.closest("#sch-e-save") && sch.ed){ await schDo({ action: "save", id: sch.ed.sid, date: sch.ed.date, who: $("#sch-e-w").value, start: $("#sch-e-s").value, end: $("#sch-e-e").value, note: $("#sch-e-n").value }, "Saved"); return; }
   if(el.closest("#sch-e-del") && sch.ed){ const ed2 = sch.ed; schClose(); if(await askYes("Remove this shift?", "Remove It", true)) await schDo({ action: "delete", date: ed2.date, id: ed2.sid }, "Shift removed"); return; }
@@ -269,6 +279,8 @@ document.addEventListener("click", async e => {
   if(el.closest("#sch-padd")){ sch.draft.push({ id: "", name: "", start: "09:00", end: "17:00", color: SCH_COLORS[sch.draft.length % SCH_COLORS.length] }); renderSchedule(); const ins = $$('.sch-pr input[data-pf=name]'); if(ins.length) ins[ins.length-1].focus(); return; }
   if(el.closest("#sch-psave")){ if(await schDo({ action: "presets", presets: sch.draft }, "Presets saved", true)) sch.draft = null, renderSchedule(); return; }
   if(el.closest("#sch-appr")){ await schDo({ action: "settings", approval: !sch.data.settings.approval }, null, true); return; }
+  const ec = el.closest("[data-ecol]"); if(ec){ const [id, c] = ec.dataset.ecol.split("|"); await schDo({ action: "settings", colors: { ...(sch.data.settings.colors || {}), [id]: c } }, null, true); return; }
+  if(el.closest("#sch-nsave")){ await schDo({ action: "settings", nightFrom: $("#sch-night").value }, "Saved. Day and night updated.", true); return; }
   const hd = el.closest("[data-schhide]"); if(hd){ const id = hd.dataset.schhide, hide = new Set(sch.data.settings.hide); if(hide.has(id)) hide.delete(id); else hide.add(id); await schDo({ action: "settings", hide: [...hide] }, null, true); return; }
   if(el.closest("#sch-osave")){ await schDo({ action: "settings", ownerName: $("#sch-oname").value }, "Name saved", true); return; }
   if(el.closest("#sch-copy")){ if(await askYes("Copy last week's shifts into this week? Shifts already here stay.", "Copy")) await schDo({ action: "copyWeek", from: addD(sch.start, -7), to: sch.start }, "Copied last week", true); return; }
