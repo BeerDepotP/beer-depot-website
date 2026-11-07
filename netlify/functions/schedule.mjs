@@ -456,11 +456,13 @@ export default async (req) => {
       if (s.who !== me.id) return json({ error: "That isn't your shift." }, 403);
       if (date > t0 || date < addDays(t0, -7) || (date === t0 && nowHM() < s.start)) return json({ error: "You can fill in your timecard once your shift starts, and up to one week after." }, 400);
     }
-    if (!T.test(String(b.in || "")) || !T.test(String(b.out || "")) || b.in === b.out) return json({ error: "Enter the time you came in and the time you left." }, 400);
+    const off = b.off === true;   // "I didn't work this day": a timecard that counts 0 hours
+    if (off) { b.in = "00:00"; b.out = "00:00"; }
+    else if (!T.test(String(b.in || "")) || !T.test(String(b.out || "")) || b.in === b.out) return json({ error: "Enter the time you came in and the time you left." }, 400);
     let c = d.cards.find(x => x.shiftId === s.id && x.who === s.who);
     if (c && c.paid) return json({ error: "That day is already marked paid, so it can't be changed." }, 400);
     if (!c) { c = { id: rid(), date, who: s.who, name: name(s.who), shiftId: s.id, paid: false, paidAt: "" }; d.cards.push(c); }
-    c.in = b.in; c.out = b.out; c.sent = new Date().toISOString(); c.by = me.id;
+    c.in = b.in; c.out = b.out; c.off = off; c.sent = new Date().toISOString(); c.by = me.id;
     return ok();
   }
   if (act === "tcPref") {   // how someone wants to be paid: yourself, or a manager for anyone

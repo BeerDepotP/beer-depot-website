@@ -1886,10 +1886,10 @@ function nextShiftBanner(){
   }
   return `<div class="card sch-next"><span class="help" style="margin:0">Your Next Shift</span><b>Nothing coming up yet</b></div>`;
 }
-function tcBanner(){   // big "send your timecard" box for each finished shift with no timecard yet; one tap sends the scheduled hours
+function tcBanner(){   // big "send your timecard" box for each finished shift with no timecard yet; they type the times they really worked
   const d = sch.data, me = d.me.id, t = schToday(), now = schNow(), out = [];
   Object.keys(d.shifts).sort().forEach(date => { if(date >= addD(t, -7) && date <= t) schShifts(date).forEach(x => { if(x.who === me && !tcCardOf(x, me) && (date < t || (x.end > x.start && now >= x.end))) out.push({ date, x }); }); });
-  return out.slice(0, 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Send Your Timecard</b><span class="help" style="margin:0">${esc(fDay(date))} · ${esc(fR(x.start, x.end))}</span><button type="button" class="btn" data-tcone="${esc(date)}|${esc(x.id)}">I Worked My Scheduled Hours</button><a href="#" class="help" style="margin:0;text-align:center" data-schtc="${esc(date)}|${esc(x.id)}">My Hours Were Different</a></div>`).join("");
+  return out.slice(0, 3).map(({ date, x }) => `<div class="card sp-card" style="border:2px solid var(--orange);margin-top:8px"><b>Send Your Timecard</b><span class="help" style="margin:0">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}</span><button type="button" class="btn" data-schtc="${esc(date)}|${esc(x.id)}">Enter My Hours</button></div>`).join("");
 }
 function pendingFor(shiftId){ return sch.data.requests.find(r => schActive(r) && (r.shiftId === shiftId || r.withShiftId === shiftId)); }
 
@@ -1924,7 +1924,8 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
 }
 
 /* ---------- timecards ---------- */
-const tcHrs = (a, b) => { const h = hrs(a, b); return h > 0 ? h : h + 24; };   // a shift that ends after midnight counts the next day
+const tcHrs = (a, b) => { if(a === b) return 0; const h = hrs(a, b); return h > 0 ? h : h + 24; };   // a shift that ends after midnight counts the next day
+const tcWhen = c => (c.off ? "Did not work" : fR(c.in, c.out));
 const tcH = h => (Math.round(h * 100) / 100) + " hrs";
 const tcSel = () => (sch.tcSel = sch.tcSel || new Set());
 const payOf = id => (sch.data.pay || {})[id] || { mode: "weekly", req: "" };
@@ -1939,7 +1940,7 @@ const tcCards = () => (sch.data.cards || []);
 const tcUnpaid = () => tcCards().filter(c => !c.paid);
 const tcCardOf = (x, who) => tcCards().find(c => c.shiftId === x.id && c.who === (who || x.who));
 const tcStarted = (date, x) => { const t = schToday(); return date >= addD(t, -7) && (date < t || (date === t && schNow() >= x.start)); };   // today once the shift starts, up to a week after
-function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : "Timecard sent"}: ${fR(c.in, c.out)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
+function tcLine(x){ const c = tcCardOf(x, sch.data.me.id); return c ? `<span class="help" style="margin:0">${c.paid ? "Paid" : "Timecard sent"}: ${tcWhen(c)} (${tcH(tcHrs(c.in, c.out))})</span>` : ""; }
 function tcBtn(date, x){
   const c = tcCardOf(x, sch.data.me.id);
   if(c && c.paid) return `<span class="sch-flag">Paid</span>`;
@@ -1951,16 +1952,16 @@ function schTc(date, sid, fix){          // pop-up: what time did you come in an
   sch.ed = { tc: { date, sid, fix: !!fix } };
   schOpen(`<h3 class="sch-h">Timecard${fix ? " · " + esc(schName(x.who)) : ""}</h3>
     <p class="help" style="margin:0 0 8px">${esc(fDay(date))} · scheduled ${esc(fR(x.start, x.end))}</p>
-    <div class="sch-prt"><label class="help" style="margin:0">Came In<input type="time" id="sch-tc-in" value="${esc(c ? c.in : x.start)}"></label><label class="help" style="margin:0">Left<input type="time" id="sch-tc-out" value="${esc(c ? c.out : x.end)}"></label></div>
-    <p class="help" style="margin:8px 0">Change these to the times you really worked.</p>
-    <button type="button" class="btn" id="sch-tc-save">${c ? "Save Changes" : "Send Timecard"}</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
+    <div class="sch-prt"><label class="help" style="margin:0">Came In<input type="time" id="sch-tc-in" value="${esc(c && !c.off ? c.in : "")}"></label><label class="help" style="margin:0">Left<input type="time" id="sch-tc-out" value="${esc(c && !c.off ? c.out : "")}"></label></div>
+    <p class="help" style="margin:8px 0">Type the times you really came in and left.</p>
+    <button type="button" class="btn" id="sch-tc-save">${c ? "Save Changes" : "Send Timecard"}</button><button type="button" class="btn ghost" id="sch-tc-off">I Didn't Work This Day</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
 function tcRow(c, mgr){   // same look as My Shifts: one box per day with the date at the left, the person's name chip and color
   const x = (sch.data.shifts[c.date] || []).find(y => y.id === c.shiftId), col = empColor(c.who), nmx = schName(c.who) === "Former Employee" && c.name ? c.name : schName(c.who);
   const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
     : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
   return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
-    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(fR(c.in, c.out))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
       <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
@@ -2333,10 +2334,10 @@ document.addEventListener("click", async e => {
     return;
   }
   if(el.closest("[data-schpast]")){ sch.showPast = !sch.showPast; renderSchedule(); return; }
-  const one = el.closest("[data-tcone]"); if(one){ e.preventDefault(); const [d1, s1] = one.dataset.tcone.split("|"), x1 = schShifts(d1).find(y => y.id === s1); if(x1) await schDo({ action: "tcSave", date: d1, shiftId: s1, in: x1.start, out: x1.end }, "Timecard sent"); return; }
   if(el.closest("[data-payopen]")){ e.preventDefault(); sch.payOpen = !sch.payOpen; renderSchedule(); return; }
   const tcb = el.closest("[data-schtc]"); if(tcb){ e.preventDefault(); const [d, s] = tcb.dataset.schtc.split("|"); schTc(d, s, false); return; }
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
+  if(el.closest("#sch-tc-off") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, off: true }, "Saved as 0 hours"); return; }
   if(el.closest("#sch-tc-save") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, in: $("#sch-tc-in").value, out: $("#sch-tc-out").value }, t.fix ? "Timecard saved" : "Timecard sent"); return; }
   const tpd = el.closest("[data-tcpaid]"); if(tpd){ await schDo({ action: "tcPaid", id: tpd.dataset.tcpaid, paid: tpd.checked }, tpd.checked ? "Marked paid" : "Put back in Not Paid Yet"); return; }
   const pm = el.closest("[data-tcmode]"); if(pm){ await schDo({ action: "tcPref", mode: pm.dataset.tcmode }, pm.dataset.tcmode === "ask" ? "You'll be paid when you ask" : "You'll be paid every Friday"); return; }
