@@ -7,7 +7,7 @@
 //   The first time (nothing saved yet) the November 2026 paper calendar in lib/schedule-seed.json is loaded.
 // POST /api/schedule { pin, action, ... }
 //   anyone with a PIN: get {from,to} | badge | give | swap | take | answer | cancel
-//   manager only:      save | delete | copyWeek | clearWeek | presets | settings | resolve
+//   manager only:      batch (add one shift to many days) | batchRemove | save | delete | copyWeek | clearWeek | presets | settings | resolve
 // Swap flow: give -> status "open" (anyone may take) ; swap -> "ask" (the coworker answers) ; then "approve" (owner OKs, only if
 // the approval setting is on) ; then "done". Every move checks nobody ends up double-booked.
 
@@ -137,7 +137,7 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson", "batch", "batchRemove"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
@@ -188,6 +188,31 @@ export default async (req) => {
     d.shifts[b.date] = (d.shifts[b.date] || []).filter(s => s.id !== b.id);
     return ok();
   }
+  if (act === "batch" || act === "batchRemove") {
+    const dates = [...new Set((Array.isArray(b.dates) ? b.dates : []).filter(isDate))].slice(0, 62);
+    if (!dates.length) return json({ error: "Pick some days first." }, 400);
+    if (act === "batch") {
+      if (!T.test(String(b.start || "")) || !T.test(String(b.end || "")) || b.start >= b.end) return json({ error: "Pick a start time that is before the end time." }, 400);
+      const w = b.who ? String(b.who) : "";
+      if (w && !team.some(p => p.id === w)) return json({ error: "Pick someone from the team." }, 400);
+      let added = 0, skipped = 0;
+      for (const date of dates) {
+        const list = d.shifts[date] = d.shifts[date] || [];
+        const dup = w ? clash(d, date, w, b.start, b.end, []) : list.some(s => !s.who && s.start === b.start && s.end === b.end);
+        if (dup) { skipped++; continue; }
+        list.push({ id: rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) });
+        list.sort((x, y) => x.start.localeCompare(y.start) || x.end.localeCompare(y.end));
+        added++;
+      }
+      return ok({ added, skipped });
+    }
+    const all = b.who === undefined || b.who === null; let removed = 0;
+    for (const date of dates) {
+      const list = d.shifts[date] || [], keep = list.filter(s => !(all || s.who === String(b.who)));
+      removed += list.length - keep.length; d.shifts[date] = keep;
+    }
+    return ok({ removed });
+  }
   if (act === "copyWeek" || act === "clearWeek") {
     const start = act === "copyWeek" ? b.to : b.start;
     if (!isDate(start) || (act === "copyWeek" && !isDate(b.from))) return json({ error: "Bad request." }, 400);
@@ -227,7 +252,9 @@ export default async (req) => {
       const nm = one(b.name, 30); if (!nm) return json({ error: "Type the person's name." }, 400);
       if (people.length >= 40) return json({ error: "That's the limit of people on the schedule." }, 400);
       if (team.some(p => p.name.toLowerCase() === nm.toLowerCase())) return json({ error: "Someone with that name is already on the schedule." }, 400);
-      people.push({ id: "pe-" + rid(), name: nm, staffId: "", email: validEmail(b.email) ? String(b.email).trim() : "" });
+      const pid = "pe-" + rid();
+      people.push({ id: pid, name: nm, staffId: "", email: validEmail(b.email) ? String(b.email).trim() : "" });
+      if (/^#[0-9A-Fa-f]{6}$/.test(String(b.color || ""))) d.settings.colors[pid] = String(b.color);
     } else {
       const pe = people.find(x => x.id === b.id); if (!pe) return json({ error: "Not found." }, 404);
       if (act === "removePerson") {
