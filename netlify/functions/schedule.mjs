@@ -492,6 +492,26 @@ export default async (req) => {
     c.in = b.in; c.out = b.out; c.off = off; c.sent = new Date().toISOString(); c.by = me.id;
     return ok();
   }
+  if (act === "tcAdd" || act === "tcDel") {   // extra hours with no scheduled shift (came in to help out, a last-minute shift). Employees do their own; managers can do anyone's.
+    const target = me.manager && b.who ? String(b.who).slice(0, 40) : me.id;
+    if (act === "tcDel") {
+      const c = d.cards.find(x => x.id === b.id && x.extra); if (!c) return json({ error: "I can't find those extra hours." }, 400);
+      if (c.who !== me.id && !me.manager) return json({ error: "Those aren't your hours." }, 403);
+      if (c.paid) return json({ error: "Those hours are already marked paid." }, 400);
+      d.cards = d.cards.filter(x => x !== c);
+      return ok();
+    }
+    const date = String(b.date || ""), t0 = today();
+    if (!isDate(date)) return json({ error: "Pick the day." }, 400);
+    if (date > t0) return json({ error: "That day hasn't happened yet." }, 400);
+    if (date < addDays(t0, me.manager ? -60 : -14)) return json({ error: "That day is too long ago. Ask the owner to add it." }, 400);
+    if (!T.test(String(b.in || "")) || !T.test(String(b.out || "")) || b.in === b.out) return json({ error: "Enter the time you came in and the time you left." }, 400);
+    const span = (i, o) => { const m = x => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)); const a0 = m(i); let b0 = m(o); if (b0 <= a0) b0 += 1440; return [a0, b0]; };
+    const [n0, n1] = span(b.in, b.out);
+    if (d.cards.some(c => c.who === target && c.date === date && !c.off && (() => { const [c0, c1] = span(c.in, c.out); return n0 < c1 && c0 < n1; })())) return json({ error: "That overlaps hours already on the timecard that day." }, 400);
+    d.cards.push({ id: rid(), date, who: target, name: name(target), shiftId: "x-" + rid(), extra: true, in: b.in, out: b.out, off: false, sent: new Date().toISOString(), by: me.id, paid: false, paidAt: "" });
+    return ok();
+  }
   if (act === "tcPref") {   // how someone wants to be paid: yourself, or a manager for anyone
     const target = me.manager && b.who ? String(b.who).slice(0, 40) : me.id, cur = d.settings.pay[target] || { mode: "weekly", req: "" };
     cur.mode = b.mode === "ask" ? "ask" : "weekly"; if (cur.mode === "weekly") cur.req = "";

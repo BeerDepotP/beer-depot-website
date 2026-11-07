@@ -170,13 +170,14 @@ function viewEmpTime(){   // employee Timecards tab: everything about hours and 
   const mineUn = tcUnpaid().filter(c => c.who === me), oldUn = mineUn.filter(c => c.date < back).sort((x, y) => x.date.localeCompare(y.date));
   const paidMine = tcCards().filter(c => c.who === me && c.paid).sort((x, y) => y.paidAt.localeCompare(x.paidAt));
   const recent = Object.keys(d.shifts).sort().filter(date => date >= back && date <= t && mineOn(date).some(x => tcStarted(date, x) && !paidShiftOf(x)));
-  const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing();
+  const unTot = mineUn.reduce((h, c) => h + tcHrs(c.in, c.out), 0), miss = tcMissing(), extras = mineUn.filter(c => c.extra && c.date >= back).sort((x, y) => x.date.localeCompare(y.date));
   const head = miss.length ? tcBanner(true) : `<div class="card sp-card" style="margin-top:8px"><b>All Timecards Sent</b><span class="help" style="margin:0">Nothing is missing. Thank you.</span></div>`;
   return head
-    + `<div class="card sp-card" style="margin-top:8px"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>`
+    + `<div class="card sp-card" style="margin-top:8px"><div class="sch-prt"><span><span class="help" style="margin:0">Hours not paid yet</span><br><b style="font-size:1.3em">${tcH(unTot)}</b></span><button type="button" class="btn sch-sm" data-tcadd>+ Add Extra Hours</button></div></div>`
     + `<div style="margin-top:8px">${empPayBox(me)}</div>`
     + `<h3 class="grp" style="margin:16px 2px 4px">Recent Shifts</h3><p class="help" style="margin:0 2px 6px">Shifts not paid yet. Tap a button to send or fix your times.</p>`
-    + (mineRows(recent, true, false, true) || `<p class="help" style="margin:4px 2px">Nothing here.</p>`)
+    + (mineRows(recent, true, false, true) || (extras.length ? "" : `<p class="help" style="margin:4px 2px">Nothing here.</p>`))
+    + (extras.length ? `<h3 class="grp" style="margin:10px 2px 4px">Extra Hours</h3>` + extras.map(c => tcRow(c, false)).join("") : "")
     + (oldUn.length ? `<h3 class="grp" style="margin:10px 2px 4px">Older Hours, Not Paid Yet</h3>` + oldUn.map(c => tcRow(c, false)).join("") : "")
     + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "");
 }
@@ -217,13 +218,21 @@ function schTc(date, sid, fix){          // pop-up: what time did you come in an
     <p class="help" style="margin:8px 0">Type the times you really came in and left.</p>
     <button type="button" class="btn" id="sch-tc-save">${c ? "Save Changes" : "Send Timecard"}</button><button type="button" class="btn ghost" id="sch-tc-off">I Didn't Work This Day</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
 }
+function schExtra(){   // pop-up: add hours that were not on the schedule
+  sch.ed = { extra: true };
+  schOpen(`<h3 class="sch-h">Add Extra Hours</h3>
+    <p class="help" style="margin:0 0 8px">Came in to help out, or worked a last-minute shift? Add the day and the times you really worked. It goes on your timecard.</p>
+    <label class="help" style="margin:0 0 8px;display:grid;gap:4px">Day<input type="date" id="sch-ex-date" value="${esc(schToday())}" max="${esc(schToday())}" style="width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F"></label>
+    <div class="sch-prt"><label class="help" style="margin:0">Came In<input type="time" id="sch-ex-in"></label><label class="help" style="margin:0">Left<input type="time" id="sch-ex-out"></label></div>
+    <button type="button" class="btn" id="sch-ex-save">Add These Hours</button><button type="button" class="btn ghost" data-schclose>Close</button>`);
+}
 function tcRow(c, mgr){   // same look as My Shifts: one box per day with the date at the left, the person's name chip and color
   const x = (sch.data.shifts[c.date] || []).find(y => y.id === c.shiftId), col = empColor(c.who), nmx = schName(c.who) === "Former Employee" && c.name ? c.name : schName(c.who);
   const box = c.paid ? `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcpaid="${esc(c.id)}" checked aria-label="Paid">Paid</label>`
     : `<label style="display:flex;align-items:center;gap:6px;font-weight:700"><input type="checkbox" style="width:24px;height:24px" data-tcsel="${esc(c.id)}"${tcSel().has(c.id) ? " checked" : ""} aria-label="Select">Select</label>`;
   return `<div class="sch-day"><div class="sch-dl"><b>${SCH_DOW[spd(c.date).getDay()]}</b><span>${SCH_MON[spd(c.date).getMonth()]} ${spd(c.date).getDate()}</span></div>
-    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
-      <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}</div></div></div></div>`;
+    <div class="sch-dr"><div class="sch-mine" style="border-left-color:${col}"><div><span class="sch-chip" style="background:${col};display:inline-block;width:auto;justify-self:start">${esc(firstName(nmx))}</span><b style="display:block;margin-top:4px">${esc(tcWhen(c))} · ${tcH(tcHrs(c.in, c.out))}</b>${x ? `<span class="help" style="margin:0">Scheduled ${esc(fR(x.start, x.end))}</span>` : c.extra ? `<span class="help" style="margin:0">Extra hours (not on the schedule)</span>` : ""}${c.paid && c.paidAt ? `<span class="help" style="margin:0">Paid ${esc(fDayS(c.paidAt.slice(0, 10)))}${c.check ? " · check #" + esc(c.check) : ""}</span>` : ""}</div>
+      <div style="display:grid;gap:6px;justify-items:end;font-size:.9em">${mgr ? box : ""}${mgr && x && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-schtcfix="${esc(c.date)}|${esc(c.shiftId)}">Edit</button>` : ""}${c.extra && !c.paid ? `<button type="button" class="btn ghost sch-sm" data-tcdel="${esc(c.id)}">Remove</button>` : ""}</div></div></div></div>`;
 }
 function schPay(who, ids){               // pop-up: mark hours paid, with an optional check number
   const cs = tcUnpaid().filter(c => c.who === who && (!ids || ids.includes(c.id))); if(!cs.length) return;
@@ -237,7 +246,7 @@ function schPay(who, ids){               // pop-up: mark hours paid, with an opt
 function empPayBox(me){   // how do I want to be paid + the Pay Me button (employees; opens from the Change link on My Shifts)
     const pv = payOf(me), miss = missFor(me), askBtn = miss.length ? `<span class="help" style="margin:0"><b>Send your timecard first</b> for ${miss.map(m => esc(fDay(m.date))).join(" and ")}. Then you can ask to be paid.</span><button type="button" class="btn" data-schtc="${esc(miss[0].date)}|${esc(miss[0].s.id)}">Enter My Hours</button>` : payCards(me).length ? `<button type="button" class="btn" data-tcask>Pay Me ${payWord()} - ${payTotal(me)}</button>` : `<span class="help" style="margin:0">No hours to pay yet.</span>`;
     return `<div class="card sp-card"><b>How Do You Want to Be Paid?</b>
-      <div class="sch-tog"><button type="button" data-tcmode="weekly" aria-pressed="${pv.mode === "weekly"}">Every Friday</button><button type="button" data-tcmode="ask" aria-pressed="${pv.mode === "ask"}">When I Ask</button></div>
+      <div class="sch-tog sch-tog2"><button type="button" data-tcmode="weekly" aria-pressed="${pv.mode === "weekly"}">Every Friday</button><button type="button" data-tcmode="ask" aria-pressed="${pv.mode === "ask"}">When I Ask</button></div>
       ${pv.mode === "weekly" ? `<span class="help" style="margin:0">You get paid every Friday.</span>`
         : pv.req ? `<span class="help" style="margin:0"><b>You're on the list for ${esc(fDay(pv.req))}.</b></span><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel</button>`
         : askBtn}
@@ -613,6 +622,9 @@ document.addEventListener("click", async e => {
   const tcb = el.closest("[data-schtc]"); if(tcb){ e.preventDefault(); const [d, s] = tcb.dataset.schtc.split("|"); schTc(d, s, false); return; }
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   const one = el.closest("[data-tcone]"); if(one){ const [d1, s1] = one.dataset.tcone.split("|"), x1 = schShifts(d1).find(y => y.id === s1); if(x1) await schDo({ action: "tcSave", date: d1, shiftId: s1, in: x1.start, out: x1.end }, "Timecard sent"); return; }
+  if(el.closest("[data-tcadd]")){ schExtra(); return; }
+  if(el.closest("#sch-ex-save")){ await schDo({ action: "tcAdd", date: $("#sch-ex-date").value, in: $("#sch-ex-in").value, out: $("#sch-ex-out").value }, "Extra hours added"); return; }
+  const xd = el.closest("[data-tcdel]"); if(xd){ if(await askYes("Remove these extra hours?", "Yes, Remove", true)) await schDo({ action: "tcDel", id: xd.dataset.tcdel }, "Removed"); return; }
   if(el.closest("#sch-tc-off") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, off: true }, "Saved as 0 hours"); return; }
   if(el.closest("#sch-tc-save") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, in: $("#sch-tc-in").value, out: $("#sch-tc-out").value }, t.fix ? "Timecard saved" : "Timecard sent"); return; }
   const tpd = el.closest("[data-tcpaid]"); if(tpd){ await schDo({ action: "tcPaid", id: tpd.dataset.tcpaid, paid: tpd.checked }, tpd.checked ? "Marked paid" : "Put back in Not Paid Yet"); return; }
