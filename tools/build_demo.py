@@ -27,7 +27,7 @@ function menuPhoto(f, key){
       text:{"heroTitle": "See what's on our shelves", "searchHint": "Search Tito's, Spotted Cow, ribs\u2026", "madeHereIntro": "Smoked and cooked right here at The Beer Depot. Grab it from the cooler and take it home.", "cateringTitle": "Party & Catering Orders", "cateringText": "Feeding a crowd? We'll smoke it for you. Order ribs, pulled pork, pulled chicken, mac & cheese, sides and more for your party, game day or event.", "cateringButton": "Call to Order", "saleIntro": "Deals this week, while they last.", "localIntro": "Meat, cheese and bakery from local makers.", "outdoorIntro": "", "newIntro": "Just came in over the last two weeks.", "allocNote": "Hard-to-Find Bottles. Once They're Gone, They're Gone.", "allocRules": "Stock Updates Live \u00b7 First Come, First Served \u00b7 No Reservations", "clubTitle": "Join the Bourbon Club", "clubText": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubDone": "You're in! Watch for our email Thursday at 5 PM.", "requestTitle": "Don't See It? Ask Us to Bring It In.", "requestText": "Tell us what you'd like us to carry. We read every request and will call you if we get it in.", "gateTitle": "Are you 21 or older?", "gateText": "This site lists beer and spirits. You must be 21 to see them.", "gateYes": "Yes, I'm 21 or older", "gateNo": "No, just show me the food", "clubPageTitle": "Join the Bourbon Club", "clubPageLede": "Every Thursday at 5 PM, get our list of allocated bottles in stock.", "clubPageSub": "Hard-to-find bottles go fast. Be the first to know what's on the shelf.", "clubPageFine": "One email a week, only on weeks we have bottles. First come, first served, in store only. Unsubscribe anytime.", "clubPageDone": "Watch for our email Thursday at 5 PM.", "thcNote": "A new federal law takes effect December 11, 2026 that ends sales of most hemp-derived THC drinks. We'll carry them until then, while supplies last."},info:{phone:"262-696-4602",address:"N27 W26 N26980 Prospect Ave, Pewaukee, WI 53072"},settings:{newDays:14,thcUntil:"2026-12-11",thcNoteOn:true,newCount:20,showCount:20,allocCount:10,sodaAlwaysIn:true},email:{fromName:"The Beer Depot",replyTo:"bourbon@beerdepotpewaukee.com",footer:""},social:{on:false,facebook:"",instagram:"",tiktok:"",x:"",youtube:""},colors:{main:"#F26B1D",dark:"#2B1A10",light:"#F3ECE3"},images:{logo:"",icon:""}},
     activity:[{at:"2026-11-05T22:10:00Z",who:"Jake",staff:"s1",text:"Smoked Ribs: Out of Stock"},{at:"2026-11-05T20:02:00Z",who:"Jake",staff:"s1",text:"Changed a one-day hours change"},{at:"2026-11-05T18:30:00Z",who:"Owner",staff:"",text:"Put Smoked Pulled Pork on special"}],
     rules:{hide:{"Busch Light 30pk cans":true},move:{}},
-    staff:[{id:"s1",name:"Jake",pin:"1111",tabs:["food","hours"],on:true},{id:"s2",name:"Maria",pin:"2222",tabs:["schedule"],on:true},{id:"s3",name:"Sam",pin:"3333",tabs:["food"],on:true},{id:"s4",name:"Alex",pin:"4444",tabs:["food"],on:true}],
+    staff:[{id:"s1",name:"Jo",pin:"1111",tabs:["food","hours"],on:true},{id:"s2",name:"Dave",pin:"2222",tabs:["schedule"],on:true},{id:"s3",name:"Scott",pin:"3333",tabs:["food"],on:true},{id:"s4",name:"Heather",pin:"4444",tabs:["food"],on:true}],
     club:{sending:true,members:[{email:"jim@example.com",joined:"2026-11-03T15:00:00Z",source:"sign"},{email:"sara@example.com",joined:"2026-11-04T18:20:00Z",source:"web"}]} };
   Object.defineProperty(window,"__DEMO_STAFF",{get:()=>DB.staff});
   const now = Date.now();
@@ -131,7 +131,8 @@ function menuPhoto(f, key){
 import re
 sched = (root / "netlify/functions/schedule.mjs").read_text()
 sched = re.sub(r'^import .*$', '', sched, flags=re.M)
-sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS")
+seedjson = (root / "netlify/lib/schedule-seed.json").read_text()
+sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS").replace("export function seeded", "function seeded")
 sched_demo = r"""
 (function(){
   const SCH = {};
@@ -141,31 +142,17 @@ sched_demo = r"""
   const checkPin = async (st, pin, area) => { if(area){ const w = await pinUser(st, pin); if(!w.owner && !w.tabs.includes(area)) return { error:"Your PIN doesn't have access to that. Ask the owner.", status:403 }; } return null; };
   const json = (b, s) => Response.json(b, { status: s || 200 });
   const randomBytes = n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), x => x.toString(16).padStart(2,"0")).join("") });
+  const seed = __SEED__;
   __SCHED__
-  // sample crew and schedule, relative to today
-  const T0 = new Intl.DateTimeFormat("en-CA",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-  const ad = (s,n) => { const t = new Date(s+"T12:00:00Z"); t.setUTCDate(t.getUTCDate()+n); return t.toISOString().slice(0,10); };
-  const ws = ad(T0, -new Date(T0+"T12:00:00Z").getUTCDay());
-  const P = { open:["08:30","16:00"], short:["08:30","15:00"], mid:["12:00","20:00"], late:["12:00","21:00"], close:["16:30","21:00"] };
-  const crew = ["owner","s1","s2","s3","s4"], shifts = {}; let n = 0;
-  for(let w=-1; w<=3; w++) for(let i=0; i<7; i++){
-    const date = ad(ws, w*7+i), plan = i===0 ? ["short","short"] : i>=5 ? ["open","late","close"] : ["open","mid"], base = (w*7+i*2+70) % 5;
-    shifts[date] = plan.map((k,j) => ({ id:"sh"+(++n), who:crew[(base+j)%5], start:P[k][0], end:P[k][1], note:"" }));
-  }
-  const sat = ad(ws,6); shifts[sat].push({ id:"sh"+(++n), who:"", start:P.mid[0], end:P.mid[1], note:"Extra help for the game" });
-  shifts[sat].sort((a,b)=>a.start.localeCompare(b.start));
-  const next = (who, from) => { for(let k=from; k<40; k++){ const d = ad(T0,k), s = (shifts[d]||[]).find(x=>x.who===who); if(s) return { d, s }; } };
-  const mk = (kind, by, a, extra) => Object.assign({ id:"rq"+(++n), kind, status:"open", by, date:a.d, shiftId:a.s.id, a:{start:a.s.start,end:a.s.end}, note:"", at:new Date().toISOString() }, extra);
-  const reqs = [];
-  const g = next("s2", 2); if(g) reqs.push(mk("give","s2",g,{note:"Dentist that morning"}));
-  const sa = next("s3", 3), sb = next("s1", 4);
-  if(sa && sb && sa.d !== sb.d) reqs.push(mk("swap","s3",sa,{status:"ask",withWho:"s1",withDate:sb.d,withShiftId:sb.s.id,b:{start:sb.s.start,end:sb.s.end},note:"Family dinner"}));
-  SCH.schedule = { presets:[{id:"p1",name:"Open",start:"08:30",end:"16:00",color:"#F26B1D"},{id:"p2",name:"Open Short",start:"08:30",end:"15:00",color:"#1F7A3A"},{id:"p3",name:"Mid",start:"12:00",end:"20:00",color:"#2F6DB5"},{id:"p4",name:"Mid Late",start:"12:00",end:"21:00",color:"#8A4FBF"},{id:"p5",name:"Close",start:"16:30",end:"21:00",color:"#C8102E"}],
-    shifts, requests:reqs, settings:{ approval:true, ownerName:"Tyler", hide:[] } };
+  // the real November schedule (from the paper calendar), with a few people linked to demo logins
+  SCH.schedule = seeded();
+  const link = { "pe-jo":"s1", "pe-dave":"s2", "pe-scott":"s3", "pe-heather":"s4" };
+  SCH.schedule.settings.people.forEach(p => { if(link[p.id]) p.staffId = link[p.id]; });
+  SCH.schedule.settings.ownerName = "Ty";
   const prev = window.fetch.bind(window);
   window.fetch = async (url, opt) => String(url).startsWith("/api/schedule") ? handler(new Request("https://demo.local/api/schedule", { method:"POST", body:opt.body })) : prev(url, opt);
 })();
-""".replace("__SCHED__", sched)
+""".replace("__SEED__", seedjson).replace("__SCHED__", sched)
 html = src.replace('<script src="/menu.js"></script>', "<script>\n" + menu + "\n</script>\n<script>" + fake + "</script>\n<script>" + sched_demo + "</script>", 1)
 html = html.replace('return "/api/site?img=" + encodeURIComponent(id);','return PH[id] || "";').replace('const imgSrc = id => "/api/site?img=" + encodeURIComponent(id);','const imgSrc = id => PH[id] || "";')
 html = html.replace("/api/sales?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace("/api/seasonal?photo=${encodeURIComponent(it.photo)}", "${DEMO_PH(it.photo)}").replace('"/api/food-stock?photo=" + encodeURIComponent(d.photo)', 'DEMO_PH(d.photo)')

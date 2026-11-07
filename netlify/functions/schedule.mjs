@@ -2,7 +2,9 @@
 // (or a staff member given the "Schedule" tab) can edit. Anyone can offer a shift, swap with a coworker or take an open shift.
 // Blob "schedule" = { presets:[{id,name,start,end,color}], shifts:{ "YYYY-MM-DD":[{id,who,start,end,note}] },
 //                     requests:[...], settings:{ approval, ownerName, hide:[ids] }, updated }
-//   who = a staff id, "owner", or "" for an Open Shift.
+//   who = "owner", a person on the schedule (settings.people, they do not need a PIN), a staff id with no person, or "" for an Open Shift.
+//   settings.people = [{id,name,staffId?}]: staffId links a person to a Store Tools PIN so that person sees their own shifts.
+//   The first time (nothing saved yet) the November 2026 paper calendar in lib/schedule-seed.json is loaded.
 // POST /api/schedule { pin, action, ... }
 //   anyone with a PIN: get {from,to} | badge | give | swap | take | answer | cancel
 //   manager only:      save | delete | copyWeek | clearWeek | presets | settings | resolve
@@ -12,6 +14,7 @@
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
 import { checkPin, pinUser, json } from "../lib/pin.mjs";
+import seed from "../lib/schedule-seed.json" with { type: "json" };
 
 const KEY = "schedule";
 const D = /^\d{4}-\d{2}-\d{2}$/;
@@ -38,15 +41,21 @@ function clean(d) {
   d.settings = d.settings && typeof d.settings === "object" ? d.settings : {};
   if (typeof d.settings.approval !== "boolean") d.settings.approval = true;
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
+  d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "" }));
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
   return d;
 }
 
+export function seeded() {
+  const d = clean({ presets: null, shifts: JSON.parse(JSON.stringify(seed.shifts)), settings: { approval: true, ownerName: seed.ownerName, people: seed.people.map(p => ({ ...p })) } });
+  return d;
+}
+async function staffOf(store) { return (((await store.get("staff", { type: "json" })) || { members: [] }).members || []).filter(m => m.on !== false); }
 async function teamOf(store, d) {
-  const staff = ((await store.get("staff", { type: "json" })) || { members: [] }).members || [];
-  return [{ id: "owner", name: d.settings.ownerName }, ...staff.filter(m => m.on !== false).map(m => ({ id: m.id, name: m.name }))]
+  const staff = await staffOf(store), linked = new Set(d.settings.people.map(p => p.staffId).filter(Boolean));
+  return [{ id: "owner", name: d.settings.ownerName }, ...d.settings.people.map(p => ({ id: p.id, name: p.name, staffId: p.staffId })), ...staff.filter(m => !linked.has(m.id)).map(m => ({ id: m.id, name: m.name }))]
     .map(p => ({ ...p, hidden: d.settings.hide.includes(p.id) }));
 }
 
@@ -84,12 +93,12 @@ function carryOut(d, r, name) {
   return "";
 }
 
-function view(d, team, me, from, to) {
+function view(d, team, me, from, to, staff) {
   const shifts = {};
   for (const [date, list] of Object.entries(d.shifts)) if (date >= from && date <= to && list.length) shifts[date] = list;
   const cutoff = Date.now() - 14 * 86400000;
   const requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
-  return { ok: true, me, team, presets: d.presets, settings: d.settings, shifts, requests, ...counts(d, me), today: today() };
+  return { ok: true, me, team, presets: d.presets, settings: d.settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -107,14 +116,16 @@ export default async (req) => {
   const store = getStore({ name: "beer-depot", consistency: "strong" });
   let b; try { b = await req.json(); } catch { return json({ error: "Bad request." }, 400); }
   const act = b.action;
-  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve"];
+  const MANAGER = ["save", "delete", "copyWeek", "clearWeek", "presets", "settings", "resolve", "addPerson", "updatePerson", "removePerson"];
   const bad = await checkPin(store, b.pin, MANAGER.includes(act) ? "schedule" : null, ["get", "badge"].includes(act) ? null : b, "schedule");
   if (bad) return json({ error: bad.error }, bad.status);
 
   const who = await pinUser(store, b.pin);
-  const d = clean(await store.get(KEY, { type: "json" }));
-  const team = await teamOf(store, d);
-  const me = { id: who.owner ? "owner" : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!who.owner };
+  const raw = await store.get(KEY, { type: "json" });
+  const d = raw ? clean(raw) : seeded();
+  let team = await teamOf(store, d);
+  const mePerson = who.owner ? null : d.settings.people.find(p => p.staffId === who.id);
+  const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!who.owner };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
   const isDate = x => D.test(String(x || ""));
   const ok = async () => {
@@ -125,8 +136,9 @@ export default async (req) => {
     sweep(d);
     d.updated = new Date().toISOString();
     await store.setJSON(KEY, d);
+    team = await teamOf(store, d);
     const from = isDate(b.from) ? b.from : addDays(today(), -7), to = isDate(b.to) ? b.to : addDays(from, 40);
-    return json(view(d, team, me, from, to));
+    return json(view(d, team, me, from, to, await staffOf(store)));
   };
 
   if (act === "badge") { const c = counts(d, me); return json({ ok: true, count: c.needs + c.offers }); }
@@ -134,7 +146,7 @@ export default async (req) => {
     const from = isDate(b.from) ? b.from : addDays(today(), -7);
     let to = isDate(b.to) ? b.to : addDays(from, 13);
     if (to > addDays(from, 62)) to = addDays(from, 62);
-    return json(view(d, team, me, from, to));
+    return json(view(d, team, me, from, to, await staffOf(store)));
   }
 
   /* ---------- manager ---------- */
@@ -186,6 +198,30 @@ export default async (req) => {
     }
     if (b.nightFrom !== undefined) { if (!T.test(String(b.nightFrom))) return json({ error: "Pick a time." }, 400); d.settings.nightFrom = String(b.nightFrom); }
     if (Array.isArray(b.hide)) d.settings.hide = b.hide.filter(x => typeof x === "string").slice(0, 60);
+    return ok();
+  }
+  if (act === "addPerson" || act === "updatePerson" || act === "removePerson") {
+    const people = d.settings.people, staff = await staffOf(store);
+    if (act === "addPerson") {
+      const nm = one(b.name, 30); if (!nm) return json({ error: "Type the person's name." }, 400);
+      if (people.length >= 40) return json({ error: "That's the limit of people on the schedule." }, 400);
+      if (team.some(p => p.name.toLowerCase() === nm.toLowerCase())) return json({ error: "Someone with that name is already on the schedule." }, 400);
+      people.push({ id: "pe-" + rid(), name: nm, staffId: "" });
+    } else {
+      const pe = people.find(x => x.id === b.id); if (!pe) return json({ error: "Not found." }, 404);
+      if (act === "removePerson") {
+        d.settings.people = people.filter(x => x.id !== b.id);
+        for (const list of Object.values(d.shifts)) for (const s of list) if (s.who === b.id) s.who = "";   // their shifts become Open Shifts
+      } else {
+        if (b.name !== undefined) { const nm = one(b.name, 30); if (nm) pe.name = nm; }
+        if (b.staffId !== undefined) {
+          const sid = String(b.staffId || "");
+          if (sid && !staff.some(m => m.id === sid)) return json({ error: "Pick someone from the Staff tab." }, 400);
+          if (sid && people.some(x => x.id !== pe.id && x.staffId === sid)) return json({ error: "That login is already linked to someone else." }, 400);
+          pe.staffId = sid;
+        }
+      }
+    }
     return ok();
   }
   if (act === "resolve") {
