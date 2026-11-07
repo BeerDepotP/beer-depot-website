@@ -27,7 +27,7 @@ export async function pinUser(store, pin) {
   if (samePin(pin, process.env.FOOD_PIN)) return { owner: true, name: "Owner", tabs: AREAS };
   const list = ((await store.get("staff", { type: "json" })) || { members: [] }).members || [];
   const m = list.find(x => x.on !== false && samePin(hashPin(pin, x.salt), x.hash));
-  return m ? { staff: true, id: m.id, name: m.name, boss: !!m.manager, tabs: m.manager ? AREAS : (m.tabs || []).filter(t => AREAS.includes(t)) } : null;   // manager = every tab + schedule approvals, but never the owner-only Staff tab
+  return m ? { staff: true, id: m.id, name: m.name, boss: !!m.manager, tabs: m.manager ? AREAS : (m.tabs || []).filter(t => AREAS.includes(t) && t !== "schedule") } : null;   // manager = every tab + schedule approvals, but never the owner-only Staff tab
 }
 
 // Returns null when the PIN is good (and may use `area`), or { error, status } when it isn't.

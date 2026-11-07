@@ -1,5 +1,5 @@
 /* ---------- schedule ---------- */
-// Everyone with a PIN sees the schedule. The owner (and staff given the "Schedule (Can Edit)" tab) can edit it.
+// Everyone with a PIN sees the schedule. The owner (and a staff login with the Manager switch on) can edit it.
 // Employees can give a shift away, swap with a coworker, or take an open shift.
 let sch = { data: null, start: "", month: "", tmode: "month", view: "", draft: null, ed: null };
 const SCH_DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], SCH_MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -256,7 +256,7 @@ function viewSetup(){
     <div class="card sp-card"><label class="help" for="sch-night" style="margin:0">Night Shifts Start At (Or Later)</label><input id="sch-night" type="time" value="${esc(nightFrom())}"><span class="help" style="margin:0">Shifts that start before this time show on the Day row of the calendar.</span><button class="btn ghost" type="button" id="sch-nsave">Save</button></div>
     <h3 class="grp">Who Is on the Schedule</h3>
     <ul class="sw-list">${people}</ul>
-    <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Give a person the “Schedule (Can Edit)” tab if they should be able to edit it too.</p>
+    <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Only a Manager can edit the schedule. Turn on Manager for that person in the Staff tab.</p>
     <div class="card sp-card" style="margin-top:8px"><label class="help" for="sch-oname" style="margin:0">Your Name on the Schedule</label><input id="sch-oname" maxlength="30" value="${esc(d.settings.ownerName)}"><button class="btn ghost" type="button" id="sch-osave">Save Name</button></div>
     <h3 class="grp">This Week (${esc(fDayS(sch.start))})</h3>
     <button class="btn ghost" type="button" id="sch-copy">Copy Last Week Into This Week</button>

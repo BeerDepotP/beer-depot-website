@@ -1476,7 +1476,7 @@ async function loadSite(){ try{ site = await api("/api/site",{action:"list"}); r
 
 /* ---------- staff (owner only) ---------- */
 let me = null, staff = null;
-const AREA_NAMES = { schedule:"Schedule (Can Edit)", food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", drinks:"Drinks", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
+const AREA_NAMES = { food:"Food Stock", sales:"Sales", seasonal:"Seasonal", hours:"Hours", notify:"Back in Stock", layout:"Layout", banners:"Banners & Text", drinks:"Drinks", nofind:"Couldn't Find It", top:"Top Searches", requests:"Requests", club:"Bourbon Club" };
 const tabBoxes = (sel, attr) => Object.entries(AREA_NAMES).map(([k,n])=>`<label><input type="checkbox" ${attr} value="${k}"${sel.includes(k)?" checked":""}> ${esc(n)}</label>`).join("");
 let stfNewCol = "";
 function stfTaken(id){            // colors other people already have (staff colors + what the schedule shows)
@@ -1487,13 +1487,13 @@ function stfTaken(id){            // colors other people already have (staff col
 const stfCols = (cur, attr, id) => { const t = stfTaken(id); return SCH_PAL.map(c => { const off = t.has(c.toLowerCase()) && c.toLowerCase() !== String(cur).toLowerCase(); return `<button type="button" class="sch-col${c.toLowerCase() === String(cur).toLowerCase() ? " on" : ""}${off ? " off" : ""}"${off ? " disabled" : ""} style="background:${c}" ${attr}="${c}" aria-label="Color"></button>`; }).join(""); };
 function stfFreeCol(){ const t = stfTaken(""); return SCH_PAL.find(c => !t.has(c.toLowerCase())) || SCH_PAL[0]; }
 function stfPaintNew(){ if(stfTaken("").has(stfNewCol.toLowerCase())) stfNewCol = stfFreeCol(); $("#stf-cols").innerHTML = stfCols(stfNewCol, 'data-stfnew', ""); }
-$("#stf-mgr").addEventListener("click", () => { const on = $("#stf-mgr").getAttribute("aria-checked") !== "true"; $("#stf-mgr").setAttribute("aria-checked", on); $("#stf-mgr-st").textContent = on ? "On: can use every tab, change presets and OK schedule requests (not the Staff tab)" : "Off: only the tabs ticked below"; $("#stf-mgr-st").classList.toggle("on", on); });
+$("#stf-mgr").addEventListener("click", () => { const on = $("#stf-mgr").getAttribute("aria-checked") !== "true"; $("#stf-mgr").setAttribute("aria-checked", on); $("#stf-mgr-st").textContent = on ? "On: can edit the schedule, use every tab, change presets and OK schedule requests (not the Staff tab)" : "Off: only the tabs ticked below"; $("#stf-mgr-st").classList.toggle("on", on); });
 $("#stf-cols").addEventListener("click", e => { const b = e.target.closest("[data-stfnew]"); if(b){ stfNewCol = b.dataset.stfnew; stfPaintNew(); } });
 function renderStaff(){ if(!stfNewCol) stfNewCol = stfFreeCol(); stfPaintNew();
   $("#stf-list").innerHTML = staff.members.length ? staff.members.map(m=>`<div class="card stf-card" data-id="${esc(m.id)}">
     <div class="stf-head"><span><b>${esc(m.name)}</b><br><span class="help" style="margin:0">${m.on?"PIN works":"PIN turned off"}</span></span>
       <button class="sw stf-sw" role="switch" aria-checked="${m.on}" aria-label="${esc(m.name)}'s PIN on" data-stfon="${esc(m.id)}"></button></div>
-    <ul class="sw-list"><li><span><span class="nm">Manager</span><span class="st${m.manager ? " on" : ""}">${m.manager ? "On: can use every tab, change presets and OK schedule requests (not this Staff tab)" : "Off: only the tabs ticked below"}</span></span><button class="sw" role="switch" aria-checked="${!!m.manager}" aria-label="${esc(m.name)} is a manager" data-stfmgr></button></li></ul>
+    <ul class="sw-list"><li><span><span class="nm">Manager</span><span class="st${m.manager ? " on" : ""}">${m.manager ? "On: can edit the schedule, use every tab, change presets and OK schedule requests (not this Staff tab)" : "Off: only the tabs ticked below"}</span></span><button class="sw" role="switch" aria-checked="${!!m.manager}" aria-label="${esc(m.name)} is a manager" data-stfmgr></button></li></ul>
     <span class="help" style="margin:0">Color on the Schedule</span><div class="sch-cols">${stfCols(m.color || "", 'data-stfcol', m.id)}</div>
     <div class="stf-tabs">${tabBoxes(m.tabs, 'data-stftab')}</div>
     ${stfChanges(m)}
@@ -1530,7 +1530,7 @@ $("#stf-add").onclick = async ()=>{
 };
 $("#stf-list").addEventListener("click", async e=>{
   const card = e.target.closest(".stf-card"); if(!card) return; const id = card.dataset.id, m = staff.members.find(x=>x.id===id);
-  if(e.target.closest("[data-stfmgr]")){ const on = !m.manager; if(on && !(await askYes(m.name + " will be able to use every tab (except Staff), change preset times and OK schedule requests. Make " + m.name + " a manager?", "Make Manager"))) return; staffCall({action:"update", id, manager: on}, m.name + (on ? ": Is a Manager" : ": Manager Turned Off")); return; }
+  if(e.target.closest("[data-stfmgr]")){ const on = !m.manager; if(on && !(await askYes(m.name + " will be able to edit the schedule, use every tab (except Staff), change preset times and OK schedule requests. Make " + m.name + " a manager?", "Make Manager"))) return; staffCall({action:"update", id, manager: on}, m.name + (on ? ": Is a Manager" : ": Manager Turned Off")); return; }
   if(e.target.closest("[data-stfmore]")){ stfShown[id] = (stfShown[id] || 3) + 5; renderStaff(); return; }
   if(e.target.closest("[data-stfact]")){ $("#act-who").value = id; actShown = 5; renderActivity(); $("#act-who").scrollIntoView({block:"center"}); return; }
   const sc = e.target.closest("[data-stfcol]"); if(sc){ staffCall({action:"update", id, color: sc.dataset.stfcol}, m.name + ": Color Changed"); return; }
@@ -1760,7 +1760,7 @@ document.addEventListener("click", async e=>{
 });
 
 /* ---------- schedule ---------- */
-// Everyone with a PIN sees the schedule. The owner (and staff given the "Schedule (Can Edit)" tab) can edit it.
+// Everyone with a PIN sees the schedule. The owner (and a staff login with the Manager switch on) can edit it.
 // Employees can give a shift away, swap with a coworker, or take an open shift.
 let sch = { data: null, start: "", month: "", tmode: "month", view: "", draft: null, ed: null };
 const SCH_DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"], SCH_MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2017,7 +2017,7 @@ function viewSetup(){
     <div class="card sp-card"><label class="help" for="sch-night" style="margin:0">Night Shifts Start At (Or Later)</label><input id="sch-night" type="time" value="${esc(nightFrom())}"><span class="help" style="margin:0">Shifts that start before this time show on the Day row of the calendar.</span><button class="btn ghost" type="button" id="sch-nsave">Save</button></div>
     <h3 class="grp">Who Is on the Schedule</h3>
     <ul class="sw-list">${people}</ul>
-    <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Give a person the “Schedule (Can Edit)” tab if they should be able to edit it too.</p>
+    <p class="help" style="margin-top:8px">To add an employee, add them in the Staff tab with a PIN. Then they can look at the schedule and ask for swaps. Only a Manager can edit the schedule. Turn on Manager for that person in the Staff tab.</p>
     <div class="card sp-card" style="margin-top:8px"><label class="help" for="sch-oname" style="margin:0">Your Name on the Schedule</label><input id="sch-oname" maxlength="30" value="${esc(d.settings.ownerName)}"><button class="btn ghost" type="button" id="sch-osave">Save Name</button></div>
     <h3 class="grp">This Week (${esc(fDayS(sch.start))})</h3>
     <button class="btn ghost" type="button" id="sch-copy">Copy Last Week Into This Week</button>

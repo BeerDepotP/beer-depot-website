@@ -27,7 +27,7 @@ export default async (req) => {
   const bad = await checkPin(store, b.pin, "owner", b, "staff");
   if (bad) return json({ error: bad.error }, bad.status);
   const d = (await store.get("staff", { type: "json" })) || { members: [] };
-  const tabs = t => [...new Set((Array.isArray(t) ? t : []).filter(x => AREAS.includes(x)))];
+  const tabs = t => [...new Set((Array.isArray(t) ? t : []).filter(x => AREAS.includes(x) && x !== "schedule"))];
   const pinTaken = (p, exceptId) => p === process.env.FOOD_PIN || d.members.some(m => m.id !== exceptId && hashPin(p, m.salt) === m.hash);
 
   if (b.action === "add" || (b.action === "update" && b.newPin)) {
