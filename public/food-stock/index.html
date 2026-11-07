@@ -1763,7 +1763,8 @@ document.addEventListener("click", async e=>{
 /* ---------- schedule ---------- */
 // Everyone with a PIN sees the schedule. The owner (and a staff login with the Manager switch on) can edit it.
 // Employees can give a shift away, swap with a coworker, or take an open shift.
-let sch = { data: null, start: "", month: "", tmode: "month", view: "", draft: null, ed: null };
+const monthMode = () => (sch.view === "team" && sch.tmode === "month") || (sch.view === "mine" && sch.mmode === "cal");   // showing a month calendar (Whole Team month, or My Shifts calendar)
+let sch = { mmode: "list", data: null, start: "", month: "", tmode: "month", view: "", draft: null, ed: null };
 const SCH_DOW = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];   // full words everywhere (owner 2026-11-07)
 const SCH_FULL = ["January","February","March","April","May","June","July","August","September","October","November","December"], SCH_MON = SCH_FULL;
 const SCH_COLORS = ["#F26B1D","#1F7A3A","#2F6DB5","#8A4FBF","#C8102E","#B8860B","#2B1A10"];
@@ -1798,7 +1799,7 @@ const schShifts = date => (sch.data.shifts[date] || []);
 
 function schRange(){
   const t = schToday();
-  if(sch.view === "team" && sch.tmode === "month" && sch.month){ const f = wkStart(sch.month); return [f, addD(f, 41)]; }
+  if(monthMode() && sch.month){ const f = wkStart(sch.month); return [f, addD(f, 41)]; }
   const s = sch.start || wkStart(t), e = addD(s, 6);
   if(sch.view === "mine" || sch.view === "time") return [addD(t, -7), addD(t, 150)];   // everything from this week on (months not confirmed yet never come back for employees)
   let from = s, to = e;
@@ -1842,10 +1843,10 @@ function reqStatus(r){
 /* ---------- screens ---------- */
 function renderSchedule(){
   const d = sch.data, mgr = schIsMgr();
-  const s = sch.start, e = addD(s, 6), same = spd(s).getMonth() === spd(e).getMonth(), inMonth = sch.view === "team" && sch.tmode === "month";
+  const s = sch.start, e = addD(s, 6), same = spd(s).getMonth() === spd(e).getMonth(), inMonth = monthMode();
   if(inMonth){ $("#sch-range").textContent = SCH_FULL[spd(sch.month).getMonth()] + " " + spd(sch.month).getFullYear(); $("#sch-today").textContent = "This Month"; $("#sch-today").hidden = sch.month === monthFirst(schToday()); }
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
-  const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = sch.view === "mine" || sch.view === "time" ? "none" : "";
+  const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = (sch.view === "mine" && sch.mmode !== "cal") || sch.view === "time" ? "none" : "";
   const waiting = d.needs + d.offers;
   const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"],["time","Timecards" + (mgr && payList().length ? " (" + payList().length + ")" : "")]];
   if(mgr) pills.push(["setup","Setup"]);
@@ -1860,7 +1861,7 @@ function pendingInfo(){
   const people = Object.values(pe.who).filter(a => a.some(x => x >= t)).length, open = (pe.open || []).filter(x => x >= t).length;
   return { people, open };
 }
-const viewMonthOf = () => (sch.view === "team" && sch.tmode === "month" ? sch.month : sch.start).slice(0, 7);
+const viewMonthOf = () => (monthMode() ? sch.month : sch.start).slice(0, 7);
 const monthLabel = m => SCH_FULL[spd(m + "-01").getMonth()];
 function confirmBar(){
   const { people, open } = pendingInfo(), m = viewMonthOf(), mn = monthLabel(m), now = schToday().slice(0, 7);
@@ -1900,7 +1901,9 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
         ${tcStarted(date, x) ? tcBtn(date, x) : `<button class="btn ghost sch-sm" type="button" data-schmine="${esc(date)}|${esc(x.id)}">${pr ? "See Request" : "Swap or Give Away"}</button>`}</div>`; }).join("")}</div></div>`;
   }).join(""); };
   const pastBtn = pastDates.length ? `<button class="btn ghost" type="button" data-schpast style="margin:8px 0">${sch.showPast ? "Hide Past Shifts" : "Past Shifts (" + pastDates.length + ") / Edit Past Timecard"}</button>` + (sch.showPast ? `<p class="help" style="margin:0 2px 4px">Shifts from the last 7 days that aren't paid yet. Tap Timecard to add or fix your times.</p>` + rowsOf(pastDates, true, false) : "") : "";
-  return nextShiftBanner() + swapsBlock() + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
+  const tog = `<div class="sch-togrow"><div class="sch-tog"><button type="button" data-mmode="list" aria-pressed="${sch.mmode !== "cal"}">List</button><button type="button" data-mmode="cal" aria-pressed="${sch.mmode === "cal"}">Calendar</button></div></div>`;
+  if(sch.mmode === "cal") return nextShiftBanner() + swapsBlock() + tog + monthCal(true);
+  return nextShiftBanner() + swapsBlock() + tog + `<h3 class="grp" style="margin:14px 2px 4px">Your Shifts</h3><p class="help" style="margin:8px 2px">Your hours: <b>${fHrs(myHours(w0, addD(w0, 6)))}</b> this week · <b>${fHrs(myHours(m0, addD(shiftMonth(m0, 1), -1)))}</b> in ${monthName(m0)}. Only you can see your hours.</p>`
     + pastBtn
     + (rowsOf(upDates, false, true) || `<p class="help" style="margin:10px 2px">You have no shifts coming up. Shifts show up here once the owner confirms the month.</p>`)
     + `<p class="help" style="margin:12px 2px 0">This list shows every month the owner has confirmed.</p>`;
@@ -1986,14 +1989,14 @@ function viewTeam(){
   const sel = schIsMgr() && sch.tmode === "month" ? `<div class="sch-tog sch-seltog"><button type="button" data-seltog aria-pressed="${selS().mode}">${selS().mode ? "Done Selecting" : "Select Days"}</button></div>` : "";
   return `<div class="sch-togrow">${tg}${sel}</div>` + (sch.tmode === "month" ? monthCal() : weekCal());
 }
-function monthCal(){
-  const d = sch.data, mgr = schIsMgr(), me = d.me.id, t = schToday(), first = sch.month, mi = spd(first).getMonth();
+function monthCal(mineOnly){   // mineOnly = the My Shifts calendar: same look as Whole Team but only my shifts, no editing
+  const d = sch.data, mgr = !mineOnly && schIsMgr(), me = d.me.id, t = schToday(), first = sch.month, mi = spd(first).getMonth();
   const start = wkStart(first), last = addD(shiftMonth(first, 1), -1), weeks = Math.ceil(((spd(last) - spd(start)) / 86400000 + 1) / 7);
   const bub = s => `<span class="sch-bub m${pendingFor(s.id) ? " pend" : ""}${s.who === me ? " me" : ""}${!s.who ? " open" : ""}" data-sid="${esc(s.id)}" style="background:${empColor(s.who)}"><b>${esc(firstName(s.who ? schName(s.who) : "Open"))}</b><span>${fRs(s.start, s.end)}</span></span>`;
-  const SEL = selS(); if(SEL.forMonth !== sch.month){ SEL.dates.clear(); SEL.forMonth = sch.month; }
+  const SEL = mineOnly ? { dates: new Set(), mode: false, forMonth: sch.month } : selS(); if(SEL.forMonth !== sch.month){ SEL.dates.clear(); SEL.forMonth = sch.month; }
   const cells = []; const tot = {};
   for(let i = 0; i < weeks * 7; i++){
-    const date = addD(start, i), inM = spd(date).getMonth() === mi, list = schShifts(date), dayL = list.filter(s => !isNight(s)), nightL = list.filter(isNight);
+    const date = addD(start, i), inM = spd(date).getMonth() === mi, list = schShifts(date).filter(s => !mineOnly || s.who === me), dayL = list.filter(s => !isNight(s)), nightL = list.filter(isNight);
     if(inM) list.forEach(s => { if(s.who) tot[s.who] = (tot[s.who] || 0) + hrs(s.start, s.end); });
     cells.push(`<div class="sm-cell${SEL.dates.has(date) ? " picked" : ""}${inM ? "" : " other"}${date === t ? " today" : ""}${date < t ? " past" : ""}${mgr ? " edit" : ""}" data-d="${date}"><span class="sm-n">${spd(date).getDate()}</span>${mgr && !SEL.mode ? `<button type="button" class="sm-plus" data-addday="${date}" aria-label="Add a shift">+</button>` : ""}${dayL.map(bub).join("")}${dayL.length && nightL.length ? '<i class="sm-div"></i>' : ""}${nightL.map(bub).join("")}</div>`);
   }
@@ -2001,6 +2004,9 @@ function monthCal(){
   const legend = people.map(p => `<span class="sch-key"><i style="background:${empColor(p.id)}"></i>${esc(p.name)}${p.id === me ? " (You)" : ""}</span>`).join("")
     + `<span class="sch-key"><i style="background:${empColor("")}"></i>Open Shift</span><span class="sch-key"><i class="pendkey"></i>Request Waiting</span>`;
   const selHelp = mgr ? (SEL.mode ? `<p class="help" style="margin:0 2px 8px"><b>Select Days is on.</b> Tap days one at a time, or touch and hold a day, then drag across the days you want (side to side and up and down). A quick swipe still scrolls the page. When you let go after dragging, pick who and the shift. On a computer you can also click a day, then hold Shift and click another day.</p>` : `<p class="help" style="margin:0 2px 8px">Tap a day to add a shift. Tap a shift to change it, give it to someone else, or remove it. To do many days at once, tap Select Days (on a computer, click a day then Shift+click another).</p>`) : "";
+  if(mineOnly) return `<p class="help" style="margin:4px 2px 8px">Only your shifts. Tap a shift to swap or give it away, or to send your timecard once it has started.</p>
+    <div class="sm-head">${SCH_DOW.map(x => `<span>${x}</span>`).join("")}</div><div class="sm-grid">${cells.join("")}</div>
+    <p class="help" style="margin:8px 2px 0">Your hours in ${monthName(first)}: <b>${fHrs(myHours(first, last))}</b>. Only you can see your own hours.</p>`;
   return `${selHelp}${mgr ? "" : `<p class="help" style="margin:4px 2px 8px">Tap your own shift to swap or give it away. Tap a coworker's shift to ask to swap. Tap an open shift to take it.</p>`}
     <div class="sm-head">${SCH_DOW.map(x => `<span>${x}</span>`).join("")}</div><div class="sm-grid${SEL.mode ? " selmode" : ""}">${cells.join("")}</div>
     <p class="help" style="margin:8px 2px 0">Your hours in ${monthName(first)}: <b>${fHrs(myHours(first, last))}</b>. Only you can see your own hours.</p>
@@ -2276,10 +2282,10 @@ async function schDo(body, msg, keepOpen){
   try{ await schCall(body); if(!keepOpen) schClose(); renderSchedule(); if(msg) toast(msg); return true; }
   catch(err){ if(err.status === 401 || err.status === 429) { lockPage(err.message); return false; } toast(err.message, true); return false; }
 }
-const schNav = n => { if(sch.view === "team" && sch.tmode === "month") sch.month = shiftMonth(sch.month, n); else sch.start = addD(sch.start, 7 * n); loadSchedule(); };
+const schNav = n => { if(monthMode()) sch.month = shiftMonth(sch.month, n); else sch.start = addD(sch.start, 7 * n); loadSchedule(); };
 $("#sch-prev").onclick = () => schNav(-1);
 $("#sch-next").onclick = () => schNav(1);
-$("#sch-today").onclick = () => { if(sch.view === "team" && sch.tmode === "month") sch.month = monthFirst(schToday()); else sch.start = wkStart(schToday()); loadSchedule(); };
+$("#sch-today").onclick = () => { if(monthMode()) sch.month = monthFirst(schToday()); else sch.start = wkStart(schToday()); loadSchedule(); };
 $("#sch-modal").addEventListener("click", e => { if(e.target.id === "sch-modal") schClose(); });
 document.addEventListener("keydown", e => { if(e.key === "Escape"){ if(!$("#sch-modal").hidden) schClose(); else if(!$("#sch-pick").hidden) schPickClose(); else if(selS().dates.size){ selS().dates.clear(); selPaint(); } } });
 
@@ -2293,7 +2299,13 @@ document.addEventListener("click", async e => {
   if(el.closest("[data-gosetup]")){ schClose(); sch.view = "setup"; sch.draft = null; loadSchedule(); return; }
   if(el.closest("[data-schclose]")){ schClose(); return; }
   const ad = el.closest("[data-addday]"); if(ad && sch.data && schIsMgr() && !selS().skip){ schCell(ad.dataset.addday, null); return; }
+  const mm = el.closest("[data-mmode]"); if(mm){ sch.mmode = mm.dataset.mmode; if(sch.mmode === "cal") sch.month = monthFirst(schToday()); loadSchedule(); return; }
   const td = el.closest(".sch-tbl td[data-d], .sm-cell[data-d]");
+  if(td && sch.data && sch.view === "mine" && !el.closest("#sch-modal")){   // My Shifts calendar: only my own shifts can be tapped
+    const chip = el.closest(".sch-bub"), date = td.dataset.d, x = chip && schShifts(date).find(y => y.id === chip.dataset.sid);
+    if(x && x.who === sch.data.me.id) { if(tcStarted(date, x)) schTc(date, x.id, false); else if(date >= schToday()) schMine(date, x.id); }
+    return;
+  }
   if(td && sch.data && !el.closest("#sch-modal")){
     if(selS().skip || (selS().mode && selOn())) return;
     const date = td.dataset.d, chip = el.closest(".sch-bub"), sid = chip && chip.dataset.sid;
