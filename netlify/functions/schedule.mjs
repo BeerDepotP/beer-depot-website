@@ -144,12 +144,12 @@ export default async (req) => {
   if (bad) return json({ error: bad.error }, bad.status);
 
   const who = await pinUser(store, b.pin);
-  if (act === "presets" && !who.owner) return json({ error: "Only the owner can add or remove shift presets." }, 403);
+  if (act === "presets" && !(who.owner || who.boss)) return json({ error: "Only the owner can add or remove shift presets." }, 403);
   const raw = await store.get(KEY, { type: "json" });
   const d = raw ? clean(raw) : seeded();
   let team = await teamOf(store, d);
   const mePerson = who.owner ? null : d.settings.people.find(p => p.staffId === who.id);
-  const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!who.owner };
+  const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!(who.owner || who.boss) };   // owner = may OK give-aways and change presets (the real owner or a staff Manager)
   const colorOf = (p, i) => String(p.color || (d.settings.colors || {})[p.id] || PAL[i % PAL.length]).toLowerCase();
   const colorTaken = (id, col) => { const c = String(col).toLowerCase(); return team.some((p, i) => p.id !== id && colorOf(p, i) === c); };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
@@ -288,7 +288,7 @@ export default async (req) => {
     return ok();
   }
   if (act === "resolve") {
-    if (!who.owner) return json({ error: "Only the owner can OK a change." }, 403);
+    if (!(who.owner || who.boss)) return json({ error: "Only the owner or a manager can OK a change." }, 403);
     const r = d.requests.find(x => x.id === b.id);
     if (!r || r.status !== "approve") return json({ error: "That request is already finished." }, 400);
     if (b.approve) { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }

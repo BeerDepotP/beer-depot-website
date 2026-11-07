@@ -46,13 +46,14 @@ export default async (req) => {
     if (!name) return json({ error: "Type the person's name." }, 400);
     if (d.members.length >= 30) return json({ error: "That's the limit of staff PINs." }, 400);
     const salt = randomBytes(8).toString("hex");
-    d.members.push({ id: randomBytes(6).toString("hex"), name, salt, hash: hashPin(String(b.newPin), salt), tabs: tabs(b.tabs), on: true, added: new Date().toISOString(), ...(okColor(b.color) ? { color: String(b.color) } : {}) });
+    d.members.push({ id: randomBytes(6).toString("hex"), name, salt, hash: hashPin(String(b.newPin), salt), tabs: tabs(b.tabs), on: true, ...(b.manager === true ? { manager: true } : {}), added: new Date().toISOString(), ...(okColor(b.color) ? { color: String(b.color) } : {}) });
   } else if (b.action === "update") {
     const m = d.members.find(x => x.id === b.id);
     if (!m) return json({ error: "Not found." }, 404);
     if (b.name !== undefined) { const n = one(b.name, 40); if (n) m.name = n; }
     if (b.tabs !== undefined) m.tabs = tabs(b.tabs);
     if (b.on !== undefined) m.on = !!b.on;
+    if (b.manager !== undefined) { if (b.manager) m.manager = true; else delete m.manager; }
     if (b.color !== undefined) { if (okColor(b.color)) m.color = String(b.color); else if (!b.color) delete m.color; }
     if (b.newPin) { m.salt = randomBytes(8).toString("hex"); m.hash = hashPin(String(b.newPin), m.salt); }
   } else if (b.action === "remove") {
