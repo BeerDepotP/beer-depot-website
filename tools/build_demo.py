@@ -162,6 +162,7 @@ sched_demo = r"""
       ["pe-scott", 2, "08:30","15:00", "08:20","15:05", 0], ["pe-scott", 3, "16:30","21:00", "16:30","22:10", 0], ["pe-scott", 6, "12:00","20:00", "12:00","20:00", 0],
       ["pe-heather", 1, "08:30","16:00", "", "", 0], ["pe-heather", 4, "12:00","20:00", "12:15","20:30", 0], ["pe-heather", 5, "16:30","21:00", "16:30","21:00", 1],
       ["owner", 2, "12:00","20:00", "11:45","20:15", 0], ["owner", 5, "08:30","16:00", "08:30","16:30", 1]];
+    S.settings.pay = { "pe-heather": { mode: "ask", req: nextPayday() }, "pe-scott": { mode: "ask", req: "" }, "pe-dave": { mode: "weekly", req: "" } };   // Heather asked to be paid, Scott pays only when he asks
     let n = 0;
     for (let [who, ago, ss, ee, ci, co, paid] of plan) {
       const date = addDays(t, -ago); const list = (S.shifts[date] = S.shifts[date] || []);

@@ -29,6 +29,8 @@ const addDays = (d, n) => { const t = new Date(d + "T00:00:00Z"); t.setUTCDate(t
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
 const nowHM = () => new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date()).replace(/^24:/, "00:");
+// Paychecks go out Friday 9 AM (store time). A request made before then is for today, after that for next Friday.
+const nextPayday = () => { const t = today(), dow = new Date(t + "T12:00:00Z").getUTCDay(); let add = (5 - dow + 7) % 7; if (add === 0 && nowHM() >= "09:00") add = 7; return addDays(t, add); };
 const PAL = ["#E6194B","#F58231","#D9A000","#6BA814","#1E8E3E","#008080","#0097B2","#4363D8","#1B1F6B","#911EB4","#8E7CC3","#D81FD1","#F06292","#800000","#8B5A2B","#808000","#5B6770","#222222","#3FA7E0","#5E2750"];   // same list as SCH_PAL in tools/schedule_ui.js (default person colors, in team order)
 const COLORS = ["#F26B1D", "#1F7A3A", "#2F6DB5", "#8A4FBF", "#C8102E", "#B8860B", "#2B1A10"];
 export const DEFAULT_PRESETS = [
@@ -61,6 +63,9 @@ function clean(d) {
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   // Timecards: one per worked shift {id,date,who,name,shiftId,in,out,sent,paid,paidAt}. Paid ones are kept for 30 days (the "Past Hours" list), then dropped.
   d.cards = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && typeof c.id === "string" && D.test(String(c.date)) && T.test(String(c.in)) && T.test(String(c.out)) && (!c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000)).slice(-1500);
+  // How each person wants to be paid: mode "weekly" (every Friday, the default) or "ask" (only when they tap Pay Me); req = the Friday they asked for.
+  const pay = d.settings.pay && typeof d.settings.pay === "object" ? d.settings.pay : {}; d.settings.pay = {};
+  for (const [k, v] of Object.entries(pay)) if (v && typeof v === "object") d.settings.pay[String(k).slice(0, 40)] = { mode: v.mode === "ask" ? "ask" : "weekly", req: D.test(String(v.req || "")) ? v.req : "" };
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
   return d;
 }
@@ -135,7 +140,8 @@ function view(d, team, me, from, to, staff) {
   const cutoff = Date.now() - 14 * 86400000;
   const requests = d.requests.filter(r => !hid(r.date) && !(r.withDate && hid(r.withDate))).filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
-  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), ...counts(d, me), today: today() };
+  if (!me.manager) delete settings.pay;   // nobody sees how coworkers get paid
+  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, cards: me.manager ? d.cards : d.cards.filter(c => c.who === me.id), pay: me.manager ? d.settings.pay : { [me.id]: d.settings.pay[me.id] || { mode: "weekly", req: "" } }, payday: nextPayday(), ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -196,6 +202,7 @@ export default async (req) => {
     for (const k of Object.keys(d.shifts)) if (k < old || !d.shifts[k].length) delete d.shifts[k];
     d.requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > Date.now() - 30 * 86400000)).slice(0, 200);
     d.cards = d.cards.filter(c => !c.paid || Date.parse(c.paidAt) > Date.now() - 30 * 86400000);
+    for (const [id, v] of Object.entries(d.settings.pay)) if (v.req && !d.cards.some(c => c.who === id && !c.paid)) v.req = "";   // everything paid: the request is done
     sweep(d);
     d.updated = new Date().toISOString();
     await store.setJSON(KEY, d);
@@ -454,6 +461,19 @@ export default async (req) => {
     if (c && c.paid) return json({ error: "That day is already marked paid, so it can't be changed." }, 400);
     if (!c) { c = { id: rid(), date, who: s.who, name: name(s.who), shiftId: s.id, paid: false, paidAt: "" }; d.cards.push(c); }
     c.in = b.in; c.out = b.out; c.sent = new Date().toISOString(); c.by = me.id;
+    return ok();
+  }
+  if (act === "tcPref") {   // how someone wants to be paid: yourself, or a manager for anyone
+    const target = me.manager && b.who ? String(b.who).slice(0, 40) : me.id, cur = d.settings.pay[target] || { mode: "weekly", req: "" };
+    cur.mode = b.mode === "ask" ? "ask" : "weekly"; if (cur.mode === "weekly") cur.req = "";
+    d.settings.pay[target] = cur;
+    return ok();
+  }
+  if (act === "tcAsk") {   // "Pay me on the next payday" (or cancel it)
+    const cur = d.settings.pay[me.id] || { mode: "weekly", req: "" };
+    if (b.cancel) cur.req = "";
+    else { if (!d.cards.some(c => c.who === me.id && !c.paid)) return json({ error: "You have no unpaid hours yet. Send a timecard first." }, 400); cur.req = nextPayday(); }
+    d.settings.pay[me.id] = cur;
     return ok();
   }
   if (act === "tcPaid") {

@@ -85,7 +85,7 @@ function renderSchedule(){
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
   const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = sch.view === "mine" || sch.view === "time" ? "none" : "";
   const waiting = d.needs + d.offers;
-  const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"],["time","Timecards" + (mgr && tcUnpaid().length ? " (" + tcUnpaid().length + ")" : "")]];
+  const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Whole Team"],["time","Timecards" + (mgr && payList().length ? " (" + payList().length + ")" : "")]];
   if(mgr) pills.push(["setup","Setup"]);
   $("#sch-pills").innerHTML = pills.map(([k,n]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}</button>`).join("");
   setSchBadge(waiting);
@@ -148,6 +148,10 @@ function viewMine(){   // upcoming shifts of mine (confirmed months); shifts fro
 const tcHrs = (a, b) => { const h = hrs(a, b); return h > 0 ? h : h + 24; };   // a shift that ends after midnight counts the next day
 const tcH = h => (Math.round(h * 100) / 100) + " hrs";
 const tcSel = () => (sch.tcSel = sch.tcSel || new Set());
+const payOf = id => (sch.data.pay || {})[id] || { mode: "weekly", req: "" };
+const payDay = () => sch.data.payday || schToday();
+const payWord = () => (payDay() <= addD(schToday(), 6) ? "This Friday" : "Next Friday");   // paychecks go out Friday 9 AM
+const payList = () => { const ids = [...new Set(tcUnpaid().map(c => c.who))]; return ids.filter(id => { const v = payOf(id); return v.mode === "weekly" || v.req; }); };   // who gets paid on payday: every-Friday people with hours + anyone who asked
 const tcCards = () => (sch.data.cards || []);
 const tcUnpaid = () => tcCards().filter(c => !c.paid);
 const tcCardOf = (x, who) => tcCards().find(c => c.shiftId === x.id && c.who === (who || x.who));
@@ -193,15 +197,24 @@ function viewTime(){
   const un = tcUnpaid().sort((a, b) => a.date.localeCompare(b.date)), paid = tcCards().filter(c => c.paid).sort((a, b) => b.paidAt.localeCompare(a.paidAt));
   const tot = list => list.reduce((h, c) => h + tcHrs(c.in, c.out), 0);
   if(!mgr){
-    return `<div class="card sch-next"><span class="help" style="margin:0">Hours You Haven't Been Paid For Yet</span><b style="font-size:1.4em">${tcH(tot(un))}</b></div>
+    const pv = payOf(me), askBtn = tcUnpaid().length ? `<button type="button" class="btn" data-tcask>Pay Me ${payWord()}</button>` : `<p class="help" style="margin:4px 0 0">Send a timecard first, then you can ask to be paid.</p>`;
+    const payBox = `<div class="card sp-card"><b>How Do You Want to Be Paid?</b>
+      <div class="sch-tog"><button type="button" data-tcmode="weekly" aria-pressed="${pv.mode === "weekly"}">Every Friday</button><button type="button" data-tcmode="ask" aria-pressed="${pv.mode === "ask"}">When I Ask</button></div>
+      ${pv.mode === "weekly" ? `<span class="help" style="margin:0">You're paid every Friday for the hours you sent. Paychecks go out at 9 AM.</span>`
+        : pv.req ? `<span class="help" style="margin:0"><b>You're on the list for ${esc(fDay(pv.req))}.</b> Paychecks go out at 9 AM.</span><button type="button" class="btn ghost sch-sm" data-tcask="cancel" style="justify-self:start">Cancel This Request</button>`
+        : `<span class="help" style="margin:0">Good if you only work a few days a month. Tap the button when you want your hours paid. The next payday is ${esc(fDay(payDay()))} (paychecks go out at 9 AM).</span>${askBtn}`}</div>`;
+    return payBox + `<div class="card sch-next" style="margin-top:8px"><span class="help" style="margin:0">Hours You Haven't Been Paid For Yet</span><b style="font-size:1.4em">${tcH(tot(un))}</b></div>
       <p class="help" style="margin:8px 2px">To add hours, go to My Shifts and tap Timecard on your shift. You can do it the day you work and up to a week after. Only you can see your hours.</p>
       <h3 class="grp" style="margin:14px 2px 4px">Not Paid Yet</h3>${un.map(c => tcRow(c, false)).join("") || `<p class="help" style="margin:4px 2px">Nothing waiting. All your hours are paid.</p>`}
       <h3 class="grp" style="margin:14px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours stay here for 30 days.</p>${paid.map(c => tcRow(c, false)).join("") || `<p class="help" style="margin:4px 2px">No paid hours yet.</p>`}`;
   }
-  const unG = byPerson(un), paidG = byPerson(paid);
-  return `<p class="help" style="margin:4px 2px 8px">Employees send their times from My Shifts. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
+  const unG = byPerson(un), paidG = byPerson(paid), pl = payList();
+  const plRows = pl.map(id => { const cs = un.filter(c => c.who === id), v = payOf(id), late = v.req && v.req < schToday();
+    return `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><span class="sch-chip" style="background:${empColor(id)};display:inline-block">${esc(firstName(nm(id, cs)))}</span><br><b>${tcH(tot(cs))}</b> · ${cs.length} day${cs.length === 1 ? "" : "s"}<br><span class="help" style="margin:0">${v.req ? "Asked to be paid" + (late ? " (was for " + esc(fDay(v.req)) + ")" : "") : "Paid every Friday"}</span></span><button type="button" class="btn sch-sm" data-tcpaidall="${esc(id)}">Mark Paid</button></div></div>`; }).join("");
+  const payBox = `<div class="card sp-card" style="border:2px solid var(--orange)"><b>Pay on ${esc(fDay(payDay()))}</b><span class="help" style="margin:0">Paychecks go out at 9 AM. These people get paid: everyone on Every Friday with hours, plus anyone who tapped Pay Me.</span></div>${plRows || `<p class="help" style="margin:4px 2px">Nobody is waiting to be paid this Friday.</p>`}`;
+  return payBox + `<p class="help" style="margin:4px 2px 8px">Employees send their times from My Shifts. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
     <h3 class="grp" style="margin:6px 2px 4px">Not Paid Yet</h3>
-    ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span></span><span style="display:flex;gap:6px;flex-wrap:wrap">${cs.filter(c => tcSel().has(c.id)).length ? `<button type="button" class="btn sch-sm" data-tcpaysel="${esc(id)}">Mark ${cs.filter(c => tcSel().has(c.id)).length} Selected Paid</button>` : ""}<button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></span></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
+    ${unG.map(([id, cs]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, cs))}</b><br><span class="help" style="margin:0">Not paid yet: <b>${tcH(tot(cs))}</b></span><br><span class="help" style="margin:0">${payOf(id).mode === "ask" ? (payOf(id).req ? "Asked to be paid " + esc(fDay(payOf(id).req)) : "Paid when they ask (hasn't asked)") : "Paid every Friday"} · <a href="#" data-tcflip="${esc(id)}|${payOf(id).mode === "ask" ? "weekly" : "ask"}">Change</a></span></span><span style="display:flex;gap:6px;flex-wrap:wrap">${cs.filter(c => tcSel().has(c.id)).length ? `<button type="button" class="btn sch-sm" data-tcpaysel="${esc(id)}">Mark ${cs.filter(c => tcSel().has(c.id)).length} Selected Paid</button>` : ""}<button type="button" class="btn ghost sch-sm" data-tcpaidall="${esc(id)}">Mark All Paid</button></span></div>${cs.map(c => tcRow(c, true)).join("")}</div>`).join("") || `<p class="help" style="margin:4px 2px">No unpaid hours. Nothing is waiting.</p>`}
     <h3 class="grp" style="margin:16px 2px 4px">Past Hours (Paid)</h3><p class="help" style="margin:0 2px 6px">Paid hours are deleted 30 days after you mark them paid. Untick Paid to put hours back.</p>
     ${paidG.map(([id, cs]) => `<details class="card sp-card" style="border-left:6px solid ${empColor(id)}"><summary><b>${esc(nm(id, cs))}</b> · ${tcH(tot(cs))} paid</summary>${cs.map(c => tcRow(c, true)).join("")}</details>`).join("") || `<p class="help" style="margin:4px 2px">No paid hours yet.</p>`}`;
 }
@@ -533,6 +546,9 @@ document.addEventListener("click", async e => {
   const tcf = el.closest("[data-schtcfix]"); if(tcf){ const [d, s] = tcf.dataset.schtcfix.split("|"); schTc(d, s, true); return; }
   if(el.closest("#sch-tc-save") && sch.ed && sch.ed.tc){ const t = sch.ed.tc; await schDo({ action: t.fix ? "tcFix" : "tcSave", date: t.date, shiftId: t.sid, in: $("#sch-tc-in").value, out: $("#sch-tc-out").value }, t.fix ? "Timecard saved" : "Timecard sent"); return; }
   const tpd = el.closest("[data-tcpaid]"); if(tpd){ await schDo({ action: "tcPaid", id: tpd.dataset.tcpaid, paid: tpd.checked }, tpd.checked ? "Marked paid" : "Put back in Not Paid Yet"); return; }
+  const pm = el.closest("[data-tcmode]"); if(pm){ await schDo({ action: "tcPref", mode: pm.dataset.tcmode }, pm.dataset.tcmode === "ask" ? "You'll be paid when you ask" : "You'll be paid every Friday"); return; }
+  const pa = el.closest("[data-tcask]"); if(pa){ const cancel = pa.dataset.tcask === "cancel"; await schDo({ action: "tcAsk", cancel }, cancel ? "Request cancelled" : "You're on the list for " + fDay(payDay())); return; }
+  const pf = el.closest("[data-tcflip]"); if(pf){ e.preventDefault(); const [who, mode] = pf.dataset.tcflip.split("|"); await schDo({ action: "tcPref", who, mode }, mode === "ask" ? "Paid only when they ask" : "Paid every Friday"); return; }
   const tse = el.closest("[data-tcsel]"); if(tse){ const S = tcSel(), id = tse.dataset.tcsel; if(S.has(id)) S.delete(id); else S.add(id); renderSchedule(); return; }
   const tps = el.closest("[data-tcpaysel]"); if(tps){ schPay(tps.dataset.tcpaysel, [...tcSel()]); return; }
   const tpa = el.closest("[data-tcpaidall]"); if(tpa){ schPay(tpa.dataset.tcpaidall, null); return; }
