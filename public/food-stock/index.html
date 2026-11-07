@@ -1813,7 +1813,7 @@ function schRange(){
   const t = schToday();
   if(monthMode() && sch.month){ const f = wkStart(sch.month); return [f, addD(f, 41)]; }
   const s = sch.start || wkStart(t), e = addD(s, 6);
-  if(sch.view === "mine" || sch.view === "time") return [addD(t, -7), addD(t, 150)];   // everything from this week on (months not confirmed yet never come back for employees)
+  if(sch.view === "mine" || sch.view === "time" || sch.view === "mytime") return [addD(t, -7), addD(t, 150)];   // everything from this week on (months not confirmed yet never come back for employees)
   let from = s, to = e;
   if(Math.abs((spd(s) - spd(t)) / 86400000) <= 30){ from = s < t ? s : t; const far = addD(t, 27); to = e > far ? e : far; }
   return [from, to];
@@ -1858,15 +1858,15 @@ function renderSchedule(){
   const s = sch.start, e = addD(s, 6), same = spd(s).getMonth() === spd(e).getMonth(), inMonth = monthMode();
   if(inMonth){ $("#sch-range").textContent = SCH_FULL[spd(sch.month).getMonth()] + " " + spd(sch.month).getFullYear(); $("#sch-today").textContent = "This Month"; $("#sch-today").hidden = sch.month === monthFirst(schToday()); }
   else { $("#sch-range").textContent = `${SCH_MON[spd(s).getMonth()]} ${spd(s).getDate()} – ${same ? "" : SCH_MON[spd(e).getMonth()] + " "}${spd(e).getDate()}`; $("#sch-today").textContent = "This Week"; $("#sch-today").hidden = s === wkStart(schToday()); }
-  const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = (sch.view === "mine" && sch.mmode !== "cal") || sch.view === "time" ? "none" : "";
+  const nav = document.querySelector(".sch-nav"); if(nav) nav.style.display = (sch.view === "mine" && sch.mmode !== "cal") || sch.view === "time" || sch.view === "mytime" ? "none" : "";
   const waiting = d.needs + d.offers;
   const pills = [["mine","My Shifts" + (waiting ? " (" + waiting + ")" : "")],["team","Schedule"]];
-  if(mgr) pills.push(["time","Timecards" + (payList().length ? " (" + payList().length + ")" : "")]);
-  else pills.push(["time","Timecards",tcMissing().length]);
+  if(mgr){ pills.push(["mytime","My Timecard",tcMissing().length]); pills.push(["time","Employee Timecards" + (payList().length ? " (" + payList().length + ")" : "")]); }
+  else pills.push(["mytime","Timecards",tcMissing().length]);
   if(mgr) pills.push(["setup","Setup"]);
   $("#sch-pills").innerHTML = pills.map(([k,n,red]) => `<button type="button" class="sch-pill" data-schview="${k}" aria-pressed="${sch.view === k}">${esc(n)}${red ? ` <span class="sch-red" aria-label="${red} need your hours">${red}</span>` : ""}</button>`).join("");
   setSchBadge(waiting);
-  $("#sch-body").innerHTML = (mgr && sch.view !== "time" ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, time: mgr ? viewTime : viewEmpTime, setup: viewSetup })[sch.view]();
+  $("#sch-body").innerHTML = (mgr && sch.view !== "time" && sch.view !== "mytime" ? confirmBar() : "") + ({ mine: viewMine, team: viewTeam, time: mgr ? viewTime : viewEmpTime, mytime: viewEmpTime, setup: viewSetup })[sch.view]();
   selPaint();
 }
 
@@ -2063,7 +2063,7 @@ function viewTime(){
   const unG = byPerson(un), paidG = byPerson(paid), pl = payList();
   const plRows = pl.map(id => { const cs = payCards(id), miss = missFor(id), later = un.filter(c => c.who === id && !cs.includes(c)), v = payOf(id), late = v.req && v.req < schToday();
     return `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><span class="sch-chip" style="background:${empColor(id)};display:inline-block">${esc(firstName(nm(id, cs)))}</span><br><b>${tcH(tot(cs))}</b> · ${cs.length} day${cs.length === 1 ? "" : "s"}<br><span class="help" style="margin:0">${v.req ? "Asked to be paid" + (late ? " (was for " + esc(fDay(v.req)) + ")" : "") : "Paid every Friday"}${later.length ? " · " + tcH(tot(later)) + " worked later goes on the next paycheck" : ""}</span>${miss.length ? `<br><span class="help" style="margin:0;color:#C8102E"><b>Timecard missing:</b> ${miss.map(m => esc(fDay(m.date))).join(" and ")}</span>` : ""}</span>${cs.length ? `<button type="button" class="btn sch-sm" data-tcpaypd="${esc(id)}">Mark Paid</button>` : ""}</div></div>`; }).join("");
-  const payBox = `<div class="card sp-card" style="border:2px solid var(--orange)"><b>Pay on ${esc(fDay(payDay()))}</b><span class="help" style="margin:0">Paychecks go out at 9 AM. This paycheck covers ${esc(payPeriod())} (Friday through Thursday). Hours worked on a payday Friday go on the next paycheck. These people get paid: everyone on Every Friday with hours, plus anyone who tapped Pay Me.</span></div>${plRows || `<p class="help" style="margin:4px 2px">Nobody is waiting to be paid this Friday.</p>`}`;
+  const payBox = `<div class="card sp-card" style="border:2px solid var(--orange)"><b>Pay on ${esc(fDay(payDay()))}</b></div>${plRows || `<p class="help" style="margin:4px 2px">Nobody is waiting to be paid this Friday.</p>`}`;
   const onClock = Object.entries(d.clocks || {}).map(([id, c]) => `<div class="card sp-card" style="border-left:6px solid ${empColor(id)}"><div class="sch-prt"><span><b>${esc(nm(id, []))}</b><br><span class="help" style="margin:0">Clocked in at ${esc(fT(c.in))}${c.date !== schToday() ? " on " + esc(fDay(c.date)) : ""}</span></span><button type="button" class="btn ghost sch-sm" data-clockoutwho="${esc(id)}">Clock Them Out</button></div></div>`).join("");
   return (onClock ? `<h3 class="grp" style="margin:6px 2px 4px">On the Clock Now</h3>${onClock}` : "") + payBox + `<p class="help" style="margin:4px 2px 8px">Employees clock in and out on their Timecards tab. Tick Select on the days you paid (or tap Mark All Paid). You can type a check number. Paid hours move to Past Hours for 30 days. Untick Paid there to put hours back.</p>
     <h3 class="grp" style="margin:6px 2px 4px">Not Paid Yet</h3>
@@ -2407,7 +2407,7 @@ document.addEventListener("click", async e => {
   const td = el.closest(".sch-tbl td[data-d], .sm-cell[data-d]");
   if(td && sch.data && sch.view === "mine" && !el.closest("#sch-modal")){   // My Shifts calendar: only my own shifts can be tapped
     const chip = el.closest(".sch-bub"), date = td.dataset.d, x = chip && schShifts(date).find(y => y.id === chip.dataset.sid);
-    if(x && x.who === sch.data.me.id) { if(tcStarted(date, x)){ if(schIsMgr()) schTc(date, x.id, false); else { sch.view = "time"; renderSchedule(); } } else if(date >= schToday()) schMine(date, x.id); }
+    if(x && x.who === sch.data.me.id) { if(tcStarted(date, x)){ if(schIsMgr()) schTc(date, x.id, false); else { sch.view = "mytime"; renderSchedule(); } } else if(date >= schToday()) schMine(date, x.id); }
     return;
   }
   if(td && sch.data && !el.closest("#sch-modal")){
