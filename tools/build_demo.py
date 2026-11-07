@@ -131,6 +131,9 @@ function menuPhoto(f, key){
 import re
 sched = (root / "netlify/functions/schedule.mjs").read_text()
 sched = re.sub(r'^import .*$', '', sched, flags=re.M)
+push_src = (root / "netlify/lib/push.mjs").read_text().replace("export ", "").replace("async function sendPush(", "async function sendPushReal(")
+push_src += "\nconst sendPush = async (to, t, b) => { (window.__PUSHES = window.__PUSHES || []).push({ to, title: t, body: b }); return true; };\n"
+sched = push_src + "\n" + sched
 seedjson = (root / "netlify/lib/schedule-seed.json").read_text()
 sched = sched.replace("export default async (req) =>", "const handler = async (req) =>").replace("export const config", "const _config").replace("export const DEFAULT_PRESETS", "const DEFAULT_PRESETS").replace("export function seeded", "function seeded")
 sched_demo = r"""

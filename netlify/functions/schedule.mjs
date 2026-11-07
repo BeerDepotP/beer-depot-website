@@ -16,6 +16,7 @@ import { randomBytes } from "node:crypto";
 import { checkPin, pinUser, json } from "../lib/pin.mjs";
 import { sendMail, SITE } from "../lib/club-email.mjs";
 import { storeInfo } from "../lib/info.mjs";
+import { ALERTS, alertSettings, buildAlert, sendPush } from "../lib/push.mjs";
 import seed from "../lib/schedule-seed.json" with { type: "json" };
 
 const KEY = "schedule";
@@ -46,6 +47,7 @@ function clean(d) {
   d.settings.approval = true;   // employees can never change shifts without the owner's OK
   d.settings.ownerName = one(d.settings.ownerName, 30) || "Owner";
   d.settings.people = (Array.isArray(d.settings.people) ? d.settings.people : []).filter(p => p && typeof p.id === "string" && p.name).map(p => ({ id: p.id, name: one(p.name, 30), staffId: p.staffId ? String(p.staffId) : "", email: validEmail(p.email) ? String(p.email).trim() : "" }));
+  d.settings.notify = alertSettings(d.settings.notify);   // push alerts: {on, kinds:{swapAsk,..:{on,title,body}}}
   d.settings.colors = d.settings.colors && typeof d.settings.colors === "object" ? d.settings.colors : {};
   if (!T.test(String(d.settings.nightFrom || ""))) d.settings.nightFrom = "12:00";
   d.settings.hide = Array.isArray(d.settings.hide) ? d.settings.hide.filter(x => typeof x === "string") : [];
@@ -121,7 +123,7 @@ function view(d, team, me, from, to, staff) {
   const cutoff = Date.now() - 14 * 86400000;
   const requests = d.requests.filter(r => ["open", "ask", "approve"].includes(r.status) || (r.closed && Date.parse(r.closed) > cutoff)).slice(0, 60);
   const settings = me.manager ? d.settings : { ...d.settings, people: d.settings.people.map(({ email, ...p }) => p) };
-  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], ...counts(d, me), today: today() };
+  return { ok: true, me, team, presets: d.presets, settings, shifts, requests, staff: me.manager ? (staff || []).map(m => ({ id: m.id, name: m.name })) : [], alerts: me.manager ? ALERTS : undefined, ...counts(d, me), today: today() };
 }
 function counts(d, me) {
   let needs = 0, offers = 0;
@@ -150,6 +152,13 @@ export default async (req) => {
   let team = await teamOf(store, d);
   const mePerson = who.owner ? null : d.settings.people.find(p => p.staffId === who.id);
   const me = { id: who.owner ? "owner" : mePerson ? mePerson.id : who.id, name: who.owner ? d.settings.ownerName : who.name, manager: !!who.owner || (who.tabs || []).includes("schedule"), owner: !!(who.owner || who.boss) };   // owner = may OK give-aways and change presets (the real owner or a staff Manager)
+  me.push = who.owner ? "owner" : who.id;   // OneSignal external id for this login
+  const outbox = [];
+  const pushId = pid => pid === "owner" ? "owner" : d.settings.people.some(p => p.id === pid) ? (d.settings.people.find(p => p.id === pid).staffId || "") : pid;
+  const everyone = () => team.filter(p => !p.hidden).map(p => p.id);
+  const managers = async () => ["owner", ...(await staffOf(store)).filter(m => m.manager).map(m => m.id)];
+  const queue = (kind, people, tokens) => { const ids = [...new Set((people || []).map(pushId).filter(x => x && x !== me.push))]; if (ids.length) outbox.push({ kind, ids, tokens: { who: me.name, ...tokens } }); };
+  const queueIds = (kind, ids, tokens) => { ids = [...new Set(ids.filter(x => x && x !== me.push))]; if (ids.length) outbox.push({ kind, ids, tokens: { who: me.name, ...tokens } }); };
   const colorOf = (p, i) => String(p.color || (d.settings.colors || {})[p.id] || PAL[i % PAL.length]).toLowerCase();
   const colorTaken = (id, col) => { const c = String(col).toLowerCase(); return team.some((p, i) => p.id !== id && colorOf(p, i) === c); };
   const name = id => (team.find(p => p.id === id) || { name: "Former Employee" }).name;
@@ -162,11 +171,18 @@ export default async (req) => {
     sweep(d);
     d.updated = new Date().toISOString();
     await store.setJSON(KEY, d);
+    for (const o of outbox.splice(0)) { const m = buildAlert(d.settings.notify, o.kind, o.tokens); if (m) await sendPush(o.ids, m.title, m.body); }
     team = await teamOf(store, d);
     const from = isDate(b.from) ? b.from : addDays(today(), -7), to = isDate(b.to) ? b.to : addDays(from, 40);
     return json({ ...view(d, team, me, from, to, await staffOf(store)), ...(extra || {}) });
   };
 
+  if (act === "pushTest") {
+    const hasKey = !!((typeof process !== "undefined" && process.env && process.env.ONESIGNAL_API_KEY) || (typeof Netlify !== "undefined" && Netlify.env && Netlify.env.get("ONESIGNAL_API_KEY")));
+    if (!hasKey) return json({ ok: true, message: "Not connected yet: the OneSignal key has not been added to Netlify." });
+    const sent = await sendPush([me.push], "Test alert", "Phone alerts are working. This came from the Beer Depot schedule.");
+    return json({ ok: true, message: sent ? "Sent. It should pop up on your phone in a few seconds." : "OneSignal did not accept it. Turn On Notifications on this phone first." });
+  }
   if (act === "badge") { const c = counts(d, me); return json({ ok: true, count: c.needs + c.offers }); }
   if (act === "get" || !act) {
     const from = isDate(b.from) ? b.from : addDays(today(), -7);
@@ -184,13 +200,21 @@ export default async (req) => {
     const cur = b.id ? list.find(s => s.id === b.id) : null;
     if (clash(d, b.date, w, b.start, b.end, cur ? [cur.id] : [])) return json({ error: `${name(w)} already works then.` }, 400);
     const row = { id: cur ? cur.id : rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) };
+    const prevWho = cur ? cur.who : null;
     if (cur) Object.assign(cur, row); else list.push(row);
+    if (b.date >= today()) {
+      if (!w) { if (prevWho !== "") queue("openShift", everyone(), { shift: fS(b.date, row) }); }
+      else queue("shiftChanged", [w], { shift: fS(b.date, row) });
+      if (prevWho && prevWho !== w) queue("shiftChanged", [prevWho], { shift: `${fS(b.date, cur ? { start: b.start, end: b.end } : row)} is no longer yours` });
+    }
     list.sort((x, y) => x.start.localeCompare(y.start) || x.end.localeCompare(y.end));
     return ok();
   }
   if (act === "delete") {
     if (!isDate(b.date)) return json({ error: "Bad request." }, 400);
+    const gone = (d.shifts[b.date] || []).find(s => s.id === b.id);
     d.shifts[b.date] = (d.shifts[b.date] || []).filter(s => s.id !== b.id);
+    if (gone && gone.who && b.date >= today()) queue("shiftChanged", [gone.who], { shift: `${fS(b.date, gone)} was removed` });
     return ok();
   }
   if (act === "batch" || act === "batchRemove") {
@@ -201,29 +225,39 @@ export default async (req) => {
       const w = b.who ? String(b.who) : "";
       if (w && !team.some(p => p.id === w)) return json({ error: "Pick someone from the team." }, 400);
       let added = 0, changed = 0, skipped = 0;
+      const hit = [];
       for (const date of dates) {
         const list = d.shifts[date] = d.shifts[date] || [];
         if (!w) {                                   // Open Shifts: don't pile up exact copies
           if (list.some(s => !s.who && s.start === b.start && s.end === b.end)) { skipped++; continue; }
-          list.push({ id: rid(), who: "", start: b.start, end: b.end, note: one(b.note, 60) }); added++;
+          list.push({ id: rid(), who: "", start: b.start, end: b.end, note: one(b.note, 60) }); added++; hit.push(date);
         } else {
           const over = list.filter(s => s.who === w && s.start < b.end && b.start < s.end);   // their shift(s) at that time: change it to the new hours
           if (over.length) {
             const keep = over[0]; keep.start = b.start; keep.end = b.end; if (b.note) keep.note = one(b.note, 60);
             for (const x of over.slice(1)) list.splice(list.indexOf(x), 1);
-            changed++;
-          } else { list.push({ id: rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) }); added++; }
+            changed++; hit.push(date);
+          } else { list.push({ id: rid(), who: w, start: b.start, end: b.end, note: one(b.note, 60) }); added++; hit.push(date); }
         }
         list.sort((x, y) => x.start.localeCompare(y.start) || x.end.localeCompare(y.end));
       }
       sweep(d);
+      const upcoming = hit.filter(x => x >= today()).sort();
+      if (upcoming.length) {
+        const span = upcoming.length === 1 ? `${fS(upcoming[0], b)}` : `${upcoming.length} days (${fD(upcoming[0])} to ${fD(upcoming[upcoming.length - 1])}, ${fT(b.start)} – ${fT(b.end)})`;
+        if (w) queue("shiftChanged", [w], { shift: span });
+        else queue("openShift", everyone(), { shift: span });
+      }
       return ok({ added, changed, skipped });
     }
     const all = b.who === undefined || b.who === null; let removed = 0;
+    const lost = {};
     for (const date of dates) {
       const list = d.shifts[date] || [], keep = list.filter(s => !(all || s.who === String(b.who)));
+      if (date >= today()) for (const s of list) if (!keep.includes(s) && s.who) lost[s.who] = (lost[s.who] || 0) + 1;
       removed += list.length - keep.length; d.shifts[date] = keep;
     }
+    for (const [pid, n] of Object.entries(lost)) queue("shiftChanged", [pid], { shift: `${n} shift${n === 1 ? " was" : "s were"} removed` });
     return ok({ removed });
   }
   if (act === "copyWeek" || act === "clearWeek") {
@@ -256,6 +290,7 @@ export default async (req) => {
       d.settings.colors = c;
     }
     if (b.nightFrom !== undefined) { if (!T.test(String(b.nightFrom))) return json({ error: "Pick a time." }, 400); d.settings.nightFrom = String(b.nightFrom); }
+    if (b.notify && typeof b.notify === "object") d.settings.notify = alertSettings(b.notify);
     if (Array.isArray(b.hide)) d.settings.hide = b.hide.filter(x => typeof x === "string").slice(0, 60);
     return ok();
   }
@@ -293,6 +328,7 @@ export default async (req) => {
     if (!r || r.status !== "approve") return json({ error: "That request is already finished." }, 400);
     if (b.approve) { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
     else { r.status = "declined"; r.closed = new Date().toISOString(); }
+    queue("shiftChanged", [r.by, r.taker], { shift: `${fS(r.date, r.a)} was ${b.approve ? "OK'd" : "not approved"}` });
     return ok();
   }
 
@@ -311,6 +347,8 @@ export default async (req) => {
       Object.assign(r, { status: "ask", withWho: o.who, withDate: b.withDate, withShiftId: o.id, b: snap(o) });
     }
     d.requests.unshift(r);
+    if (act === "give") queue("giveOut", everyone(), { shift: fS(b.date, a) });
+    else queue("swapAsk", [r.withWho], { shift: fS(r.withDate, r.b), other: fS(r.date, r.a) });
     let emailed = false;
     if (act === "swap") emailed = await tell(store, d, r.withWho, `${name(me.id)} wants to swap shifts with you`, [`${name(me.id)} asked to swap shifts with you.`, `They would work your ${fS(r.withDate, r.b)} and you would work their ${fS(r.date, r.a)}.`, ...(r.note ? [`Note: ${r.note}`] : []), "Sign in to say yes or no."]);
     return ok({ notified: act === "swap" ? (emailed ? "email" : "app") : "" });
@@ -323,7 +361,7 @@ export default async (req) => {
     if (!a || a.who !== r.by) return json({ error: "That shift changed." }, 400);
     if (clash(d, r.date, me.id, a.start, a.end, [])) return json({ error: "You already work then." }, 400);
     r.taker = me.id;
-    if (needsOk("give") === "approve") r.status = "approve";
+    if (needsOk("give") === "approve") { r.status = "approve"; queueIds("needsOk", await managers(), { who: name(me.id), shift: fS(r.date, a) }); }
     else { const e = carryOut(d, r, name); if (e) return json({ error: e }, 400); }
     return ok();
   }
@@ -341,6 +379,7 @@ export default async (req) => {
   if (act === "answer") {
     const r = d.requests.find(x => x.id === b.id);
     if (!r || r.status !== "ask" || r.withWho !== me.id) return json({ error: "That request is already finished." }, 400);
+    queue("swapAnswer", [r.by], { who: name(me.id), answer: b.accept ? "yes" : "no", shift: fS(r.date, r.a) });
     const who2 = name(me.id), what = `your ${fS(r.date, r.a)} for their ${fS(r.withDate, r.b)}`;
     if (!b.accept) { r.status = "declined"; r.closed = new Date().toISOString(); await tell(store, d, r.by, `${who2} said no to the swap`, [`${who2} said no to swapping ${what}.`]); return ok(); }
     if (needsOk("swap") === "approve") r.status = "approve";

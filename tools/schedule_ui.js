@@ -57,6 +57,7 @@ async function loadSchedule(){
     if(!sch.month) sch.month = monthFirst(chicagoStamp().slice(0,10));
     if(!sch.view) sch.view = (sch.data ? sch.data.me.manager : true) ? "team" : "mine";
     await schCall({ action: "get" });
+    if(window.pushLogin) pushLogin(sch.data.me.push);
     if(!sch.data.me.manager && sch.view === "team" && !sch.viewSet){ sch.view = "mine"; await schCall({ action: "get" }); }
     sch.viewSet = true;
     if(sch.view === "setup" && !sch.data.me.manager) sch.view = "mine";
@@ -187,6 +188,25 @@ function viewSwaps(){
     + (recent.length ? sec("Recently Finished", recent.map(r => reqCard(r, "")).join("")) : "");
 }
 
+function alertsBlock(){
+  const d = sch.data, n = d.settings.notify, meta = d.alerts || {};
+  if(!n) return "";
+  const rows = Object.keys(meta).map(k => { const m = meta[k], c = n.kinds[k] || {}; return `<div class="card sch-pr sch-al" data-alk="${k}"><div class="sch-prt"><span><b>${esc(m.label)}</b><br><span class="help" style="margin:0">Goes to: ${esc(m.who)}</span></span><button type="button" class="sw sch-sw" role="switch" aria-checked="${c.on !== false}" aria-label="${esc(m.label)} alert" data-alsw="${k}"></button></div>
+      <label class="help" style="margin:0;display:grid;gap:4px">Title<input style="width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F" data-alf="title" maxlength="80" value="${esc(c.title || m.title)}"></label>
+      <label class="help" style="margin:0;display:grid;gap:4px">Message<input style="width:100%;box-sizing:border-box;border:1.5px solid #E0D4C8;border-radius:10px;padding:10px;font:inherit;background:#fff;color:#22160F" data-alf="body" maxlength="200" value="${esc(c.body || m.body)}"></label></div>`; }).join("");
+  return `<h3 class="grp">Phone Alerts</h3>
+    <p class="help">Alerts pop up on an employee's phone once they tap Turn On Notifications at the top of this tab. Switch any alert off, or change its wording. You can use {who} (the person), {shift} (the day and time), {other} (the other shift in a swap) and {answer} (yes or no).</p>
+    <div class="card sp-card"><div class="sch-prt"><b>All Phone Alerts</b><button type="button" class="sw sch-sw" role="switch" aria-checked="${n.on !== false}" aria-label="All phone alerts" data-alsw="all"></button></div></div>
+    ${rows}
+    <button class="btn" type="button" id="sch-alsave">Save Alert Wording</button>
+    <button class="btn ghost" type="button" id="sch-alreset">Back to Standard Wording</button>
+    <button class="btn ghost" type="button" id="sch-altest">Send Me a Test Alert</button>`;
+}
+function alertsRead(){
+  const out = { on: (document.querySelector('[data-alsw=all]') || {}).getAttribute ? document.querySelector('[data-alsw=all]').getAttribute("aria-checked") === "true" : true, kinds: {} };
+  document.querySelectorAll(".sch-al").forEach(card => { const k = card.dataset.alk; out.kinds[k] = { on: card.querySelector("[data-alsw]").getAttribute("aria-checked") === "true", title: card.querySelector("[data-alf=title]").value, body: card.querySelector("[data-alf=body]").value }; });
+  return out;
+}
 function viewSetup(){
   const d = sch.data;
   if(!sch.draft) sch.draft = d.presets.map(p => ({ ...p }));
@@ -199,6 +219,7 @@ function viewSetup(){
     <button class="btn ghost" type="button" id="sch-padd">+ Add a Preset</button><button class="btn" type="button" id="sch-psave">Save Presets</button>`}
     <h3 class="grp">Swaps</h3>
     <p class="help">Swaps happen as soon as both people agree, and anyone can take an Open Shift. If an employee gives a shift away and a coworker takes it, that waits for your OK (only the owner can OK it).</p>
+    ${alertsBlock()}
     <h3 class="grp">People on the Schedule</h3><p class="help">Everyone on your paper calendar goes here. They don't need a PIN to be on the schedule. To let someone look at their own shifts and ask for swaps, add them in the Staff tab with a PIN, then pick their login here.</p>
     ${d.settings.people.map(pe => `<div class="card sch-pr sch-pp" data-pid="${esc(pe.id)}"><div class="sch-prt"><input data-ppf="name" value="${esc(pe.name)}" maxlength="30" aria-label="Name"><button type="button" class="btn ghost rm-site sch-sm" data-pdel="${esc(pe.id)}">Remove</button></div>
       <label class="help" style="margin:0">Email (Optional, For Swap Alerts)<input type="email" data-ppf="email" value="${esc(pe.email || "")}" maxlength="80" placeholder="name@example.com"></label>
@@ -472,6 +493,11 @@ document.addEventListener("click", async e => {
   if(pdl){ const nm = (sch.data.team.find(x => x.id === pdl.dataset.pdel) || {}).name || "this person"; if(await askYes(`Remove ${nm} from the schedule? Their shifts become Open Shifts.`, "Remove", true)) await schDo({ action: "removePerson", id: pdl.dataset.pdel }, "Removed", true); return; }
   if(el.closest("#sch-pnadd")){ const nm = $("#sch-pnew").value.trim(); if(!nm){ toast("Type a name first.", true); return; } const nc = newCol(); sch.newCol = ""; await schDo({ action: "addPerson", name: nm, color: nc }, nm + " added", true); return; }
   const nco = el.closest("[data-ncol]"); if(nco){ const keep = $("#sch-pnew") ? $("#sch-pnew").value : ""; sch.newCol = nco.dataset.ncol; renderSchedule(); if($("#sch-pnew")) $("#sch-pnew").value = keep; return; }
+  const alsw = el.closest("[data-alsw]");
+  if(alsw){ const o = alertsRead(), k = alsw.dataset.alsw; if(k === "all") o.on = !o.on; else o.kinds[k].on = !o.kinds[k].on; await schDo({ action: "settings", notify: o }, null, true); return; }
+  if(el.closest("#sch-alsave")){ await schDo({ action: "settings", notify: alertsRead() }, "Alert wording saved", true); return; }
+  if(el.closest("#sch-alreset")){ if(await askYes("Put every alert back to the standard wording?", "Put Back")){ const o = alertsRead(); for(const k of Object.keys(o.kinds)){ o.kinds[k].title = ""; o.kinds[k].body = ""; } await schDo({ action: "settings", notify: o }, "Standard wording back", true); } return; }
+  if(el.closest("#sch-altest")){ try{ const j = await api("/api/schedule", { action: "pushTest" }); toast(j.message); }catch(err){ toast(err.message, true); } return; }
   if(el.closest("#sch-osave")){ await schDo({ action: "settings", ownerName: $("#sch-oname").value }, "Name saved", true); return; }
   if(el.closest("#sch-copy")){ if(await askYes("Copy last week's shifts into this week? Shifts already here stay.", "Copy")) await schDo({ action: "copyWeek", from: addD(sch.start, -7), to: sch.start }, "Copied last week", true); return; }
   if(el.closest("#sch-clear")){ if(await askYes("Clear every shift this week?", "Clear It", true)) await schDo({ action: "clearWeek", start: sch.start }, "Week cleared", true); return; }
