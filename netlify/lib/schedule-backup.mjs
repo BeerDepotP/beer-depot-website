@@ -22,3 +22,9 @@ export async function lastBackup(store) {
   const keys = (blobs || []).map(x => x.key).sort();
   return keys.length ? keys[keys.length - 1].replace("schedule-backup-", "") : "";
 }
+
+export async function listBackups(store) {   // newest first
+  if (!store.list) return [];
+  const { blobs } = await store.list({ prefix: "schedule-backup-" });
+  return (blobs || []).map(x => x.key.replace("schedule-backup-", "")).sort().reverse();
+}

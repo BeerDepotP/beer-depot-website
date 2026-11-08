@@ -17,7 +17,8 @@ import { checkPin, pinUser, json } from "../lib/pin.mjs";
 import { sendMail, SITE } from "../lib/club-email.mjs";
 import { storeInfo } from "../lib/info.mjs";
 import { buildReport } from "../lib/schedule-report.mjs";
-import { backupNow, lastBackup } from "../lib/schedule-backup.mjs";
+import { backupNow, lastBackup, listBackups } from "../lib/schedule-backup.mjs";
+import { buildSheet, namesOf } from "../lib/schedule-sheet.mjs";
 import { ALERTS, alertSettings, buildAlert, sendPush } from "../lib/push.mjs";
 import seed from "../lib/schedule-seed.json" with { type: "json" };
 
@@ -270,6 +271,19 @@ export default async (req) => {
     if (!d.settings.report.email) return json({ error: "Type the email first and tap Save." }, 400);
     try { const rep = buildReport(d, Object.fromEntries(team.map(p => [p.id, p.name])), today(), today(), nowHM(), missingTimecards); await sendMail({ to: d.settings.report.email, subject: "TEST: " + rep.subject, html: rep.html, text: rep.text, info: await storeInfo(store) }); return json({ ok: true, message: "Sent to " + d.settings.report.email + "." }); }
     catch (e) { return json({ error: "Couldn't send: " + e.message }, 500); }
+  }
+  if (act === "backupList" || act === "backupSheet") {   // owner only: nightly copies + spreadsheet download (live, or one night's copy)
+    if (!who.owner) return json({ error: "Only the owner can do that." }, 403);
+    if (act === "backupList") return json({ ok: true, days: await listBackups(store) });
+    const staffNow = await store.get("staff", { type: "json" });
+    let src = d, st = staffNow, label = "Right Now";
+    if (b.day) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.day))) return json({ error: "Bad date." }, 400);
+      const bk = await store.get("schedule-backup-" + b.day, { type: "json" });
+      if (!bk) return json({ error: "That copy is gone." }, 404);
+      src = clean(bk.schedule || {}); st = bk.staff || staffNow; label = "Safety Copy From " + b.day;
+    }
+    return json({ ok: true, csv: buildSheet(src, namesOf(src, st), "Beer Depot Schedule and Timecards - " + label), name: "beer-depot-" + (b.day || today()) + ".csv" });
   }
   if (act === "backupInfo") { if (!who.owner) return json({ ok: true, last: "" }); return json({ ok: true, last: await lastBackup(store) }); }
   if (act === "badge") { const c = counts(d, me); return json({ ok: true, count: c.needs + c.offers }); }
