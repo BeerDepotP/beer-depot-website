@@ -1973,14 +1973,11 @@ function viewEmpTime(){   // employee Timecards tab: the clock on top; fixing ho
   const open = sch.tcOpen || "";
   const notice = autos.map(c => `<div class="card sp-card" style="border:2px solid #B45309;margin-top:8px"><b>We Clocked You Out</b><span class="help" style="margin:0">You forgot to clock out on ${esc(fDay(c.date))}, so we clocked you out at ${esc(fT(c.out))}. Is that right?</span><button type="button" class="btn ghost" data-tcedit="${esc(c.id)}">No, Fix My Time</button></div>`).join("");
   const big = (k, title, sub) => `<button type="button" class="btn ghost sch-big2" data-tcopen="${k}" aria-expanded="${open === k}"><b>${title}</b><span>${sub}</span></button>`;
-  const editBody = open !== "edit" ? "" : `<div class="sch-fold"><button type="button" class="btn sch-sm" data-tcadd style="justify-self:start">+ Add Hours I Forgot</button>`
-    + `<h3 class="grp" style="margin:12px 2px 4px">Recent Shifts</h3>`
-    + (mineRows(recent, true, false, true) || `<p class="help" style="margin:4px 2px">Nothing here.</p>`)
+  const payBody = open !== "pay" ? "" : `<div class="sch-fold"><div class="card sp-card"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>${empPayBox(me)}`
     + (paidMine.length ? `<details style="margin:12px 2px"><summary class="help" style="cursor:pointer">Paid Hours (Kept 30 Days)</summary>${paidMine.map(c => tcRow(c, false)).join("")}</details>` : "") + `</div>`;
-  const payBody = open !== "pay" ? "" : `<div class="sch-fold"><div class="card sp-card"><span class="help" style="margin:0">Hours not paid yet</span><b style="font-size:1.3em">${tcH(unTot)}</b></div>${empPayBox(me)}</div>`;
   const unList = mineUn.length ? `<h3 class="grp" style="margin:12px 2px 4px">Hours Not Paid Yet · ${tcH(unTot)}</h3>` + [...mineUn].sort((x, y) => y.date.localeCompare(x.date) || y.in.localeCompare(x.in)).map(c => tcRow(c, false)).join("") : "";
   return notice + (miss.length ? tcBanner(true) : "") + unList
-    + `<div class="sch-bigrow">` + big("edit", "Fix My Hours", "Wrong time? Forgot something?") + editBody + big("pay", "Get Paid", tcH(unTot) + " not paid yet") + payBody + `</div>`;
+    + `<div class="sch-bigrow">` + `<button type="button" class="btn ghost sch-big2" data-tcadd><b>Add Hours I Forgot</b><span>Forgot to clock in? Add your time here</span></button>` + big("pay", "Get Paid", tcH(unTot) + " not paid yet") + payBody + `</div>`;
 }
 
 /* ---------- timecards ---------- */
