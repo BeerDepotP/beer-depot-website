@@ -23,7 +23,7 @@ for mk, nm in _re.findall(r'maker:"([^"]+)"[^}]*?name:"([^"]+)"', menu): makers.
 def b64(name): return "data:image/png;base64," + base64.b64encode((root / "public/img" / name).read_bytes()).decode()
 preview = (tpl
     .replace("__ANALYTICS__", "")
-    .replace("__FAV32__", b64("favicon-32.png")).replace("__FAV64__", b64("favicon-64.png")).replace("__ATI__", b64("apple-touch-icon.png"))
+    .replace("__FAVICO__", b64("favicon-48.png")).replace("__FAV48__", b64("favicon-48.png")).replace("__FAV96__", b64("favicon-96.png")).replace("__FAV32__", b64("favicon-32.png")).replace("__FAV64__", b64("favicon-64.png")).replace("__ATI__", b64("apple-touch-icon.png"))
     .replace("__LOGO__", "data:image/png;base64," + logo_b64)
     .replace("__STOCK_URL__", "null")
     .replace("__SAMPLE_DATA__", "const SAMPLE = " + json.dumps(sample) + ";")
@@ -47,7 +47,7 @@ preview = (tpl
 CF_ANALYTICS = """<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "cd24811a3d354fd790e06bfa577590e1"}'></script><!-- End Cloudflare Web Analytics -->"""
 live = (tpl
     .replace("__ANALYTICS__", CF_ANALYTICS)
-    .replace("__FAV32__", "/img/favicon-32.png").replace("__FAV64__", "/img/favicon-64.png").replace("__ATI__", "/img/apple-touch-icon.png")
+    .replace("__FAVICO__", "/favicon.ico").replace("__FAV48__", "/img/favicon-48.png").replace("__FAV96__", "/img/favicon-96.png").replace("__FAV32__", "/img/favicon-32.png").replace("__FAV64__", "/img/favicon-64.png").replace("__ATI__", "/img/apple-touch-icon.png")
     .replace("__LOGO__", "img/logo-orange.png")
     .replace("__STOCK_URL__", '"/api/stock"')
     .replace("__SAMPLE_DATA__", "const SAMPLE = null;")
