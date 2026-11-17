@@ -468,7 +468,7 @@
   var KEEP = {
     Receive: ['promotions', 'invoices', 'counts', 'adjLog', 'lists', 'lines', 'inv', 'dist', 'dt', 'comment', 'ext', 'draftId', 'retailOrig', 'tQueue', 'minMargin', 'tSize', 'tSmW', 'tSmH'],
     Main: ['archive', 'sale', 'parked', 'parkNo', 'shelf', 'shelfNo'],
-    Customers: ['list', 'arch'], GiftCards: [], Managers: [], CashDrawer: [], Receipts: ['receipts'], Settings: ['vals'], Buttons: ['tiles', 'pages'], CardMachine: [], Order: ['edits', 'act', 'over', 'overDay', 'vg']
+    Customers: ['list', 'arch'], GiftCards: [], Managers: [], CashDrawer: [], Receipts: ['receipts'], Settings: ['vals'], Buttons: ['tiles', 'pages'], CardMachine: [], Order: ['edits', 'act', 'over', 'overDay', 'vg', 'vq']
   };
 
   function DCLogic(props) { this.props = props || {}; this.state = {}; this.__dirty = false; }
