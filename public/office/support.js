@@ -22,7 +22,9 @@
     // search match: every word must be found, and 'goodboy' finds 'good boy' (spaces and punctuation are ignored)
     hit: function (hay, words) { hay = String(hay || '').toLowerCase(); var sq = hay.replace(/[^a-z0-9]/g, ''); for (var i = 0; i < words.length; i++) { var w = words[i]; if (hay.indexOf(w) >= 0) continue; var x = w.replace(/[^a-z0-9]/g, ''); if (!x || sq.indexOf(x) < 0) return false; } return true; },
     get: function (k, d) { try { var v = raw.get(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set: function (k, v) { var ok = raw.set(k, JSON.stringify(v)); if (!ok) { BD.saveFailed = true; try { console.error('BD: could not save ' + k); } catch (e) { /* ignore */ } } return ok; },
+    set: function (k, v) { var ok = raw.set(k, JSON.stringify(v)); if (!ok) { BD.saveFailed = true; try { console.error('BD: could not save ' + k); } catch (e) { /* ignore */ } }
+      if (ok && k === 'products' && v) { try { var pend = {}, any = false; Object.keys(v).forEach(function (pid) { if (v[pid] && v[pid].pending) { pend[pid] = v[pid]; any = true; } }); var pj = JSON.stringify(pend); if (raw.get('pendingProducts') !== pj && (any || raw.get('pendingProducts') != null)) raw.set('pendingProducts', pj); } catch (e) { /* ignore */ } }
+      return ok; },
     keys: function () { return raw.keys(); },
     resetAll: function () { raw.keys().forEach(function (k) { raw.del(k); }); },
     pushSale: function (rows) { var q = BD.get('sold', []); BD.set('sold', q.concat(rows)); },
@@ -580,7 +582,7 @@
     // restore saved data
     var keep = KEEP[PAGE] || [];
     try { var saved = BD.get('state:' + PAGE + ':' + VERSION, null); if (saved) keep.forEach(function (k) { if (saved[k] !== undefined) inst.state[k] = saved[k]; }); } catch (e) { /* ignore */ }
-    if (PAGE === 'Receive') { var pp = BD.get('products', null); if (pp) inst.state.products = pp; }
+    if (PAGE === 'Receive') { var pp = BD.get('products', null); try { var np = BD.get('pendingProducts', null); if (np && pp) Object.keys(np).forEach(function (pid) { if (!pp[pid]) pp[pid] = np[pid]; }); } catch (e) { /* ignore */ } if (pp) inst.state.products = pp; }
     if (inst.afterLoad) try { inst.afterLoad(); } catch (e) { console.error(e); }
     xdc.style.display = 'block';
     var pending = false, prevState = inst.state, saveT = null, lastProducts = null;

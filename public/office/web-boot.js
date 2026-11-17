@@ -30,13 +30,13 @@
   var first = post({ action: 'load' });
   if (first.status === 401 || first.status === 403 || first.status === 429) { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } login(first.data.error || 'Wrong PIN.'); return; }
   if (first.status !== 200) { login('Could not load: ' + (first.data.error || first.status)); return; }
-  var cache = first.data.keys || {};
+  var cache = first.data.keys || {}, ver = first.data.at || {};
   (first.data.rest || []).forEach(function (r) {
     var t = ''; for (var i = 0; i < r.n; i++) { var g = post({ action: 'get', key: r.key, i: i }); t += (g.data && g.data.text) || ''; } cache[r.key] = t;
   });
 
   // ---- saving: every change is kept in memory at once and sent to the server a moment later ----
-  var pending = {}, busy = false, timer = null, failed = false, pill = null;
+  var pending = {}, busy = false, timer = null, failed = false, pill = null, forced = {}, conflicts = {};
   function show(txt, bad) {
     if (!document.body) return;
     if (!pill) { pill = document.createElement('div'); pill.className = 'noprint'; pill.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;font:600 12px Inter,system-ui,sans-serif;padding:6px 10px;border-radius:99px;box-shadow:0 1px 6px rgba(0,0,0,.2)'; document.body.appendChild(pill); }
@@ -50,11 +50,44 @@
     if (gone) go = post({ action: 'del', key: k }, true);
     else {
       var n = Math.max(1, Math.ceil(text.length / CHUNK)); go = Promise.resolve({ status: 200 });
-      var step = function (i) { return post({ action: 'put', key: k, i: i, n: n, len: text.length, text: text.slice(i * CHUNK, (i + 1) * CHUNK) }, true).then(function (r) { if (r.status !== 200) throw new Error(r.data.error || r.status); return i + 1 < n ? step(i + 1) : r; }); };
+      var step = function (i) { return post({ action: 'put', key: k, i: i, n: n, len: text.length, text: text.slice(i * CHUNK, (i + 1) * CHUNK), base: ver[k] || 0, force: !!forced[k] }, true).then(function (r) {
+        if (r.status === 409) { var e = new Error('conflict'); e.conflict = true; throw e; }
+        if (r.status !== 200) throw new Error(r.data.error || r.status);
+        if (i + 1 < n) return step(i + 1);
+        if (r.data && r.data.at) ver[k] = r.data.at; delete forced[k]; return r; }); };
       go = step(0);
     }
-    go.then(function () { busy = false; failed = false; flush(); }).catch(function () { busy = false; failed = true; pending[k] = true; show('Not saved yet. Trying again...', true); clearTimeout(timer); timer = setTimeout(flush, 5000); });
+    go.then(function () { busy = false; failed = false; flush(); }).catch(function (e) {
+      busy = false;
+      if (e && e.conflict) { conflicts[k] = true; conflictBar(); return; }
+      failed = true; pending[k] = true; show('Not saved yet. Trying again...', true); clearTimeout(timer); timer = setTimeout(flush, 5000); });
   }
+  function conflictBar() {
+    var ks = Object.keys(conflicts); if (!ks.length || !document.body) { if (!document.body) document.addEventListener('DOMContentLoaded', conflictBar); return; }
+    var b = document.getElementById('bdo-conf');
+    if (!b) { b = document.createElement('div'); b.id = 'bdo-conf'; b.className = 'noprint'; b.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:100000;background:#8C1D14;color:#fff;font:600 14px Inter,system-ui,sans-serif;padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center'; document.body.appendChild(b); }
+    b.innerHTML = '<span style="flex:1 1 240px">This was changed on another device (the Mac or another phone). Your last change has not been saved.</span>' +
+      '<button id="bdo-theirs" style="min-height:40px;padding:0 14px;font:700 14px Inter,system-ui,sans-serif;border:0;border-radius:8px;background:#fff;color:#1D1B16">Use Their Version</button>' +
+      '<button id="bdo-mine" style="min-height:40px;padding:0 14px;font:700 14px Inter,system-ui,sans-serif;border:1px solid #fff;border-radius:8px;background:transparent;color:#fff">Keep Mine</button>';
+    document.getElementById('bdo-theirs').onclick = function () { conflicts = {}; pending = {}; location.reload(); };
+    document.getElementById('bdo-mine').onclick = function () { Object.keys(conflicts).forEach(function (k) { forced[k] = true; pending[k] = true; }); conflicts = {}; b.remove(); flush(); };
+  }
+  // ---- pick up changes made on another device (the Mac): look every 20 s and when this page comes back into view ----
+  function fetchKey(k, n) { var t = '', p = Promise.resolve(); for (var i = 0; i < n; i++) (function (j) { p = p.then(function () { return post({ action: 'get', key: k, i: j }, true).then(function (r) { t += (r.data && r.data.text) || ''; }); }); })(i); return p.then(function () { return t; }); }
+  var looking = false;
+  function look() {
+    if (looking || busy || Object.keys(pending).length || Object.keys(conflicts).length) return; looking = true;
+    post({ action: 'versions' }, true).then(function (r) {
+      if (r.status !== 200 || !r.data.v) return; var v = r.data.v, changed = [];
+      Object.keys(v).forEach(function (k) { if ((ver[k] || 0) !== v[k].at) changed.push(k); });
+      if (!changed.length || Object.keys(pending).length) return;
+      return Promise.all(changed.map(function (k) { return fetchKey(k, v[k].n).then(function (t) { cache[k] = t; ver[k] = v[k].at; }); })).then(function () {
+        var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) { show('Updated from another device. Tap anywhere, then it refreshes.', false); document.addEventListener('click', function once() { document.removeEventListener('click', once); location.reload(); }); return; }
+        location.reload();
+      });
+    }).then(function () { looking = false; }, function () { looking = false; });
+  }
+  setInterval(look, 20000); document.addEventListener('visibilitychange', function () { if (!document.hidden) look(); });
   function queue(k) { pending[k] = true; clearTimeout(timer); timer = setTimeout(flush, 700); }
   window.addEventListener('beforeunload', function (e) { if (Object.keys(pending).length || busy) { e.preventDefault(); e.returnValue = 'Your last change is still being saved.'; } });
 

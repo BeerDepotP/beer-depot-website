@@ -8,7 +8,7 @@
 import { checkPin, json } from "../lib/pin.mjs";
 import { makeKorona } from "../lib/office-kor.mjs";
 import { makeInvoice } from "../lib/office-inv.mjs";
-import { officeStore, pinStore, readIdx, putChunk, getChunk, delKey, putJobPiece, getJobPiece, getJobMeta, dropJob, okId } from "../lib/office-store.mjs";
+import { officeStore, pinStore, keyName, readIdx, putChunk, getChunk, delKey, putJobPiece, getJobPiece, getJobMeta, dropJob, okId } from "../lib/office-store.mjs";
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
@@ -18,6 +18,7 @@ export default async (req) => {
   const st = officeStore(), a = b.action;
   try {
     if (a === "ping") return json({ ok: true });
+    if (a === "versions") { const idx = await readIdx(st), v = {}; for (const k of Object.keys(idx)) v[k] = { at: idx[k].at || 0, n: idx[k].n, len: idx[k].len }; return json({ v }); }
     if (a === "load") {
       const idx = await readIdx(st), keys = {}, rest = []; let used = 0;
       for (const k of Object.keys(idx)) {
@@ -25,10 +26,19 @@ export default async (req) => {
         if (m.n === 1 && used + m.len <= 4 * 1024 * 1024) { keys[k] = await getChunk(st, k, 0); used += m.len; }
         else rest.push({ key: k, n: m.n });
       }
-      return json({ keys, rest });
+      const at = {}; for (const k of Object.keys(idx)) at[k] = idx[k].at || 0;
+      return json({ keys, rest, at });
     }
     if (a === "get") return json({ text: await getChunk(st, b.key, b.i) });
-    if (a === "put") { await putChunk(st, b.key, b.i, b.n, b.text, b.len); return json({ ok: true }); }
+    if (a === "put") {
+      // b.base = the version this device last saw. If someone else saved since, refuse (unless b.force) so nothing is overwritten quietly.
+      if ((Number(b.i) || 0) === 0 && b.base != null && !b.force) {
+        const idx = await readIdx(st), cur = (idx[keyName(b.key)] || {}).at || 0;
+        if (cur !== Number(b.base)) return json({ conflict: true, at: cur, error: "Changed on another device." }, 409);
+      }
+      const at = await putChunk(st, b.key, b.i, b.n, b.text, b.len);
+      return json({ ok: true, at });
+    }
     if (a === "del") { await delKey(st, b.key); return json({ ok: true }); }
     if (a === "kor") {
       const k = makeKorona({ fetch });

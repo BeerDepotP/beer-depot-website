@@ -5,24 +5,28 @@ import { getStore } from "@netlify/blobs";
 export const CHUNK = 3 * 1024 * 1024;
 export const officeStore = () => getStore({ name: "beer-depot-office", consistency: "strong" });
 export const pinStore = () => getStore({ name: "beer-depot", consistency: "strong" });
-const safe = k => String(k || "").replace(/[^A-Za-z0-9_.\-]/g, "_").slice(0, 120);
+// Key names are kept exactly as the POS uses them (they contain ":"); only the blob path is escaped.
+export const keyName = k => String(k || "").slice(0, 120);
+const safe = k => keyName(k).replace(/[^A-Za-z0-9_.\-]/g, c => "~" + c.charCodeAt(0).toString(16).padStart(2, "0"));
 
 export async function readIdx(st) { return (await st.get("_idx", { type: "json" })) || {}; }
 
 export async function putChunk(st, key, i, n, text, len) {
-  key = safe(key); i = Number(i) || 0; n = Math.max(1, Number(n) || 1);
-  await st.set(`d/${key}/${i}`, String(text));
+  key = keyName(key); i = Number(i) || 0; n = Math.max(1, Number(n) || 1);
+  await st.set(`d/${safe(key)}/${i}`, String(text));
   if (i === n - 1) {
     const idx = await readIdx(st), old = idx[key] ? idx[key].n : 0;
     idx[key] = { n, len: Number(len) || 0, at: Date.now() };
     await st.setJSON("_idx", idx);
-    for (let j = n; j < old; j++) await st.delete(`d/${key}/${j}`);
+    for (let j = n; j < old; j++) await st.delete(`d/${safe(key)}/${j}`);
+    return idx[key].at;
   }
+  return 0;
 }
 export async function getChunk(st, key, i) { return (await st.get(`d/${safe(key)}/${Number(i) || 0}`)) || ""; }
 export async function delKey(st, key) {
-  key = safe(key); const idx = await readIdx(st), n = idx[key] ? idx[key].n : 0;
-  for (let j = 0; j < n; j++) await st.delete(`d/${key}/${j}`);
+  key = keyName(key); const idx = await readIdx(st), n = idx[key] ? idx[key].n : 0;
+  for (let j = 0; j < n; j++) await st.delete(`d/${safe(key)}/${j}`);
   delete idx[key]; await st.setJSON("_idx", idx);
 }
 
