@@ -24,8 +24,12 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 
 <nav class="noprint" aria-label="Back office" style="flex: 1 1 220px; max-width: 240px; background: #2A2118; color: #E9DFCC; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; align-self: flex-start; max-height: 100vh; overflow-y: auto; box-sizing: border-box">
 <div class="bdlogo" role="img" aria-label="The Beer Depot POS" style="width: 150px; height: 87px; margin: 0 10px 14px"></div>
-<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 14px 10px 4px">Stock</div>
-<a href="Order.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Ordering</a>
+<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 10px 10px 2px">Setup</div>
+<a href="Settings.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: 15px">Settings search</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: 15px">Taxes and distributors</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: 15px">Devices and website</a>
+<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 10px 10px 2px">Stock</div>
+<a href="Order.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 8px 10px; border-radius: 8px; font-size: 15px">Ordering</a>
 <button onClick="{{ goReceive }}" style="{{ navReceive }}">Receive stock</button>
 <button onClick="{{ goInvoices }}" style="{{ navInvoices }}">Invoices</button>
 <button onClick="{{ goProducts }}" style="{{ navProducts }}">Products</button>
@@ -35,10 +39,6 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <button onClick="{{ goLists }}" style="{{ navLists }}">Product lists</button>
 <button onClick="{{ goPromotions }}" style="{{ navPromotions }}">Promotions</button>
 <button onClick="{{ goImport }}" style="{{ navImport }}">Import from KORONA</button>
-<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 14px 10px 4px">Setup</div>
-<a href="Settings.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Settings search</a>
-<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Taxes and distributors</a>
-<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Devices and website</a>
 </nav>
 
 <main style="flex: 999 1 600px; min-width: 0; padding: 22px; display: flex; flex-direction: column; gap: 14px">
