@@ -41,7 +41,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <span style="font-size: 13px; padding: 3px 10px; border-radius: 99px; background: #FFF0D6; color: #7A4A00; font-weight: 600">{{ modeNote }}</span>
 <span style="{{ syncStyle }}">{{ syncText }}</span>
 <button onClick="{{ learnToggle }}" style="min-height: 36px; padding: 0 14px; font-size: 13px; font-weight: 700; border: 1px solid #DED8C8; border-radius: 99px; background: #FFFFFF; color: #1D1B16">{{ learnBtn }}</button>
-<button onClick="{{ syncNow }}" style="min-height: 36px; padding: 0 14px; font-size: 13px; font-weight: 700; border: 1px solid #8A5A14; border-radius: 99px; background: #FFFFFF; color: #1D1B16">{{ syncBtn }}</button>
+<button onClick="{{ syncNow }}" style="{{ syncBtnStyle }}">{{ syncBtn }}</button>
 </div>
 
 <div role="tablist" aria-label="Order screens" style="display: flex; gap: 6px">
@@ -297,7 +297,7 @@ class Component extends DCLogic {
       this._real = true; return data;
     } catch (e) { return null; }
   }
-  afterLoad() { if (!this.isReal) return; const t = new Date().toLocaleDateString('en-CA'); if (this.state.overDay !== t) this.setState({ over: {}, overDay: t }); }
+  afterLoad() { if (!this._tick) this._tick = setInterval(() => { if (!document.hidden) this.setState({ tick: Date.now() }); }, 30000); if (!this.isReal) return; const t = new Date().toLocaleDateString('en-CA'); if (this.state.overDay !== t) this.setState({ over: {}, overDay: t }); }
   persistSup(patch) { if (!this.isReal || !window.BD) return; const sup = this.data[this.state.sup]; if (!sup) return; const all = window.BD.get('supSet', {}) || {}; all[sup.name] = Object.assign({}, all[sup.name], patch); window.BD.set('supSet', all); if (patch.lead != null) sup.lead = patch.lead; if (patch.days != null) sup.cycle = patch.days; }
   realReload(msg) { const d = this.buildReal(); if (d) this.data = d; const sup = d ? Math.min(this.state.sup, d.length - 1) : 0; this.setState({ sup, editKey: null, status: msg || '', f: {}, fMsg: '' }); }
   realActive(si, ii, on) {
@@ -449,6 +449,7 @@ class Component extends DCLogic {
     const fillCounter = fillTotal ? fillPlaced + ' of ' + fillTotal + ' deal cases placed' + (fillPlaced < fillTotal ? ', ' + (fillTotal - fillPlaced) + ' left to place' : fillPlaced > fillTotal ? ', ' + (fillPlaced - fillTotal) + ' over the deal' : ', deal is full') : '';
     const fillCounterColor = fillTotal && fillPlaced === fillTotal ? '#14572D' : '#8A5A14';
     const fillApply = () => { if (!fillRowsList.length) return; const o = Object.assign({}, s.over); let n = 0; fillRowsList.forEach((r) => { o[key(s.sup, r.ii)] = r.alloc; n += r.alloc; }); const dk = Object.assign({}, s.dealKeys || {}); fillRowsList.forEach((r) => { if (r.alloc > 0) dk[key(s.sup, r.ii)] = true; }); this.setState({ dealKeys: dk, over: o, status: n + ' cases from the deal were put on the ' + sup.name + ' order, and the other matching products were set to 0 so the deal total is exact. Scroll down to see them.' }); };
+    const SB = window.BD && window.BD.syncBadge ? window.BD.syncBadge() : { text: '', bg: '#FFFFFF', border: '#8A5A14', color: '#1D1B16' };
     const ks = (window.BD && window.BD.get('korSync', null)) || {}, last = ks.last || null, ageMin = last && last.at ? Math.round((Date.now() - Date.parse(last.at)) / 60000) : null;
     const fresh = !!(ks.auto && last && last.ok && ageMin != null && ageMin <= 15);
     const syncText = !ks.auto ? 'KORONA sync is OFF: stock and sales may be out of date' : !last ? 'KORONA sync has not run yet' : !last.ok ? 'KORONA sync FAILED ' + ageMin + ' min ago: ' + (last.error || 'check Settings') : fresh ? 'KORONA synced ' + (ageMin < 1 ? 'just now' : ageMin + ' min ago') : 'KORONA last synced ' + (ageMin >= 120 ? Math.round(ageMin / 60) + ' hours' : ageMin + ' min') + ' ago: numbers may be out of date';
@@ -468,7 +469,7 @@ class Component extends DCLogic {
       tagGroups, tagName: TG.name, tagText: TG.text, tagMsg: TG.msg, tagList: Object.keys(tagCount).length ? 'Your tags: ' + Object.keys(tagCount).sort().map((t) => t + ' (' + tagCount[t] + ' products)').join(', ') : 'No tags yet.',
       tagNameIn: (e) => setTg({ name: String(e.target.value) }), tagTextIn: (e) => setTg({ text: String(e.target.value) }), tagAdd: () => tagDo(true), tagRemove: () => tagDo(false),
       learnBtn: s.learn === false ? 'Learning from my orders: OFF' : 'Learning from my orders: ON', learnToggle: () => this.setState({ learn: s.learn === false, over: {}, status: '' }),
-      syncText, syncStyle, syncBtn: s.syncBusy ? 'Syncing...' : 'Sync now',
+      syncText, syncStyle, syncBtn: s.syncBusy ? 'Syncing...' : 'Sync now \u00B7 ' + SB.text, syncBtnStyle: 'min-height: 36px; padding: 0 14px; font-size: 13px; font-weight: 700; border-radius: 99px; background: ' + SB.bg + '; border: 2px solid ' + SB.border + '; color: ' + SB.color,
       syncNow: () => { if (s.syncBusy) return; if (!window.BD || !window.BD.kor || !window.BD.kor.sync) { this.setState({ status: 'The KORONA link needs the newest Mac app.' }); return; }
         this.setState({ syncBusy: true, status: 'Asking KORONA for the latest stock and sales...' });
         window.BD.kor.sync({ enable: true }).then((r) => { if (r.ok) { window.location.reload(); } else { this.setState({ syncBusy: false, status: 'Sync problem: ' + r.error }); } }); },
