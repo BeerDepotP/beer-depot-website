@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Back office: Settings</title>
+<script src="./web-boot.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;min-height:100vh;background:#F5F3EE}
+x-dc{display:block;min-height:100vh}
+a:hover{background:#3A2E22}
+button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
+.tbl > div{padding:0 5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tbl > div:not(:first-child){text-align:right}
+.tbl2 > div:not(:first-child){text-align:right}
+.tbl3 > div{padding:0 5px;min-width:0}
+@media print{.noprint{display:none !important} body{background:#fff} main{padding:0 !important}}
+
+</style>
+</helmet>
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #F5F3EE; font-family: Inter, system-ui, sans-serif; color: #1D1B16">
+<nav class="noprint" aria-label="Back office" style="flex: 1 1 220px; max-width: 240px; background: #2A2118; color: #E9DFCC; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px">
+<div class="bdlogo" role="img" aria-label="The Beer Depot POS" style="width: 150px; height: 87px; margin: 0 10px 14px"></div>
+<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 14px 10px 4px">Stock</div>
+<a href="Order.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Ordering</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Receive stock</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Invoices</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Products</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Warehouse</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Stock adjustments</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Price tags</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Product lists</a>
+<div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 14px 10px 4px">Setup</div>
+<a href="Settings.dc.html" style="color: #FFFFFF; background: #8A5A14; font-weight: 600; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Settings search</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Taxes and distributors</a>
+<a href="Receive.dc.html" style="color: #E9DFCC; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Devices and website</a>
+</nav>
+<main style="flex: 999 1 600px; min-width: 0; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px">
+<h1 style="margin: 0; font-size: 26px">Settings</h1>
+<span style="font-size: 14px; color: #4A453A">Type anything to find a setting. For example: tax, receipt, drawer, tags, scale.</span>
+</div>
+<div style="{{ liveBoxStyle }}">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div style="font-size: 22px; font-weight: 800">{{ liveTitle }}</div>
+<div style="flex: 1 1 auto"></div>
+<sc-if value="{{ liveArmed }}" hint-placeholder-val="{{ false }}"><button onClick="{{ liveCancel }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 1px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Cancel</button></sc-if>
+<button onClick="{{ liveGo }}" style="{{ liveBtnStyle }}">{{ liveBtn }}</button>
+</div>
+<div style="font-size: 15px; line-height: 1.45">{{ liveText }}</div>
+<div style="font-size: 15px; font-weight: 700">{{ liveMsg }}</div>
+<div style="font-size: 14px; color: #4A453A">{{ liveQueue }}</div>
+</div>
+<sc-if value="{{ updShow }}" hint-placeholder-val="{{ false }}">
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">App updates</div>
+<div style="font-size: 15px">{{ updVersion }}</div>
+<sc-if value="{{ updNeedToken }}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Paste the GitHub token once (read-only access to the beer-depot-pos repo). It is kept only on this computer.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><input id="updtok" type="password" autocomplete="off" placeholder="GitHub token" value="{{ updTok }}" onInput="{{ onUpdTok }}" style="flex: 1 1 260px; min-width: 0; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 52px; box-sizing: border-box"><button onClick="{{ saveTok }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; background: #2A2118; color: #FFFFFF">Save token</button></div>
+</sc-if>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<sc-if value="{{ updHasToken }}" hint-placeholder-val="{{ false }}"><button onClick="{{ checkUpd }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; background: #8A5A14; color: #FFFFFF">Check for updates</button></sc-if>
+<sc-if value="{{ updAvail }}" hint-placeholder-val="{{ false }}"><button onClick="{{ applyUpd }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Install the update now</button></sc-if>
+<sc-if value="{{ updHasToken }}" hint-placeholder-val="{{ false }}"><button onClick="{{ forgetTok }}" style="min-height: 52px; padding: 0 14px; font-size: 14px; font-weight: 600; border: 1px solid #DED8C8; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Remove token</button></sc-if>
+</div>
+<div style="font-size: 15px; font-weight: 700">{{ updMsg }}</div>
+</div>
+</sc-if>
+<sc-if value="{{ aiShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">Invoice photo reading (Claude)</div>
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Lets Receive stock read a photo of a paper invoice. It uses your own Anthropic API key, which stays on this computer and is only sent to Anthropic. It costs a cent or two per invoice. In the Claude Console, add a few dollars of credit and set a monthly spending limit.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><input type="password" value="{{ aiKey }}" onInput="{{ aiKeyIn }}" placeholder="{{ aiKeyHint }}" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 320px"><button onClick="{{ aiSave }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF">Save key</button><button onClick="{{ aiRemove }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Remove key</button></div>
+<div style="font-size: 14px; font-weight: 700">{{ aiStatus }}</div>
+</div></sc-if>
+<sc-if value="{{ edShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">KORONA receipts login (sends stock receipts and product edits)</div>
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">A second KORONA login, separate from the read-only sync login. The POS uses it only when you press a send button, and only for stock receipts and products. It never books a receipt and never deletes anything. The password stays on this computer.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><input type="text" value="{{ edUser }}" onInput="{{ edUserIn }}" placeholder="User name (pos-receipts)" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 200px"><input type="password" value="{{ edPass }}" onInput="{{ edPassIn }}" placeholder="{{ edPassHint }}" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 200px"><button onClick="{{ edSave }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF">Save login</button><button onClick="{{ edRemove }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Remove login</button></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><input type="text" value="{{ edNum }}" onInput="{{ edNumIn }}" placeholder="Receipt number (blank = first one)" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; width: 250px"><button onClick="{{ edLook }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #2A2118">Look at a KORONA receipt (read only)</button><span style="font-size: 14px; font-weight: 700">{{ edStatus }}</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><input type="text" value="{{ edProd }}" onInput="{{ edProdIn }}" placeholder="Product number, UPC or name" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; width: 250px"><button onClick="{{ edProdLook }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #2A2118">Look at a KORONA product (read only)</button></div>
+<sc-if value="{{ edHasOut }}" hint-placeholder-val="{{ false }}"><pre style="margin: 0; max-height: 360px; overflow: auto; font-size: 12px; background: #F5F1E6; border-radius: 8px; padding: 10px; white-space: pre-wrap">{{ edOut }}</pre></sc-if>
+</div></sc-if>
+<sc-if value="{{ klShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">Live link to KORONA</div>
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Mirrors KORONA into this POS about every 5 minutes: new products, stock, prices, names, barcodes, distributors and active status. It only reads from KORONA and never changes it. While this is on, KORONA is the boss, so edits made here are overwritten on the next check. Turn it off before you go live. In KORONA, create a user with read-only rights for the API and type its login below (never send it in chat).</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><input value="{{ klHost }}" onInput="{{ klHostIn }}" placeholder="Server, e.g. 185.koronacloud.com" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 220px"><input value="{{ klAcct }}" onInput="{{ klAcctIn }}" placeholder="KORONA account ID" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 260px"><input value="{{ klUser }}" onInput="{{ klUserIn }}" placeholder="API user name" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 180px"><input type="password" value="{{ klPass }}" onInput="{{ klPassIn }}" placeholder="{{ klPassHint }}" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; flex: 1 1 180px"></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><button onClick="{{ klSave }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF">Save login</button><button onClick="{{ klCheck }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #8A5A14; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Check what would change</button><button onClick="{{ klApply }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Sync now and keep syncing</button><button onClick="{{ klOff }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Stop syncing</button></div>
+<div style="font-size: 14px; font-weight: 700">{{ klStatus }}</div>
+<sc-for list="{{ klLines }}" hint-placeholder-val="{{ [] }}"><div style="font-size: 13px; color: #4A453A">{{ item.text }}</div></sc-for>
+</div></sc-if>
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">Import KORONA history and prices</div>
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Import your products first (Receive stock and products &gt; Import from KORONA). Then choose the other KORONA exports here, all at once if you like: suppliers, supplier item prices, prices and sales. Each file is recognised by itself. Press Check to see what will happen, then Import. Running it again replaces the old KORONA sales instead of doubling them. Imported sales are history only: they never change stock and are kept when you go live.</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><input id="korfiles" type="file" multiple accept=".csv,.txt,.tsv" onChange="{{ korPick }}" style="font: inherit; font-size: 14px; min-height: 44px"></div>
+<sc-if value="{{ korReady }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 8px"><button onClick="{{ korGo }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Import these files</button></div></sc-if>
+<sc-if value="{{ korSaved }}" hint-placeholder-val="{{ false }}"><div role="status" style="background: #E7F4EC; border: 2px solid #1F7A3F; color: #14572D; border-radius: 12px; padding: 14px 16px; font-size: 18px; font-weight: 800">Import finished and saved. Details are listed below.</div></sc-if>
+<div style="display: flex; flex-direction: column; gap: 4px"><sc-for list="{{ korLog }}" as="l" hint-placeholder-count="2"><div style="font-size: 14px; font-weight: 600; color: {{ l.color }}; white-space: pre-wrap">{{ l.text }}</div></sc-for></div>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 20px; font-weight: 800">Backups</div>
+<sc-if value="{{ bkMissing }}" hint-placeholder-val="{{ false }}"><div style="font-size: 15px; color: #8C1A13; line-height: 1.45">Automatic backups need the newest Mac app. Build it from GitHub (Actions, Build Mac app) and install it once. Until then, use Data &gt; Save a backup of all data.</div></sc-if>
+<sc-if value="{{ bkShow }}" hint-placeholder-val="{{ false }}">
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">The POS saves a copy of everything once a day (and again when you close it) on this Mac, and keeps the last 30 days. Pick a second folder, like an external drive or a cloud-synced folder (iCloud Drive, Dropbox), to get the same copy there too.</div>
+<div style="font-size: 15px; font-weight: 700; color: {{ bkColor }}">{{ bkStatus }}</div>
+<div style="font-size: 14px">Backups on this Mac: <b>{{ bkDir }}</b></div>
+<div style="font-size: 14px">Second folder: <b>{{ bkExtra }}</b></div>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span style="font-size: 14px">Keep the last</span><sc-for list="{{ bkKeepOpts }}" as="k" hint-placeholder-count="4"><button onClick="{{ k.go }}" style="{{ k.style }}">{{ k.label }}</button></sc-for><span style="font-size: 14px">of backups. Older ones are deleted automatically, in both folders.</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button onClick="{{ bkRun }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Back up now</button>
+<button onClick="{{ bkChoose }}" style="min-height: 52px; padding: 0 18px; font-size: 16px; font-weight: 700; border: 0; border-radius: 10px; background: #8A5A14; color: #FFFFFF">Choose second folder</button>
+<sc-if value="{{ bkHasExtra }}" hint-placeholder-val="{{ false }}"><button onClick="{{ bkClear }}" style="min-height: 52px; padding: 0 14px; font-size: 14px; font-weight: 600; border: 1px solid #DED8C8; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Stop using second folder</button></sc-if>
+<button onClick="{{ bkOpen }}" style="min-height: 52px; padding: 0 14px; font-size: 14px; font-weight: 600; border: 1px solid #DED8C8; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Show backups</button>
+</div>
+<div style="font-size: 15px; font-weight: 700">{{ bkMsg }}</div>
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{ bkFiles }}" as="f" hint-placeholder-count="3"><div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid #EFE7D6; font-size: 14px"><span><b>{{ f.name }}</b> <span style="color: #6B6558">{{ f.info }}</span></span><button onClick="{{ f.restore }}" style="min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 700; border: 1px solid #B3261E; border-radius: 8px; background: #FFFFFF; color: #B3261E">Restore</button></div></sc-for>
+</div>
+</sc-if>
+</div>
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<label for="sq" style="font-size: 13px; color: #6B6558">Search all settings</label>
+<input id="sq" type="text" autocomplete="off" placeholder="Search settings&hellip;" value="{{ q }}" onInput="{{ onQ }}" style="font: inherit; font-size: 22px; padding: 12px 16px; border: 2px solid #2A2118; border-radius: 12px; min-height: 58px; box-sizing: border-box; width: 100%">
+<div style="display: flex; flex-wrap: wrap; gap: 8px"><sc-for list="{{ chips }}" as="c" hint-placeholder-count="7"><button onClick="{{ c.go }}" style="{{ c.style }}">{{ c.label }}</button></sc-for></div>
+</div>
+<div style="font-size: 14px; font-weight: 600">{{ countText }}</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: #6B6558">{{ r.crumb }}</div>
+<div style="font-size: 17px; font-weight: 800">{{ r.name }}</div>
+<div style="font-size: 14px; color: #4A453A">{{ r.desc }}</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-top: 4px">
+<sc-if value="{{ r.editable }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; gap: 6px"><input type="text" inputmode="decimal" aria-label="{{ r.name }}" autocomplete="off" value="{{ r.val }}" onInput="{{ r.onVal }}" style="font: inherit; font-size: 16px; font-weight: 700; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 90px; text-align: right"><span style="font-size: 14px; color: #4A453A">{{ r.unit }}</span></div></sc-if>
+<sc-if value="{{ r.fixed }}" hint-placeholder-val="{{ false }}"><div style="font-size: 15px; font-weight: 700">{{ r.val }}</div></sc-if>
+<a href="{{ r.href }}" style="min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; font-size: 14px; font-weight: 700; border-radius: 10px; background: #2A2118; color: #FFFFFF; text-decoration: none">Open {{ r.page }}</a>
+</div>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 24px; color: #4A453A">No setting matches that. Try a shorter word.</div></sc-if>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { updInfo: null, updMsg: '', updTok: '', updAvail: null, armLive: false, liveMsg: '', q: '', cat: 'All', vals: { tax: '5', credit: '3', round: '5', float: '200.00', age: '21', margin: '20', safety: '20', days: '7', lead: '2', maxqty: '500' } };
+  }
+  edInfo() { if (window.BDKorona && window.BDKorona.editInfo) window.BDKorona.editInfo().then((i) => this.setState({ ed: i, edUser: this.state.edUser || (i && i.user) || '' })).catch(() => {}); }
+  edLookAction() {
+    const B = window.BDKorona; if (!B || !B.editReq) return; this.setState({ edMsg: 'Asking KORONA...', edOut: '' });
+    const clip = (v, d) => { if (d > 4) return '...'; if (Array.isArray(v)) return v.slice(0, 3).map((x) => clip(x, d + 1)).concat(v.length > 3 ? ['... ' + (v.length - 3) + ' more'] : []); if (v && typeof v === 'object') { const o = {}; Object.keys(v).forEach((k) => { o[k] = clip(v[k], d + 1); }); return o; } return v; };
+    B.editReq({ method: 'GET', path: '/stockReceipts', params: Object.assign({ page: 1, size: 1 }, String(this.state.edNum || '').trim() ? { number: String(this.state.edNum).trim() } : {}) }).then((r) => {
+      if (!r.ok) { this.setState({ edMsg: r.error || ('KORONA answered ' + r.status + '.'), edOut: typeof r.body === 'string' ? r.body.slice(0, 600) : JSON.stringify(r.body || '').slice(0, 600) }); return null; }
+      const first = r.body && r.body.results && r.body.results[0]; if (!first) { this.setState({ edMsg: 'KORONA has no stock receipts to show.', edOut: '' }); return null; }
+      return B.editReq({ method: 'GET', path: '/stockReceipts/' + first.id + '/items', params: { page: 1, size: 2 } }).then((it) => { this.setState({ edMsg: 'Login works. This is what one KORONA stock receipt looks like (read only, nothing was changed).', edOut: 'RECEIPT\n' + JSON.stringify(clip(first, 0), null, 1) + '\n\nITEMS (' + it.status + ')\n' + JSON.stringify(clip(it.body, 0), null, 1) }); });
+    }).catch((e) => this.setState({ edMsg: String(e.message || e) }));
+  }
+  edProdLookAction() {
+    const B = window.BDKorona; if (!B || !B.editReq) return; const q = String(this.state.edProd || '').trim(); this.setState({ edMsg: 'Asking KORONA...', edOut: '' });
+    const show = (id) => B.editReq({ method: 'GET', path: '/products/' + id }).then((one) => this.setState({ edMsg: 'This is one KORONA product (read only, nothing was changed).', edOut: 'PRODUCT\n' + JSON.stringify(one.ok ? one.body : one, null, 1).slice(0, 14000) }));
+    const none = (m) => this.setState({ edMsg: m || 'KORONA found no product for that. Try its KORONA product number (like B1703) instead.', edOut: '' });
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(q)) { show(q).catch((e) => this.setState({ edMsg: String(e.message || e) })); return; }
+    const isNum = /^[A-Za-z]\d{2,6}$/.test(q), isUpc = /^\d{6,}$/.test(q);
+    const params = q ? (isNum ? { number: q.toUpperCase() } : isUpc ? { productCode: q } : { name: q }) : {};
+    B.editReq({ method: 'GET', path: '/products', params: Object.assign({ page: 1, size: q ? 100 : 1 }, params) }).then((r) => {
+      if (!r.ok) { this.setState({ edMsg: r.error || ('KORONA answered ' + r.status + '.'), edOut: typeof r.body === 'string' ? r.body.slice(0, 600) : '' }); return null; }
+      const L = (r.body && r.body.results) || [], lq = q.toLowerCase();
+      const hit = !q ? L[0] : L.find((p) => String(p.number || '').toLowerCase() === lq || (p.codes || []).some((c) => String(c.productCode) === q || String(c.productCode).replace(/^0+/, '') === q.replace(/^0+/, '')) || (!isNum && !isUpc && String(p.name || '').toLowerCase().indexOf(lq) >= 0));
+      if (!hit) { none(); return null; }
+      return show(hit.id);
+    }).catch((e) => this.setState({ edMsg: String(e.message || e) }));
+  }
+  aiInfo() { if (window.BDInvoice) window.BDInvoice.info().then((i) => this.setState({ ai: i })).catch(() => {}); }
+  klInfo() { if (window.BDKorona) window.BDKorona.info().then((i) => this.setState({ kl: i, klHost: this.state.klHost != null ? this.state.klHost : i.host, klUser: this.state.klUser != null ? this.state.klUser : i.user })).catch(() => {}); }
+  klShowRes(r, what) { const L = []; if (!r.ok) { this.setState({ klBusy: false, klStatus: 'Problem: ' + r.error, klLines: [] }); return; } const names = { tags: 'tags changed', 'new': 'new products', name: 'renamed', group: 'group changed', price: 'price changed', codes: 'barcodes added', dist: 'distributor changed', per: 'case size changed', cost: 'cost changed', stock: 'stock changed', off: 'switched off', gone: 'deleted in KORONA (switched off here)', on: 'switched on' }; Object.keys(r.ch).forEach((k) => { if (r.ch[k]) { L.push({ text: r.ch[k] + ' ' + names[k] + (r.ex[k] && r.ex[k].length ? ' (e.g. ' + r.ex[k].slice(0, 2).join('; ') + ')' : '') }); } }); if (r.rc) L.push({ text: r.rc.made + ' receipts from KORONA (' + r.rc.months + ' months), $' + (r.rc.cash / 100).toFixed(2) + ' cash and $' + (r.rc.card / 100).toFixed(2) + ' card' + (r.rc.replaced ? ', ' + r.rc.replaced + ' imported ones replaced with payment detail' : '') }); if (r.rcError) L.push({ text: 'Receipts could not be read: ' + r.rcError }); if (r.gc) L.push({ text: 'Gift cards: ' + r.gc.added + ' new, ' + r.gc.updated + ' balances updated' }); L.push({ text: 'Promotions found in KORONA: ' + (r.promoCount || 0) + ' (not applied yet) ' + (r.promoNote || '') }); this.setState({ klBusy: false, klStatus: (what === 'check' ? 'Checked ' : 'Synced ') + r.count + ' products from KORONA. ' + (r.total ? r.total + ' changes' + (what === 'check' ? ' would be made.' : ' made.') : 'Everything already matches.'), klLines: L }); }
+  afterLoad() { this.klInfo(); this.aiInfo(); this.edInfo(); if (typeof window !== 'undefined' && window.BDUpdate) window.BDUpdate.info().then((i) => this.setState({ updInfo: i })).catch(() => {}); if (typeof window !== 'undefined' && window.BDBackup) window.BDBackup.info().then((i) => this.setState({ bk: i })).catch(() => {}); }
+  renderVals() {
+    const s = this.state;
+    // [name, category, page label, file, description, keywords, value key or fixed text, unit]
+    const L = [
+      ['Sales tax rate', 'Sales', 'Taxes', 'Receive.dc.html', 'Percent of tax added to taxable products at the register and in the tax report.', 'tax percent rate wisconsin county', 'tax', '%'],
+      ['Credit card price (dual pricing)', 'Payments', 'Card machine', 'CardMachine.dc.html', 'How much higher the credit price is than the cash price. The subtotal always shows the credit price.', 'credit card surcharge adjustment 3 percent cash discount dual', 'credit', '%'],
+      ['Cash rounding', 'Sales', 'Taxes', 'Receive.dc.html', 'Cash totals round to the nearest this many cents.', 'round nickel five cents cash', 'round', 'cents'],
+      ['Offline mode and data on this computer', 'Devices', 'Register', 'Main.dc.html', 'Every product, price, customer and receipt is stored on the register computer. With no internet the register works exactly the same, except credit cards. Sales upload when the internet returns.', 'offline internet outage local database backup sync wifi', null, 'Always on'],
+      ['Link the credit card machine', 'Payments', 'Card machine', 'CardMachine.dc.html', 'Pair a card terminal, test it, and choose what happens when Credit is pressed.', 'terminal reader pax clover square stripe pair payment processor', null, 'Not linked yet'],
+      ['ID check age', 'Register', 'Register', 'Main.dc.html', 'The age the ID scan checks for. Scanning happens in the scan box, no button needed.', 'id age 21 license scan birthday', 'age', 'years'],
+      ['Quantity numbers in the scan box', 'Register', 'Register', 'Main.dc.html', 'Largest number you can type in the scan box to set the selected item\'s quantity.', 'quantity range 1 500 scan box', 'maxqty', 'max'],
+      ['Home screen buttons', 'Register', 'Button editor', 'Buttons.dc.html', 'Add, change, move or remove the product and function buttons on the register screens.', 'buttons tiles home screen menu colors layout function', null, 'Editable'],
+      ['Receipt layout and wording', 'Register', 'Receipt designer', 'ReceiptDesigner.dc.html', 'Store name, address, footer lines, what prints, paper width, extra copies.', 'receipt print header footer logo paper thank you returns', null, 'Editable'],
+      ['Product info text on receipts', 'Register', 'Products', 'Receive.dc.html', 'Instructions such as reheating that print at the bottom when the product is on the sale. Set on each product.', 'info text instructions reheating cooking pulled pork', null, 'Per product'],
+      ['Open the drawer on cash sales', 'Register', 'Receipt designer', 'ReceiptDesigner.dc.html', 'Kick the cash drawer open when a cash sale prints.', 'cash drawer open kick', null, 'On'],
+      ['Parked and archived receipts', 'Register', 'Register', 'Main.dc.html', 'Park for quick switching. Archive for sales on future days; only archived receipts have names and customers.', 'park archive hold named', null, 'On'],
+      ['Unknown barcode popup', 'Register', 'Register', 'Main.dc.html', 'Blocks the screen until the employee clears it, so a missed scan is noticed.', 'barcode not found unscanned popup', null, 'Always on'],
+      ['Duplicate UPC protection', 'Stock', 'Products', 'Receive.dc.html', 'A UPC can only belong to one product. Entering one that exists is refused with a message.', 'upc duplicate barcode unique', null, 'Always on'],
+      ['Commodity groups', 'Stock', 'Products', 'Receive.dc.html', 'The groups products are sorted into: beer, vodka, wine, food and so on. Used by reports.', 'group category commodity department', null, '20 groups'],
+      ['Distributors list', 'Stock', 'Products', 'Receive.dc.html', 'Distributor names used in the dropdowns on invoices and products.', 'supplier distributor vendor beechwood badger', null, '28 distributors'],
+      ['Distributors that do not auto-change', 'Stock', 'Receive stock', 'Receive.dc.html', 'Walmart, Sam\'s Club and Restaurant Depot never change a product\'s distributor when received.', 'walmart sams restaurant depot exception supplier', null, '3 exceptions'],
+      ['Margin warning', 'Stock', 'Receive stock', 'Receive.dc.html', 'Retail margins at or above this are green, below are red.', 'margin green red percent profit', 'margin', '%'],
+      ['Safety stock', 'Stock', 'Ordering', 'Order.dc.html', 'Base extra stock added to suggested orders. Slow movers get less, fast or surge items more.', 'safety stock extra buffer order', 'safety', '%'],
+      ['Days between orders', 'Stock', 'Ordering', 'Order.dc.html', 'How many days apart your next order is. Suggestions are sized to last that long.', 'order days frequency suggest', 'days', 'days'],
+      ['Delivery lead time', 'Stock', 'Ordering', 'Order.dc.html', 'Days between ordering and the truck arriving.', 'lead time delivery truck', 'lead', 'days'],
+      ['Stock adjustments', 'Stock', 'Stock adjustments', 'Receive.dc.html', 'Add or subtract stock with a reason, and see the full history.', 'adjust inventory count waste breakage shrink', null, 'Log kept'],
+      ['Price tags', 'Stock', 'Price tags', 'Receive.dc.html', 'Print tags with the cash price large, credit price small, name and UPC. Choose which UPC or pack size.', 'price tag label shelf print upc', null, 'Prints'],
+      ['Product lists and mass edit', 'Stock', 'Product lists', 'Receive.dc.html', 'Build a list by scanning or typing, then change anything about all of them at once.', 'list mass edit bulk scan change many', null, 'Lists'],
+      ['Customers', 'Customers', 'Customers', 'Customers.dc.html', 'Names, phone, email, notes, tax exempt, and the card type and last 4 on file.', 'customer phone email notes card on file tax exempt', null, 'Editable'],
+      ['Cash drawer starting float', 'Reports', 'Analytics', 'Analytics.dc.html', 'Cash the drawer starts each day with. Used for the should-be-in-the-drawer figure.', 'drawer float starting cash opening', 'float', '$'],
+      ['Monthly tax report for the accountant', 'Reports', 'Tax report', 'TaxReport.dc.html', 'Everything your accountant needs for the month. Print or download.', 'tax report accountant month csv export', null, 'Monthly'],
+      ['Reports for any dates', 'Reports', 'Reports', 'Reports.dc.html', 'Pick any dates: products sold, profit, groups, taxes, everything that happened.', 'report range dates profit groups', null, 'Any range'],
+      ['Receipt editing', 'Sales', 'Receipts', 'Receipts.dc.html', 'Change anything on a past sale. The original total is kept on the receipt.', 'edit receipt change refund fix', null, 'Allowed'],
+      ['Receipt printer', 'Devices', 'Devices and website', 'Receive.dc.html', 'Which printer prints receipts and tags.', 'printer thermal epson star', null, 'Not set'],
+      ['Barcode scanner', 'Devices', 'Devices and website', 'Receive.dc.html', 'Scanner types the code into the scan box like a keyboard.', 'scanner barcode usb', null, 'Not set'],
+      ['Scale', 'Devices', 'Devices and website', 'Receive.dc.html', 'Weighed items ask for the weight at the register.', 'scale weigh weight pound', null, 'Typed weight'],
+      ['ID scanner', 'Devices', 'Devices and website', 'Receive.dc.html', 'Scans the back of licenses into the scan box. Data is not kept.', 'id scanner license reader', null, 'Scan box']
+    ];
+    const cats = ['All'].concat(Array.from(new Set(L.map((x) => x[1]))));
+    const q = s.q.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+    const list = L.filter((x) => (s.cat === 'All' || x[1] === s.cat) && words.every((w) => (x[0] + ' ' + x[1] + ' ' + x[2] + ' ' + x[4] + ' ' + x[5]).toLowerCase().indexOf(w) >= 0));
+    const rows = list.map((x) => ({ name: x[0], crumb: x[1] + ' › ' + x[2], desc: x[4], href: x[3], page: x[2], editable: !!x[6], fixed: !x[6], val: x[6] ? s.vals[x[6]] : x[7], unit: x[7],
+      onVal: (e) => { const v = String(e.target.value); this.setState({ vals: Object.assign({}, s.vals, { [x[6]]: v }) });
+        if (typeof window !== 'undefined' && window.BD) { const n = parseFloat(v); if (isFinite(n)) { if (x[6] === 'tax') window.BD.set('prop:taxRate', n); else if (x[6] === 'credit') window.BD.set('prop:creditPct', n); else if (x[6] === 'float') window.BD.set('prop:float', Math.round(n * 100)); } } } }));
+    const BDx = typeof window !== 'undefined' ? window.BD : null; const live = !!(BDx && BDx.isLive && BDx.isLive()); const queued = BDx && BDx.outboxCount ? BDx.outboxCount() : 0;
+    const btn = (bg) => 'min-height: 56px; padding: 0 22px; font-size: 17px; font-weight: 800; border: 0; border-radius: 12px; color: #FFFFFF; background: ' + bg;
+    return { q: s.q, onQ: (e) => this.setState({ q: String(e.target.value) }), chips: cats.map((c) => ({ label: c, go: () => this.setState({ cat: c }), style: 'min-height: 44px; padding: 0 14px; font-size: 14px; font-weight: 700; border-radius: 99px; border: 1px solid ' + (s.cat === c ? '#8A5A14' : '#DED8C8') + '; background: ' + (s.cat === c ? '#8A5A14' : '#FFFFFF') + '; color: ' + (s.cat === c ? '#FFFFFF' : '#1D1B16') })),
+      bkMissing: typeof window !== 'undefined' && !window.BDBackup && !!window.BDUpdate, bkShow: typeof window !== 'undefined' && !!window.BDBackup,
+      edShow: typeof window !== 'undefined' && !!(window.BDKorona && window.BDKorona.editReq), edUser: s.edUser || '', edPass: s.edPass || '', edNum: s.edNum || '', edNumIn: (e) => this.setState({ edNum: String(e.target.value) }), edUserIn: (e) => this.setState({ edUser: String(e.target.value) }), edPassIn: (e) => this.setState({ edPass: String(e.target.value) }),
+      edPassHint: s.ed && s.ed.hasPassword ? 'Password saved (type a new one to replace it)' : 'Password', edStatus: s.edMsg || (s.ed && s.ed.configured ? 'Login saved.' : 'No login yet.'), edHasOut: !!s.edOut, edOut: s.edOut || '',
+      edSave: () => { if (!String(s.edUser || '').trim()) { this.setState({ edMsg: 'Type the user name first.' }); return; } window.BDKorona.editSave({ user: s.edUser, password: s.edPass }).then((i) => this.setState({ ed: i, edPass: '', edMsg: i.configured ? 'Login saved.' : 'Saved the user name. Type the password too.' })); },
+      edRemove: () => window.BDKorona.editClear().then((i) => this.setState({ ed: i, edUser: '', edPass: '', edMsg: 'Login removed.', edOut: '' })),
+      edLook: () => this.edLookAction(), edProd: s.edProd || '', edProdIn: (e) => this.setState({ edProd: String(e.target.value) }), edProdLook: () => this.edProdLookAction(),
+      aiShow: typeof window !== 'undefined' && !!window.BDInvoice, aiKey: s.aiKey || '', aiKeyIn: (e) => this.setState({ aiKey: String(e.target.value) }), aiKeyHint: s.ai && s.ai.hasKey ? 'Key saved (paste a new one to replace it)' : 'Anthropic API key (starts with sk-ant-)', aiStatus: s.aiMsg || (s.ai && s.ai.hasKey ? 'A key is saved. Photo reading is on.' : 'No key yet. Photo reading is off.'),
+      aiSave: () => { if (!String(s.aiKey || '').trim()) { this.setState({ aiMsg: 'Paste the key first.' }); return; } window.BDInvoice.setKey(s.aiKey).then((i) => this.setState({ ai: i, aiKey: '', aiMsg: 'Key saved.' })); },
+      aiRemove: () => window.BDInvoice.setKey('').then((i) => this.setState({ ai: i, aiKey: '', aiMsg: 'Key removed.' })),
+      klShow: typeof window !== 'undefined' && !!window.BDKorona, klHost: s.klHost || '', klAcct: s.klAcct != null ? s.klAcct : (s.kl && s.kl.account) || '', klAcctIn: (e) => this.setState({ klAcct: String(e.target.value) }), klUser: s.klUser || '', klPass: s.klPass || '', klPassHint: s.kl && s.kl.hasPassword ? 'Password saved (type to change)' : 'API password',
+      klHostIn: (e) => this.setState({ klHost: String(e.target.value) }), klUserIn: (e) => this.setState({ klUser: String(e.target.value) }), klPassIn: (e) => this.setState({ klPass: String(e.target.value) }),
+      klStatus: s.klStatus || (() => { const st = window.BD && window.BD.kor.syncState ? window.BD.kor.syncState() : {}; return st.auto ? 'Syncing is ON. Last: ' + (st.last ? (st.last.ok ? st.last.total + ' changes at ' + new Date(st.last.at).toLocaleTimeString() : 'failed: ' + st.last.error) : 'not yet') : 'Syncing is off.'; })(), klLines: s.klLines || [],
+      klSave: () => window.BDKorona.save({ host: s.klHost, account: s.klAcct != null ? s.klAcct : (s.kl && s.kl.account) || '', user: s.klUser, password: s.klPass }).then((i) => this.setState({ kl: i, klPass: '', klStatus: 'Login saved.' })),
+      klCheck: () => { this.setState({ klStatus: 'Asking KORONA... this can take a minute.', klLines: [] }); window.BDKorona.save({ host: s.klHost, account: s.klAcct != null ? s.klAcct : (s.kl && s.kl.account) || '', user: s.klUser, password: s.klPass }).then(() => window.BD.kor.sync({ dry: true })).then((r) => { this.setState({ klPass: '' }); this.klShowRes(r, 'check'); }); },
+      klApply: () => { this.setState({ klStatus: 'Syncing... this can take a minute.', klLines: [] }); window.BDKorona.save({ host: s.klHost, account: s.klAcct != null ? s.klAcct : (s.kl && s.kl.account) || '', user: s.klUser, password: s.klPass }).then(() => window.BD.kor.sync({ full: true, enable: true })).then((r) => { this.setState({ klPass: '' }); this.klShowRes(r, 'apply'); }); },
+      klOff: () => { const st = window.BD.kor.syncState(); st.auto = false; window.BD.set('korSync', st); this.setState({ klStatus: 'Syncing is off.', klLines: [] }); },
+      korSaved: !!(s.korDone && !(s.korLog || []).some((l) => l.bad)), korReady: !!(s.korNames && s.korNames.length && !s.korDone), korLog: (s.korLog || []).map((l) => ({ text: l.t, color: l.bad ? '#B3261E' : '#1D1B16' })),
+      korPick: (e) => { const fl = Array.prototype.slice.call(e.target.files || []); if (!fl.length) return; this.setState({ korLog: [{ t: 'Reading files...' }], korNames: [], korDone: false });
+        Promise.all(fl.map((f) => f.text().then((t) => ({ name: f.name, text: t })))).then((fs) => { this._kor = fs; let r; try { r = window.BD.kor.run(fs, { dry: true }); } catch (err) { r = { log: [{ t: 'Could not read these files: ' + err.message, bad: true }], ok: false }; } this.setState({ korLog: r.log, korNames: r.ok ? fs.map((f) => f.name) : [], korDone: false }); }); },
+      korGo: () => { if (!this._kor) return; let r; try { r = window.BD.kor.run(this._kor, {}); } catch (err) { r = { log: [{ t: 'Import failed: ' + err.message, bad: true }] }; } this.setState({ korLog: r.log, korDone: true }); },
+      bkMsg: s.bkMsg || '',
+      bkStatus: (() => { const b = s.bk; if (!b) return 'Loading...'; const l = b.last || {}; if (!l.at) return 'No backup yet this time the app was opened. One is made a few seconds after opening.'; const t = new Date(l.at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); return !l.ok ? 'Backup failed: ' + l.error : l.extraOk === false ? 'Saved on this Mac at ' + t + ', but the second folder failed. ' + l.extraError : 'Last backup ' + t + (l.extraOk ? ' (also in the second folder)' : '') + '.'; })(),
+      bkColor: s.bk && s.bk.last && (s.bk.last.ok === false || s.bk.last.extraOk === false) ? '#B3261E' : '#1F7A3F',
+      bkDir: s.bk ? s.bk.dir : '', bkExtra: s.bk && s.bk.extraDir ? s.bk.extraDir : 'not set yet', bkHasExtra: !!(s.bk && s.bk.extraDir),
+      bkRun: () => { this.setState({ bkMsg: 'Backing up...' }); window.BDBackup.run().then((i) => this.setState({ bk: i, bkMsg: i.last && i.last.ok ? 'Backup saved.' : 'Backup failed.' })); },
+      bkChoose: () => window.BDBackup.choose().then((i) => this.setState({ bk: i, bkMsg: i.extraDir ? 'Second folder set. A backup was saved there.' : '' })),
+      bkKeepOpts: [[1, '1 day'], [3, '3 days'], [7, '7 days'], [30, '30 days']].map((o) => ({ label: o[1], go: () => window.BDBackup.keep(o[0]).then((i) => this.setState({ bk: i, bkMsg: 'Keeping the last ' + o[1] + ' of backups. Older ones were removed.' })), style: 'min-height: 44px; padding: 0 14px; font-size: 14px; font-weight: 700; border-radius: 10px; border: ' + ((s.bk ? s.bk.keep : 7) === o[0] ? '2px solid #2A2118' : '1px solid #DED8C8') + '; background: ' + ((s.bk ? s.bk.keep : 7) === o[0] ? '#EFE7D6' : '#FFFFFF') + '; color: #1D1B16' })),
+      bkClear: () => window.BDBackup.clear().then((i) => this.setState({ bk: i, bkMsg: 'Second folder removed.' })),
+      bkOpen: () => window.BDBackup.open(),
+      bkFiles: (s.bk ? s.bk.files : []).slice(0, 12).map((f) => ({ name: f.name, info: Math.round(f.size / 1024) + ' KB', restore: () => window.BDBackup.restore(f.name).then((r) => { if (!r.ok && r.error !== 'Cancelled.') this.setState({ bkMsg: r.error }); }) })),
+      updShow: typeof window !== 'undefined' && !!window.BDUpdate, updHasToken: !!(s.updInfo && s.updInfo.hasToken), updNeedToken: !(s.updInfo && s.updInfo.hasToken),
+      updVersion: s.updInfo ? 'Version ' + s.updInfo.version + (s.updInfo.date ? ' from ' + new Date(s.updInfo.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + (s.updInfo.updated ? ' (downloaded update)' : ' (installed with the app)') : 'Checking version...',
+      updTok: s.updTok, onUpdTok: (e) => this.setState({ updTok: String(e.target.value) }),
+      saveTok: () => window.BDUpdate.setToken(s.updTok).then((i) => this.setState({ updInfo: i, updTok: '', updMsg: 'Token saved. Press Check for updates.' })),
+      forgetTok: () => window.BDUpdate.setToken('').then((i) => this.setState({ updInfo: i, updAvail: null, updMsg: 'Token removed.' })),
+      checkUpd: () => { this.setState({ updMsg: 'Checking...' }); window.BDUpdate.check().then((r) => this.setState(r.ok ? { updAvail: r.available ? r : null, updMsg: r.available ? 'An update is ready (' + r.latest + ').' : 'You have the newest version.' } : { updMsg: r.error })); },
+      updAvail: !!s.updAvail, updMsg: s.updMsg,
+      applyUpd: () => { this.setState({ updMsg: 'Installing... the screen will reload.' }); window.BDUpdate.apply(s.updAvail.sha, s.updAvail.date).then((r) => this.setState(r.ok ? { updInfo: r, updAvail: null, updMsg: 'Updated.' } : { updMsg: r.error })); },
+      liveBoxStyle: 'border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; border: 3px solid ' + (live ? '#1F7A3F' : '#E0A12A') + '; background: ' + (live ? '#E8F6EC' : '#FFF6E0'),
+      liveTitle: live ? 'LIVE MODE is on' : 'TEST MODE is on',
+      liveText: live ? 'Every sale and every booked stock receipt is saved and queued to go to KORONA. Going back to test mode stops queuing; your live sales stay.' : 'Sales, receipts and stock changes stay on this computer and nothing is sent to KORONA. When you go live: all test sales are deleted and their stock is added back, receipt numbers start over, and from then on everything is queued for KORONA.',
+      liveArmed: s.armLive, liveCancel: () => this.setState({ armLive: false }),
+      liveBtn: s.armLive ? (live ? 'Press again: back to test mode' : 'Press again: GO LIVE and delete test sales') : (live ? 'Back to test mode' : 'Go live'),
+      liveBtnStyle: btn(s.armLive ? '#B3261E' : (live ? '#8A5A14' : '#1F7A3F')),
+      liveGo: () => { if (!BDx) return; if (!s.armLive) { this.setState({ armLive: true, liveMsg: '' }); return; }
+        if (live) { BDx.goTest(); this.setState({ armLive: false, liveMsg: 'Back in test mode. New sales are test sales again.' }); }
+        else { const r = BDx.goLive(); this.setState({ armLive: false, liveMsg: 'You are LIVE. Deleted ' + r.removed + ' test sales and added back ' + r.restored + ' units of stock. Receipt numbers start over.' }); } },
+      liveMsg: s.liveMsg,
+      liveQueue: 'Waiting to send to KORONA: ' + queued + (queued ? '. The KORONA connection is not set up yet, so these wait here safely and nothing is lost.' : '.'),
+      countText: list.length + (list.length === 1 ? ' setting' : ' settings') + (q ? ' match "' + s.q.trim() + '"' : ''), rows, none: list.length === 0 };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 User-agent: *
 Disallow: /food-stock
 Disallow: /api/
+Disallow: /office
 Sitemap: https://beerdepotpewaukee.com/sitemap.xml
