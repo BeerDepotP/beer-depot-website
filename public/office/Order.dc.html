@@ -151,11 +151,11 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px; font-weight: 700">{{ vgNote }}</div></sc-if>
 </div></sc-if>
 </div>
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 6px 16px 16px; overflow-x: auto">
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 6px 16px 16px">
 <div style="min-width: 1100px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 14px 0 6px"><h2 style="margin: 0; font-size: 17px; flex: 1 1 auto">{{ supplierName }}: tracked products</h2>
 <button onClick="{{ addTracked }}" style="min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 600; border: 1px solid #DED8C8; border-radius: 8px; background: #FFFFFF">Add tracked product</button></div>
-<div style="display: grid; grid-template-columns: 2fr .8fr 1.5fr .9fr .9fr 1.2fr 1fr 1.5fr 1fr; gap: 10px; padding: 12px 0 8px; border-bottom: 1px solid #DED8C8; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #6B6558; font-weight: 600">
+<div style="position: sticky; top: 0; z-index: 5; background: #FFFFFF; display: grid; grid-template-columns: 2fr .8fr 1.5fr .9fr .9fr 1.2fr 1fr 1.5fr 1fr; gap: 10px; padding: 12px 0 8px; border-bottom: 1px solid #DED8C8; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #6B6558; font-weight: 600">
 <div>Product</div><div style="text-align: right">Case</div><div>Sold, last 4 weeks</div><div style="text-align: right">Per week</div><div style="text-align: right">On hand</div><div style="text-align: right">Safety stock</div><div style="text-align: right">Days left</div><div style="text-align: center">Order (cases)</div><div style="text-align: right">Cost</div>
 </div>
 <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
