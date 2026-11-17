@@ -143,6 +143,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="min-width: 1100px">
 <div style="display: flex; align-items: center; gap: 10px; padding: 14px 0 6px"><h2 style="margin: 0; font-size: 17px; flex: 1 1 auto">{{ supplierName }}: tracked products</h2>
 <button onClick="{{ addTracked }}" style="min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 600; border: 1px solid #DED8C8; border-radius: 8px; background: #FFFFFF">Add tracked product</button></div>
+<sc-if value="{{ hasViewGroups }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 0 8px"><span style="font-size: 13px; font-weight: 700">Show only:</span><sc-for list="{{ viewGroups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.toggle }}" style="{{ g.style }}">{{ g.label }}</button></sc-for><sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ vgClear }}" style="min-height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; border: 1px solid #B3261E; border-radius: 99px; background: #FFFFFF; color: #B3261E">Show All</button></sc-if></div><sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: #4A453A; padding-bottom: 6px">{{ vgNote }}</div></sc-if></sc-if>
 <div style="display: grid; grid-template-columns: 2fr .8fr 1.5fr .9fr .9fr 1.2fr 1fr 1.5fr 1fr; gap: 10px; padding: 12px 0 8px; border-bottom: 1px solid #DED8C8; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #6B6558; font-weight: 600">
 <div>Product</div><div style="text-align: right">Case</div><div>Sold, last 4 weeks</div><div style="text-align: right">Per week</div><div style="text-align: right">On hand</div><div style="text-align: right">Safety stock</div><div style="text-align: right">Days left</div><div style="text-align: center">Order (cases)</div><div style="text-align: right">Cost</div>
 </div>
@@ -361,7 +362,7 @@ class Component extends DCLogic {
       totCases += cases; totUnits += cases * it.pack; totCost += cases * it.cost; if (cases > 0) lines += 1; if (isLow) low += 1;
       const setQ = (q) => { const o = Object.assign({}, s.over); o[k] = Math.max(0, Math.min(99, q)); this.setState({ over: o, status: '' }); };
       return {
-        _c: c.auto, code: it.code ? 'Item #' + it.code : '', name: it.name, pack: it.pack, note: changed ? 'You changed this (suggested ' + c.auto + ')' : (cases > 0 ? 'Suggested' : 'Enough on hand'),
+        _c: c.auto, _g: it.grp || '', code: it.code ? 'Item #' + it.code : '', name: it.name, pack: it.pack, note: changed ? 'You changed this (suggested ' + c.auto + ')' : (cases > 0 ? 'Suggested' : 'Enough on hand'),
         weeks: it.w.map((x) => Math.round(x * 10) / 10).join('  \u00B7  '), perWeek: (Math.round(c.weekly * 10) / 10) + '', onHand: it.onHand, safetyUnits: Math.round(c.safetyUnits) + ' units (' + Math.round(c.pct * 100) + '%)', safetyNote: c.why,
         daysLeft: daysLeft >= 99 ? '\u2014' : (Math.round(daysLeft * 10) / 10) + '',
         daysStyle: 'text-align: right; font-weight: 700; color: ' + (isLow ? '#B3261E' : '#1F7A3F'),
@@ -394,6 +395,9 @@ class Component extends DCLogic {
     const togg = (arr, v) => (arr.indexOf(v) >= 0 ? arr.filter((x) => x !== v) : arr.concat([v]));
     const fillGroups = Object.keys(fillGroupSet).sort().map((g) => ({ label: g, style: chipStyle(F.groups.indexOf(g) >= 0), toggle: () => this.setState({ fill: Object.assign({}, F, { groups: togg(F.groups, g) }) }) }));
     const fillTags = Object.keys(fillTagSet).sort().map((g) => ({ label: g, style: chipStyle(F.tags.indexOf(g) >= 0), toggle: () => this.setState({ fill: Object.assign({}, F, { tags: togg(F.tags, g) }) }) }));
+    const VG = (s.vg || []).filter((g) => rows.some((r) => r._g === g)), vgCount = {}; rows.forEach((r) => { if (r._g) vgCount[r._g] = (vgCount[r._g] || 0) + 1; });
+    const viewGroups = Object.keys(vgCount).sort().map((g) => ({ label: g + ' (' + vgCount[g] + ')', style: chipStyle(VG.indexOf(g) >= 0), toggle: () => this.setState({ vg: togg(VG, g) }) }));
+    const rowsShown = VG.length ? rows.filter((r) => VG.indexOf(r._g) >= 0) : rows;
     const TG = Object.assign({ name: '', groups: [], text: '', msg: '' }, s.tg || {});
     const allP = (this.isReal && window.BD && window.BD.get('products', {})) || {}, allGroupSet = {}, tagCount = {};
     Object.keys(allP).forEach((id) => { const p = allP[id]; if (!p) return; if (p.group) allGroupSet[p.group] = 1; (p.ptags || []).forEach((t) => { tagCount[t] = (tagCount[t] || 0) + 1; }); });
@@ -454,7 +458,7 @@ class Component extends DCLogic {
       syncNow: () => { if (s.syncBusy) return; if (!window.BD || !window.BD.kor || !window.BD.kor.sync) { this.setState({ status: 'The KORONA link needs the newest Mac app.' }); return; }
         this.setState({ syncBusy: true, status: 'Asking KORONA for the latest stock and sales...' });
         window.BD.kor.sync({ enable: true }).then((r) => { if (r.ok) { window.location.reload(); } else { this.setState({ syncBusy: false, status: 'Sync problem: ' + r.error }); } }); },
-      modeNote: this.isReal ? 'Real products and sales' : 'Sample data for the mockup', tabs, rows, cards, basisOpts, supplierName: sup.name, days: String(s.days), lead: String(s.lead), safety: String(s.safety), nextDate,
+      modeNote: this.isReal ? 'Real products and sales' : 'Sample data for the mockup', tabs, rows: rowsShown, viewGroups, hasViewGroups: viewGroups.length > 1, vgOn: VG.length > 0, vgClear: () => this.setState({ vg: [] }), vgNote: 'Showing only ' + VG.join(', ') + ' (' + rowsShown.length + ' of ' + rows.length + ' products). The order totals still count everything.', cards, basisOpts, supplierName: sup.name, days: String(s.days), lead: String(s.lead), safety: String(s.safety), nextDate,
       daysMinus: () => { const v = Math.max(1, s.days - 1); this.persistSup({ days: v }); this.setState({ days: v, over: {}, status: '' }); },
       daysPlus: () => { const v = Math.min(60, s.days + 1); this.persistSup({ days: v }); this.setState({ days: v, over: {}, status: '' }); },
       onDays: (e) => { const v = clampInt(e.target.value, 1, 60); this.persistSup({ days: v }); this.setState({ days: v, over: {}, status: '' }); },
