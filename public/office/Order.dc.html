@@ -18,7 +18,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </helmet>
 <div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #F5F3EE; font-family: Inter, system-ui, sans-serif; color: #1D1B16">
 
-<nav class="noprint" aria-label="Back office" style="flex: 1 1 220px; max-width: 240px; background: #2A2118; color: #E9DFCC; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px">
+<nav class="noprint" aria-label="Back office" style="flex: 1 1 220px; max-width: 240px; background: #2A2118; color: #E9DFCC; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; align-self: flex-start; max-height: 100vh; overflow-y: auto; box-sizing: border-box">
 <div class="bdlogo" role="img" aria-label="The Beer Depot POS" style="width: 150px; height: 87px; margin: 0 10px 14px"></div>
 <div style="font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: #CDBF9F; padding: 14px 10px 4px">Stock</div>
 <a href="Order.dc.html" style="color: #FFFFFF; background: #8A5A14; font-weight: 600; text-decoration: none; padding: 12px 10px; border-radius: 8px; font-size: 15px">Ordering</a>
@@ -44,6 +44,12 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <button onClick="{{ syncNow }}" style="min-height: 36px; padding: 0 14px; font-size: 13px; font-weight: 700; border: 1px solid #8A5A14; border-radius: 99px; background: #FFFFFF; color: #1D1B16">{{ syncBtn }}</button>
 </div>
 
+<div role="tablist" aria-label="Order screens" style="display: flex; gap: 6px">
+<button role="tab" onClick="{{ goOrderView }}" style="{{ tabOrderStyle }}">Ordering</button>
+<button role="tab" onClick="{{ goTagsView }}" style="{{ tabTagsStyle }}">My Tags</button>
+</div>
+
+<sc-if value="{{ viewOrder }}" hint-placeholder-val="{{ true }}"><div style="display: contents">
 <div role="tablist" aria-label="Suppliers" style="display: flex; flex-wrap: wrap; gap: 6px">
 <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
 <button role="tab" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.name }}<span style="{{ t.badgeStyle }}">{{ t.badge }}</span></button>
@@ -94,6 +100,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Cases</label><input value="{{ fillCases }}" onInput="{{ fillCasesIn }}" inputmode="numeric" style="width: 80px; box-sizing: border-box; min-height: 44px; font: inherit; font-size: 18px; font-weight: 700; text-align: center; border: 1px solid #DED8C8; border-radius: 8px"></div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Name contains</label><input value="{{ fillText }}" onInput="{{ fillTextIn }}" placeholder="e.g. HIGH NOON" style="width: 200px; box-sizing: border-box; min-height: 44px; font: inherit; font-size: 15px; border: 1px solid #DED8C8; border-radius: 8px; padding: 0 10px"></div>
 <button onClick="{{ fillRun }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF">Suggest</button>
+<button onClick="{{ fillClear }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Clear</button>
 </div>
 <div style="font-size: 14px; font-weight: 700">{{ fillMsg }}</div>
 <sc-if value="{{ fillHas }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column">
@@ -103,7 +110,9 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </div></sc-if>
 </div>
 
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+</div></sc-if>
+
+<sc-if value="{{ viewTags }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
 <div style="font-size: 18px; font-weight: 800">My tags</div>
 <div style="font-size: 14px; color: #4A453A; line-height: 1.45">Make your own tags here, for example Liquor, and put them on many products at once. Tags stay in this POS only. They are never sent to KORONA and the KORONA sync never changes them. Pick the commodity groups below (and/or a word in the name), type the tag, and press Add. Your groups are not changed.</div>
 <div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{ tagGroups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.toggle }}" style="{{ g.style }}">{{ g.label }}</button></sc-for></div>
@@ -116,6 +125,9 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="font-size: 14px; font-weight: 700">{{ tagMsg }}</div>
 <div style="font-size: 13px; color: #4A453A">{{ tagList }}</div>
 </div>
+</sc-if>
+
+<sc-if value="{{ viewOrder }}" hint-placeholder-val="{{ true }}"><div style="display: contents">
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
 <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
@@ -170,6 +182,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </div>
 
 <div style="font-size: 13px; color: #4A453A; max-width: 860px">How the number is worked out: units sold per day, times (days until the next order + delivery days), plus a safety cushion, minus what is on hand, then rounded up to whole cases. The cushion starts at the base percent (20%). Slow sellers get less. Fast sellers and products whose weekly sales jump around get more, so a surge does not empty the shelf. Change the days and every supplier&apos;s order updates. Use the plus and minus to override a line; it is marked as changed.</div>
+</div></sc-if>
 </main>
 </div>
 <sc-if value="{{ editOpen }}" hint-placeholder-val="{{ false }}">
@@ -429,6 +442,9 @@ class Component extends DCLogic {
       style: 'min-height: 44px; padding: 0 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: ' + (s.basis === b[0] ? '2px solid #2A2118' : '1px solid #DED8C8') + '; background: ' + (s.basis === b[0] ? '#EFE7D6' : '#FFFFFF') + '; color: #1D1B16'
     }));
     return {
+      viewOrder: s.view !== 'tags', viewTags: s.view === 'tags', goOrderView: () => this.setState({ view: 'order' }), goTagsView: () => this.setState({ view: 'tags' }),
+      tabOrderStyle: chipStyle(s.view !== 'tags'), tabTagsStyle: chipStyle(s.view === 'tags'),
+      fillClear: () => this.setState({ fill: { cases: '10', groups: [], tags: [], text: '', rows: null, msg: '' } }),
       fillCases: F.cases, fillCasesIn: (e) => setFill({ cases: String(e.target.value).replace(/[^0-9]/g, '') }), fillGroups, fillTags, fillHasTags: fillTags.length > 0, fillTagNote: fillTags.length ? '' : 'No tags found for these products yet. Make one in My tags below.', fillText: F.text, fillTextIn: (e) => setFill({ text: String(e.target.value) }), fillRun, fillMsg: F.msg || '', fillHas: fillRowsList.length > 0, fillRows: fillView, fillCounter, fillCounterStyle: 'font-size: 20px; font-weight: 800; color: ' + fillCounterColor, fillApply,
       hasDeliv: dl.length >= 2 && dUse !== s.lead, delivNote: 'Real deliveries: about ' + (Math.round(dAvg * 10) / 10) + ' days over the last ' + dl.length + ' orders.', delivBtn: 'Use ' + dUse, delivUse: () => { this.persistSup({ lead: dUse }); this.setState({ lead: dUse, over: {}, status: 'Delivery time for ' + sup.name + ' set to ' + dUse + ' days.' }); },
       tagGroups, tagName: TG.name, tagText: TG.text, tagMsg: TG.msg, tagList: Object.keys(tagCount).length ? 'Your tags: ' + Object.keys(tagCount).sort().map((t) => t + ' (' + tagCount[t] + ' products)').join(', ') : 'No tags yet.',
