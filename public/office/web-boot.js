@@ -97,7 +97,9 @@
 
   if (cache['state:Receive:v1'] == null) { cache['state:Receive:v1'] = JSON.stringify({ promotions: [], invoices: [], counts: [], adjLog: [], lists: [], lines: [] }); queue('state:Receive:v1'); }
 
-  window.BDWeb = { signOut: function () { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } location.reload(); } };
+  // Waits until everything is saved to the server (used before a page reload so a sync is not thrown away)
+  function whenSaved() { return new Promise(function (res) { var t0 = Date.now(); (function chk() { if (Object.keys(pending).length && !busy && !timer) flush(); if ((!Object.keys(pending).length && !busy) || Date.now() - t0 > 120000) return res(); setTimeout(chk, 250); })(); }); }
+  window.BDWeb = { whenSaved: whenSaved, reloadWhenSaved: function () { clearTimeout(timer); timer = null; flush(); whenSaved().then(function () { location.reload(); }); }, signOut: function () { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } location.reload(); } };
   window.BDDisk = {
     get: function (k) { return Object.prototype.hasOwnProperty.call(cache, k) ? cache[k] : null; },
     set: function (k, text) { cache[k] = String(text); queue(k); return true; },
