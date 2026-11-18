@@ -20,7 +20,7 @@ for p in PAGES:
     s = s.replace('<script src="./support.js"></script>', '<script src="./web-boot.js"></script>')
     s = re.sub(r'<a href="(%s)\.dc\.html"[^>]*>.*?</a>\n?' % GONE, '', s, flags=re.S)
     s = re.sub(r'<div style="[^"]*">(Business)</div>\n?', '', s)
-    s = s.replace('if (r.ok) { window.location.reload(); }', 'if (r.ok) { window.BDWeb.reloadWhenSaved(); }')
+    s = s.replace('setTimeout(() => window.location.reload(), 1200)', 'window.BDWeb.reloadWhenSaved()')
     s = s.replace('<meta charset="utf-8">', '<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="manifest" href="/office/manifest.webmanifest"><link rel="icon" type="image/png" href="/office/icon-192.png"><link rel="apple-touch-icon" href="/office/apple-touch-icon.png"><meta name="theme-color" content="#12264E"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Beer Depot POS"><meta name="apple-mobile-web-app-status-bar-style" content="default">', 1)
     open(os.path.join(dst, p + '.dc.html'), 'w', encoding='utf8').write(s)
 # Home-screen app (manifest + Beer Depot POS icon, same logo as the Mac app)
