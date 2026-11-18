@@ -120,7 +120,7 @@ export function makeKorona(o) {
       // promotions: the shape of KORONA's promotion data is not documented well, so it is only read and counted for now
       let promotions = null, promoNote = '';
       for (const pth of ['/promotions', '/discounts']) { try { promotions = (await getAll(s, A + pth)).slice(0, 300); promoNote = pth; break; } catch (e) { promoNote = 'not available (' + (e.status || e.message) + ')'; } }
-      return { at: new Date().toISOString(), account: s.account, promotions, promoNote, units, products, stocks, maxRevision: maxRev, partial: !!opts.sinceRevision };
+      return { at: new Date().toISOString(), account: s.account, promotions, promoNote, units, products, stocks, maxRevision: maxRev, partial: !!opts.sinceRevision, diag: { since: opts.sinceRevision || 0, groups: Object.keys(groups).length, orgUnits: ou.length, raw: raw.length, host: s.host, acct: String(s.account || '').slice(0, 4) + '...' } };
     }
   };
   return k;

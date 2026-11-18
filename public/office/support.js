@@ -455,10 +455,10 @@
       if (SYNC.running) return Promise.resolve({ ok: false, error: 'A sync is already running.' });
       if (!window.BDKorona) return Promise.resolve({ ok: false, error: 'The KORONA link needs the newest Mac app.' });
       SYNC.running = true; var st = syncState();
-      var noProds = !Object.keys(BD.get('products', null) || {}).length; /* no products here (fresh web copy): always do a full pull, never just 'what changed' */
+      var noProds = Object.keys(BD.get('products', null) || {}).length < 100; /* no products here (fresh web copy): always do a full pull, never just 'what changed' */
       return window.BDKorona.pull({ sinceRevision: opts.full || opts.dry || noProds ? 0 : st.revision || 0 }).then(function (r) {
         if (!r.ok) throw new Error(r.error);
-        var res = applyApi(r.data, { dry: !!opts.dry }); res.ok = !res.error; res.at = r.data.at; res.units = r.data.units; res.got = (r.data.products || []).length; res.maxRev = r.data.maxRevision;
+        var res = applyApi(r.data, { dry: !!opts.dry }); res.ok = !res.error; res.at = r.data.at; res.units = r.data.units; res.got = (r.data.products || []).length; res.diag = r.data.diag || null; res.maxRev = r.data.maxRevision;
         res.promoCount = r.data.promotions ? r.data.promotions.length : 0; res.promoNote = r.data.promoNote || '';
         return window.BDKorona.receipts({ sinceRevision: opts.full || opts.dry || noProds ? 0 : st.rcvRev || 0 }).then(function (q) {
           if (q.ok) { res.rc = applyReceipts(q.data, { dry: !!opts.dry }); if (!opts.dry) st.rcvRev = q.data.maxRevision || st.rcvRev; } else res.rcError = q.error; return window.BDKorona.gift(); })
