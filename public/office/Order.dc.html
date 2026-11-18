@@ -91,7 +91,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="background: #FFFFFF; border: 2px solid #F26B1D; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
 <button onClick="{{ mixToggle }}" style="display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; padding: 0; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer"><span style="font-size: 18px; font-weight: 800">Fill a deal or a mixed order</span><span style="font-size: 15px; font-weight: 700; color: #F26B1D">{{ mixArrow }}</span></button>
 <sc-if value="{{ mixOpen }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px">
-<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Say how many cases you want to buy from {{ supplierName }}. The POS ranks every matching product by how soon you would run out, including ones you do not need this week, and spreads the cases starting with the most needed. Pick several groups at once (vodka, whisky, gin) or a tag like Liquor, and optionally a word in the name such as High Noon.</div>
+<div style="font-size: 14px; color: #4A453A; line-height: 1.45">Say how many cases you want to buy from {{ supplierName }}. The POS ranks every matching product by how soon you would run out, including ones you do not need this week, and spreads the cases starting with the most needed. Pick several groups at once (vodka, whisky, gin) or a tag like Liquor, and optionally one or more names, separated by commas, such as fireball, jim beam, seagrams, skol (they are mixed together).</div>
 <div style="font-size: 13px; font-weight: 700">Commodity groups (pick one or several; leave all unpicked for any)</div>
 <div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{ fillGroups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.toggle }}" style="{{ g.style }}">{{ g.label }}</button></sc-for></div>
 <sc-if value="{{ fillHasTags }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; font-weight: 700">My tags (a product with any picked tag counts)</div>
@@ -99,7 +99,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="font-size: 12px; color: #6B6558">{{ fillTagNote }}</div>
 <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Cases</label><input value="{{ fillCases }}" onInput="{{ fillCasesIn }}" inputmode="numeric" style="width: 80px; box-sizing: border-box; min-height: 44px; font: inherit; font-size: 18px; font-weight: 700; text-align: center; border: 1px solid #DED8C8; border-radius: 8px"></div>
-<div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Name contains</label><input value="{{ fillText }}" onInput="{{ fillTextIn }}" placeholder="e.g. HIGH NOON" style="width: 200px; box-sizing: border-box; min-height: 44px; font: inherit; font-size: 15px; border: 1px solid #DED8C8; border-radius: 8px; padding: 0 10px"></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Name contains</label><input value="{{ fillText }}" onInput="{{ fillTextIn }}" placeholder="e.g. fireball, jim beam, skol" style="width: 300px; box-sizing: border-box; min-height: 44px; font: inherit; font-size: 15px; border: 1px solid #DED8C8; border-radius: 8px; padding: 0 10px"></div>
 <button onClick="{{ fillRun }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF">Suggest</button>
 <button onClick="{{ fillClear }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Clear</button>
 </div>
@@ -147,7 +147,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="font-size: 14px; color: #4A453A; line-height: 1.45">Only changes what you see below. No cases needed, and the order totals still count every product.</div>
 <div style="font-size: 13px; font-weight: 700">Commodity groups (pick one or several; leave all unpicked for any)</div>
 <div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{ viewGroups }}" as="g" hint-placeholder-count="4"><button onClick="{{ g.toggle }}" style="{{ g.style }}">{{ g.label }}</button></sc-for></div>
-<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end"><div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Name contains</label><input value="{{ vqText }}" onInput="{{ vqIn }}" placeholder="for example zyn" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; min-width: 240px"></div><sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ vgClear }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Show All</button></sc-if></div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end"><div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 700">Name contains</label><input value="{{ vqText }}" onInput="{{ vqIn }}" placeholder="for example zyn, copenhagen" style="font: inherit; font-size: 15px; min-height: 44px; padding: 0 10px; min-width: 300px"></div><sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ vgClear }}" style="min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Show All</button></sc-if></div>
 <sc-if value="{{ vgOn }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px; font-weight: 700">{{ vgNote }}</div></sc-if>
 </div></sc-if>
 </div>
@@ -407,7 +407,7 @@ class Component extends DCLogic {
     const fillGroups = Object.keys(fillGroupSet).sort().map((g) => ({ label: g, style: chipStyle(F.groups.indexOf(g) >= 0), toggle: () => this.setState({ fill: Object.assign({}, F, { groups: togg(F.groups, g) }) }) }));
     const fillTags = Object.keys(fillTagSet).sort().map((g) => ({ label: g, style: chipStyle(F.tags.indexOf(g) >= 0), toggle: () => this.setState({ fill: Object.assign({}, F, { tags: togg(F.tags, g) }) }) }));
     const VG = (s.vg || []).filter((g) => rows.some((r) => r._g === g)), VQ = String(s.vq || '').trim().toLowerCase(), vqWords = VQ.split(/\s+/).filter(Boolean);
-    const textOk = (r) => !vqWords.length || window.BD.hit(r.name, vqWords), vgCount = {}; rows.forEach((r) => { if (r._g && textOk(r)) vgCount[r._g] = (vgCount[r._g] || 0) + 1; });
+    const textOk = (r) => !vqWords.length || window.BD.hitAny(r.name, VQ), vgCount = {}; rows.forEach((r) => { if (r._g && textOk(r)) vgCount[r._g] = (vgCount[r._g] || 0) + 1; });
     VG.forEach((g) => { if (!vgCount[g]) vgCount[g] = 0; });
     const viewGroups = Object.keys(vgCount).sort().map((g) => ({ label: g + ' (' + vgCount[g] + ')', style: chipStyle(VG.indexOf(g) >= 0), toggle: () => this.setState({ vg: togg(VG, g) }) }));
     const vgActive = VG.length > 0 || vqWords.length > 0;
@@ -421,7 +421,7 @@ class Component extends DCLogic {
       const nm = String(TG.name || '').trim(); if (!nm) { setTg({ msg: 'Type the tag name first.' }); return; }
       const txt = String(TG.text || '').trim().toLowerCase(); if (!TG.groups.length && !txt) { setTg({ msg: 'Pick at least one group or type a word from the name.' }); return; }
       const P = window.BD.get('products', {}); let n = 0;
-      Object.keys(P).forEach((id) => { const p = P[id]; if (!p) return; if (TG.groups.length && TG.groups.indexOf(p.group || '') < 0) return; if (txt && !window.BD.hit(p.name, String(txt).split(/\s+/).filter(Boolean))) return;
+      Object.keys(P).forEach((id) => { const p = P[id]; if (!p) return; if (TG.groups.length && TG.groups.indexOf(p.group || '') < 0) return; if (txt && !window.BD.hitAny(p.name, txt)) return;
         const cur = p.ptags || [], has = cur.indexOf(nm) >= 0; if (add && !has) { p.ptags = cur.concat([nm]); n++; } else if (!add && has) { p.ptags = cur.filter((x) => x !== nm); n++; } });
       if (window.BD.set('products', P) === false) { setTg({ msg: 'Could not save.' }); return; }
       const d = this.buildReal(); if (d) this.data = d; this.setState({ tg: Object.assign({}, TG, { msg: (add ? 'Tag "' + nm + '" added to ' : 'Tag "' + nm + '" taken off ') + n + ' products.' }) }); };
@@ -429,7 +429,7 @@ class Component extends DCLogic {
     const fillRun = () => {
       const N = clampInt(F.cases, 1, 500), txt = String(F.text || '').trim().toLowerCase(), elig = [];
       sup.items.forEach((it0, ii) => { if (!stat(s.sup, ii).on) return; const it = item(s.sup, ii);
-        if ((F.groups.length || F.tags.length) && !(F.groups.indexOf(it.grp || '') >= 0 || (it.tags || []).some((t) => F.tags.indexOf(t) >= 0))) return; if (txt && !window.BD.hit(it.name, txt.split(/\s+/).filter(Boolean))) return;
+        if ((F.groups.length || F.tags.length) && !(F.groups.indexOf(it.grp || '') >= 0 || (it.tags || []).some((t) => F.tags.indexOf(t) >= 0))) return; if (txt && !window.BD.hitAny(it.name, txt)) return;
         const c = calc(it, s.lead, s.days); if (!(c.perDay > 0)) return;
         elig.push({ ii, it, c, alloc: 0, over: false, cap: c.weekly * (/^fast/.test(c.why) ? 6 : /^slow/.test(c.why) ? 4 : 5) }); });
       if (!elig.length) { setFill({ rows: [], msg: 'Nothing matches those groups, tags or that name with sales in the last 4 weeks. Check the spelling or pick another group.' }); return; }

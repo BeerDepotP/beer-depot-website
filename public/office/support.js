@@ -27,6 +27,9 @@
       var text = !last ? 'never synced' : !last.ok ? 'last try failed ' + when : 'synced ' + when;
       return { fresh: fresh, text: text, bg: fresh ? '#E7F4EC' : '#FBE3E1', border: fresh ? '#1F7A3F' : '#B3261E', color: fresh ? '#14572D' : '#8C1D14' };
     },
+    // Several names at once: "fireball, jim beam, seagrams, skol" (separate with commas). A product matches if it matches ANY of them;
+    // words inside one name must all be there. Empty text matches everything.
+    hitAny: function (hay, text) { var terms = String(text || '').toLowerCase().split(/[,;+|\n]+/).map(function (x) { return x.trim(); }).filter(Boolean); if (!terms.length) return true; for (var i = 0; i < terms.length; i++) { if (BD.hit(hay, terms[i].split(/\s+/).filter(Boolean))) return true; } return false; },
     hit: function (hay, words) { hay = String(hay || '').toLowerCase(); var sq = hay.replace(/[^a-z0-9]/g, ''); for (var i = 0; i < words.length; i++) { var w = words[i]; if (hay.indexOf(w) >= 0) continue; var x = w.replace(/[^a-z0-9]/g, ''); if (!x || sq.indexOf(x) < 0) return false; } return true; },
     get: function (k, d) { try { var v = raw.get(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set: function (k, v) { var ok = raw.set(k, JSON.stringify(v)); if (!ok) { BD.saveFailed = true; try { console.error('BD: could not save ' + k); } catch (e) { /* ignore */ } }
