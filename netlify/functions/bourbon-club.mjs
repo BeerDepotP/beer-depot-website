@@ -5,6 +5,7 @@
 // The weekly email itself is bourbon-club-weekly.mjs (Thursdays 5 PM Central).
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
+import { tooMany } from "../lib/throttle.mjs";
 import { checkPin } from "../lib/pin.mjs";
 import { storeInfo } from "../lib/info.mjs";
 import { sendTest, clubEmail, cleanContent, DEFAULTS, LIMITS } from "../lib/club-email.mjs";
@@ -38,6 +39,7 @@ export default async (req) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: "Please enter a valid email address." }, 400);
   if (!b.of_age) return json({ error: "You must be 21 or older to join." }, 400);
   const store = getStore({ name: "beer-depot", consistency: "strong" });
+  if (await tooMany(store, "club", 6, 3600000)) return json({ error: "Too many tries. Please try again in a little while." }, 429);
   const list = (await store.get(KEY, { type: "json" })) || {};
   if (!list[email]) {
     list[email] = { joined: new Date().toISOString(), token: randomBytes(12).toString("hex"), source: String(b.source || "website").replace(/[^a-z]/g, "").slice(0, 12) };

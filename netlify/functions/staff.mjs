@@ -11,7 +11,7 @@ import { checkPin, pinUser, hashPin, json, AREAS } from "../lib/pin.mjs";
 
 const one = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 const okColor = c => /^#[0-9A-Fa-f]{6}$/.test(String(c || ""));
-const okPin = p => /^\d{4,12}$/.test(String(p || ""));
+const okPin = p => /^\d{6,12}$/.test(String(p || ""));
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "Not allowed." }, 405);
@@ -32,7 +32,7 @@ export default async (req) => {
   const pinTaken = (p, exceptId) => p === process.env.FOOD_PIN || d.members.some(m => m.id !== exceptId && hashPin(p, m.salt) === m.hash);
 
   if (b.action === "add" || (b.action === "update" && b.newPin)) {
-    if (!okPin(b.newPin)) return json({ error: "PINs are 4 to 12 numbers." }, 400);
+    if (!okPin(b.newPin)) return json({ error: "PINs are 6 to 12 numbers." }, 400);
     if (pinTaken(String(b.newPin), b.id)) return json({ error: "That PIN is already used. Pick another." }, 400);
   }
   if ((b.action === "add" || b.action === "update") && okColor(b.color)) {

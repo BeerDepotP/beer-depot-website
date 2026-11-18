@@ -3,14 +3,14 @@
 (function () {
   'use strict';
   var PIN_KEY = 'bdo-pin', URL_API = '/api/office', BG = '/.netlify/functions/office-job-background', CHUNK = 3 * 1024 * 1024;
-  var pin = ''; try { pin = localStorage.getItem(PIN_KEY) || ''; } catch (e) { /* none */ }
+  var pin = ''; try { pin = localStorage.getItem(PIN_KEY) || ''; var seen = parseInt(localStorage.getItem(PIN_KEY + '-at') || '0', 10); /* the saved PIN is forgotten after 7 days of not opening the Back Office */ if (pin && (!seen || Date.now() - seen > 7 * 86400000)) { localStorage.removeItem(PIN_KEY); pin = ''; } if (pin) localStorage.setItem(PIN_KEY + '-at', String(Date.now())); } catch (e) { /* none */ }
 
   function login(msg) {
     document.write('<meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">' +
       '<style>body{margin:0;background:#F5F3EE;font-family:Inter,system-ui,sans-serif;color:#1D1B16}.bdo-l{max-width:360px;margin:12vh auto 0;padding:24px;background:#fff;border-radius:16px;box-shadow:0 2px 14px rgba(0,0,0,.08)}' +
       '.bdo-l h1{font-size:22px;margin:0 0 6px}.bdo-l p{margin:0 0 14px;color:#6B6558;font-size:14px}.bdo-l input{width:100%;box-sizing:border-box;font:inherit;font-size:22px;text-align:center;letter-spacing:.2em;padding:12px;border:1px solid #CFC7B4;border-radius:10px}' +
       '.bdo-l button{margin-top:12px;width:100%;min-height:50px;font:inherit;font-size:17px;font-weight:700;border:0;border-radius:10px;background:#F26B1D;color:#fff;cursor:pointer}.bdo-e{color:#8C1D14;font-size:14px;margin-top:10px;min-height:18px}</style>' +
-      '<form class="bdo-l" onsubmit="try{localStorage.setItem(\'' + PIN_KEY + '\',this.p.value.trim())}catch(e){};location.reload();return false"><h1>The Beer Depot</h1><p>Back Office. Enter the owner PIN.</p>' +
+      '<form class="bdo-l" onsubmit="try{localStorage.setItem(\'' + PIN_KEY + '\',this.p.value.trim());localStorage.setItem(\'' + PIN_KEY + '-at\',String(Date.now()))}catch(e){};location.reload();return false"><h1>The Beer Depot</h1><p>Back Office. Enter the owner PIN.</p>' +
       '<input name="p" type="password" inputmode="numeric" autocomplete="current-password" autofocus><button type="submit">Open</button><div class="bdo-e">' + (msg || '') + '</div></form><!--');
   }
   if (!pin) { login(''); return; }

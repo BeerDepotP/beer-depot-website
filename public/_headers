@@ -1,3 +1,11 @@
+/*
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: microphone=(), usb=(), payment=()
+  Strict-Transport-Security: max-age=31536000
+
 /food-stock/sw.js
   Cache-Control: no-cache
 /food-stock/manifest.json

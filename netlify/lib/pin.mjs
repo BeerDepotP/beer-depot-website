@@ -2,13 +2,16 @@
 // The owner's PIN is the FOOD_PIN environment variable in Netlify and opens everything, including the Staff tab.
 // Staff PINs are added in Store Tools → Staff (Blobs "staff", stored scrambled, never in plain text) and only open
 // the tabs the owner ticked for that person. No Netlify setting is needed for staff.
-// After MAX_FAILS wrong PINs, every PIN check is locked for LOCK_MINUTES.
+// Wrong PINs are counted per visitor (IP address). After MAX_FAILS wrong PINs that visitor is locked out for 15 minutes, then 1 hour, then 4 hours
+// if they keep guessing. If very many wrong PINs arrive from everywhere at once, all PIN checks pause for 15 minutes.
 import { createHash } from "node:crypto";
 import { describe, logChange } from "./activity.mjs";
+import { visitorIp } from "./throttle.mjs";
 
 const LOCK_KEY = "pin-lock";
 const MAX_FAILS = 8;
-const LOCK_MINUTES = 15;
+const LOCK_STEPS = [15, 60, 240];                 // minutes, by how many times this visitor has been locked
+const GLOBAL_FAILS = 60, GLOBAL_WINDOW = 15 * 60000;
 export const AREAS = ["schedule", "food", "sales", "seasonal", "hours", "notify", "layout", "banners", "drinks", "nofind", "top", "requests", "club"];
 
 function samePin(a, b) {
@@ -35,17 +38,26 @@ export async function pinUser(store, pin) {
 // body (optional): the request, so changes can be written to the activity log shown in the Staff tab.
 export async function checkPin(store, pin, area, body, logArea) {
   if (!process.env.FOOD_PIN) return { error: "The PIN isn't set up yet in Netlify (FOOD_PIN).", status: 503 };
-  const lock = (await store.get(LOCK_KEY, { type: "json" })) || { fails: 0, until: 0 };
-  if (lock.until && Date.now() < lock.until) {
-    return { error: `Too many wrong PINs. Try again in ${Math.ceil((lock.until - Date.now()) / 60000)} min.`, status: 429 };
-  }
+  const now = Date.now(), ip = visitorIp();
+  let lock = null; try { lock = await store.get(LOCK_KEY, { type: "json" }); } catch {}
+  lock = lock && lock.ips ? lock : { ips: {}, g: [], gUntil: 0 };
+  for (const k of Object.keys(lock.ips)) if (now - (lock.ips[k].at || 0) > 86400000) delete lock.ips[k];
+  const rec = lock.ips[ip] || { fails: 0, until: 0, strikes: 0, at: now };
+  const wait = u => `Too many wrong PINs. Try again in ${Math.ceil((u - now) / 60000)} min.`;
+  if (rec.until && now < rec.until) return { error: wait(rec.until), status: 429 };
+  if (lock.gUntil && now < lock.gUntil) return { error: wait(lock.gUntil), status: 429 };
   const who = await pinUser(store, pin);
   if (!who) {
-    const fails = (lock.until && Date.now() >= lock.until ? 0 : lock.fails) + 1;
-    await store.setJSON(LOCK_KEY, fails >= MAX_FAILS ? { fails: 0, until: Date.now() + LOCK_MINUTES * 60000 } : { fails, until: 0 });
+    rec.fails++; rec.at = now;
+    if (rec.fails >= MAX_FAILS) { rec.until = now + LOCK_STEPS[Math.min(rec.strikes, LOCK_STEPS.length - 1)] * 60000; rec.strikes++; rec.fails = 0; }
+    lock.ips[ip] = rec;
+    lock.g = (lock.g || []).filter(t => now - t < GLOBAL_WINDOW).concat(now);
+    if (lock.g.length >= GLOBAL_FAILS) { lock.gUntil = now + GLOBAL_WINDOW; lock.g = []; }
+    if (Object.keys(lock.ips).length > 2000) lock.ips = { [ip]: rec };
+    await store.setJSON(LOCK_KEY, lock);
     return { error: "Wrong PIN.", status: 401 };
   }
-  if (lock.fails || lock.until) await store.setJSON(LOCK_KEY, { fails: 0, until: 0 });
+  if (rec.fails || rec.until) { rec.fails = 0; rec.until = 0; lock.ips[ip] = rec; await store.setJSON(LOCK_KEY, lock); }
   if (area && !who.owner) {
     const need = Array.isArray(area) ? area : [area];
     if (need.includes("owner") || !need.some(a => who.tabs.includes(a))) return { error: "Your PIN doesn't have access to that. Ask the owner.", status: 403 };

@@ -688,7 +688,7 @@
     <div class="card sp-card bt-card">
       <h3 class="grp" style="margin:0">Add a Staff Member</h3>
       <label class="help" for="stf-name">Name</label><input id="stf-name" maxlength="40" autocomplete="off" placeholder="Example: Jake">
-      <label class="help" for="stf-pin">Their PIN (4 to 12 Numbers)</label><input id="stf-pin" inputmode="numeric" maxlength="12" autocomplete="off">
+      <label class="help" for="stf-pin">Their PIN (6 to 12 Numbers)</label><input id="stf-pin" inputmode="numeric" maxlength="12" autocomplete="off">
       <span class="help" style="margin:0">Their Color on the Schedule</span><div class="sch-cols" id="stf-cols"></div>
       <ul class="sw-list"><li><span><span class="nm">Manager</span><span class="st" id="stf-mgr-st">Off: only the tabs ticked below</span></span><button class="sw" id="stf-mgr" role="switch" aria-checked="false" aria-label="Manager"></button></li></ul>
       <span class="help" style="margin:0">Tabs They Can Use</span><div class="stf-tabs" id="stf-tabs"></div>
@@ -1535,7 +1535,7 @@ const loadStaff = () => { $("#stf-tabs").innerHTML = tabBoxes(["food"], 'data-ne
 $("#stf-add").onclick = async ()=>{
   const name = $("#stf-name").value.trim(), np = $("#stf-pin").value.trim(), tabs = $$("[data-newtab]:checked").map(i=>i.value);
   if(!name){ toast("Type the person's name.",true); return; }
-  if(!/^\d{4,12}$/.test(np)){ toast("PINs are 4 to 12 numbers.",true); return; }
+  if(!/^\d{6,12}$/.test(np)){ toast("PINs are 6 to 12 numbers.",true); return; }
   if(!tabs.length){ toast("Pick at least one tab.",true); return; }
   await staffCall({action:"add", name, newPin:np, tabs, color: stfNewCol, manager: $("#stf-mgr").getAttribute("aria-checked") === "true"}, name + ": Added");
   $("#stf-mgr").setAttribute("aria-checked","false"); $("#stf-mgr-st").textContent = "Off: only the tabs ticked below"; $("#stf-mgr-st").classList.remove("on");
@@ -1550,14 +1550,14 @@ $("#stf-list").addEventListener("click", async e=>{
   if(e.target.closest("[data-stfon]")){ staffCall({action:"update", id, on: !m.on}, m.name + (m.on ? ": PIN Turned Off" : ": PIN Turned On")); return; }
   if(e.target.closest("[data-stfsave]")){ staffCall({action:"update", id, tabs: [...card.querySelectorAll("[data-stftab]:checked")].map(i=>i.value)}, m.name + ": Saved"); return; }
   if(e.target.closest("[data-stfrm]")){ if(await askYes("Remove " + m.name + "? Their PIN stops working right away.", "Remove", true)) staffCall({action:"remove", id}, m.name + ": Removed"); return; }
-  if(e.target.closest("[data-stfpin]")){ const np = await askPin("New PIN for " + m.name + " (4 to 12 numbers)"); if(np) staffCall({action:"update", id, newPin: np}, m.name + ": PIN Changed"); }
+  if(e.target.closest("[data-stfpin]")){ const np = await askPin("New PIN for " + m.name + " (6 to 12 numbers)"); if(np) staffCall({action:"update", id, newPin: np}, m.name + ": PIN Changed"); }
 });
 // small pop-up that asks for a new PIN
 function askPin(msg){
   return new Promise(res=>{ const box=$("#ask"); $("#ask-msg").innerHTML = esc(msg) + '<input id="ask-in" inputmode="numeric" maxlength="12" style="display:block;width:100%;box-sizing:border-box;margin-top:10px;font:700 20px var(--body);padding:10px;border:2px solid #CFC6BE;border-radius:10px">';
     const y=$("#ask-yes"), n=$("#ask-no"); y.textContent = "Save PIN"; y.classList.remove("ask-yes-red"); box.hidden = false; $("#ask-in").focus();
     const done = v => { box.hidden = true; y.onclick = n.onclick = null; res(v); };
-    y.onclick = ()=>{ const v = $("#ask-in").value.trim(); if(!/^\d{4,12}$/.test(v)){ toast("PINs are 4 to 12 numbers.",true); return; } done(v); };
+    y.onclick = ()=>{ const v = $("#ask-in").value.trim(); if(!/^\d{6,12}$/.test(v)){ toast("PINs are 6 to 12 numbers.",true); return; } done(v); };
     n.onclick = ()=>done(null); });
 }
 // show only the tabs this PIN may use

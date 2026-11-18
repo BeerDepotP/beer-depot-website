@@ -10,6 +10,7 @@
 // Searches are counted per week (Central time). Requests keep the latest 300.
 // Everything is stored in Netlify Blobs; nothing here needs a deploy.
 
+import { tooMany } from "../lib/throttle.mjs";
 import { getStore } from "@netlify/blobs";
 import { checkPin, json } from "../lib/pin.mjs";
 
@@ -76,6 +77,7 @@ export default async (req) => {
   if (body.type === "request") {
     const item = clean(body.item, 500);
     if (!item) return json({ error: "Bad request." }, 400);
+    if (await tooMany(store, "request", 8, 3600000)) return json({ error: "Too many requests. Please try again in a little while." }, 429);
     const list = (await store.get("requests", { type: "json" })) || [];
     list.unshift({ item, name: clean(body.name, 80), phone: clean(body.phone, 20), at: new Date().toISOString() });
     await store.setJSON("requests", list.slice(0, MAX_REQUESTS));

@@ -6,6 +6,7 @@
 // notify-check.mjs sends the emails, once an item has stayed In Stock for the wait time.
 import { getStore } from "@netlify/blobs";
 import { randomBytes } from "node:crypto";
+import { tooMany } from "../lib/throttle.mjs";
 import { checkPin, json } from "../lib/pin.mjs";
 import { storeInfo } from "../lib/info.mjs";
 import { loadState, loadWants, isIn, cleanForm, DEFAULT_FORM, notifyEmail } from "../lib/notify.mjs";
@@ -42,6 +43,7 @@ export default async (req) => {
     const email = String(b.email || "").trim().toLowerCase().slice(0, 120), key = String(b.key || ""), name = String(b.name || "").replace(/\s+/g, " ").trim().slice(0, 120);
     if (!EMAIL.test(email)) return json({ error: "Enter a valid email." }, 400);
     if (!KEYS.test(key) || !name) return json({ error: "Bad request." }, 400);
+    if (await tooMany(store, "notify", 12, 3600000)) return json({ error: "Too many tries. Please try again in a little while." }, 429);
     if (key.slice(2) !== name && key[0] === "k") return json({ error: "Bad request." }, 400);
     if ((await isIn(store, key, await store.get("stock-latest", { type: "json" }))) === true) return json({ error: "Good news, it's in stock right now!" }, 409);
     const d = await loadWants(store);
