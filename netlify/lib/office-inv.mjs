@@ -10,6 +10,7 @@ Rules:
 - One entry per product line, in the order printed. Copy numbers exactly; use 0 or "" when something is not printed. Never guess a UPC or item code.
 - cases = quantity received (the cases shipped column). unitsPerCase = sellable packs in one case (a case of 4 six-packs is 4; a case of 24 cans sold singly is 24). If it is not printed, estimate from the description and say so in notes.
 - lineTotal = the extended NET amount for that line after any discount, in dollars. deliveryFee = any delivery, freight or fuel charge in dollars (never as a product line). Deposits and taxes that are separate lines go in notes, not lines.
+- NEVER use apostrophes in any name: write SEAGRAMS, not SEAGRAM'S (drop the apostrophe, no space).
 - stdName = the product name in this format: ALL CAPS, BRAND + VARIETY + SIZE/PACKAGE, ending in CAN or BOTTLE (box wine ends in BOX). Examples: MILLER 64 EXTRA LIGHT 12PK BOTTLE; MODELO ESPECIAL 16OZ 4PK CAN. Good Boy products keep the Good Boy brand but have no can size. Keep Spotted Cow as printed.
 - Fees: deliveryFee = any delivery, freight, fuel or SERVICE fee line (it is never a product line, even when it has an item number).
 - Ignore informational rows: "Subbed For" notes, out-of-stock notices, profit-and-loss tables, totals, tax summaries and gallonage. A product with 0 shipped gets cases 0.

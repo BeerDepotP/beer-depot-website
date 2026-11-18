@@ -765,7 +765,7 @@ class Component extends DCLogic {
         if (added.length) { body.codes = codes; d.push('add UPC ' + added.join(', ') + ' (old ones stay)'); }
         const std = /(CAN|BOTTLE|BOX)$/.test(String(kp.name || '').trim());
         if (!frito && !(std && kp.name === p.name)) {
-          if (p.name && kp.name !== p.name && !/spotted cow/i.test(kp.name || '')) { body.name = p.name; d.push('name ' + kp.name + ' -> ' + p.name); }
+          const pn = String(p.name || '').replace(/['\u2018\u2019`\u00B4]/g, ''); if (pn && kp.name !== pn && !/spotted cow/i.test(kp.name || '')) { body.name = pn; d.push('name ' + kp.name + ' -> ' + pn); }
           const row = { supplier: { id: sup.id }, orderCode: String(p.supNo || '').trim() || 'UNKNOWN', value: x.price, containerSize: p.per || 1 }, cur = kp.supplierPrices || [];
           const same = cur.length === 1 && cur[0].supplier && cur[0].supplier.id === sup.id && cur[0].orderCode === row.orderCode && (cur[0].containerSize || 1) === row.containerSize && Math.abs((cur[0].value || 0) - row.value) < 0.0001;
           if (!same) { body.supplierPrices = [row]; d.push(sup.name + ' row: order code ' + row.orderCode + ', case of ' + row.containerSize + ', $' + row.value + ' each' + (cur.length > 1 || (cur[0] && cur[0].supplier && cur[0].supplier.id !== sup.id) ? ' (replaces ' + cur.length + ' old row' + (cur.length > 1 ? 's' : '') + ')' : '')); }
@@ -842,7 +842,7 @@ class Component extends DCLogic {
     const toks = (t) => String(t || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter((w) => w.length > 1);
     const upcChk = (u11) => { let o = 0, e = 0; for (let q = 0; q < 11; q++) { const dg = Number(u11[q]); if (q % 2 === 0) o += dg; else e += dg; } return (10 - ((o * 3 + e) % 10)) % 10; };
     const fullUpc = (u) => { u = String(u || '').replace(/\D/g, ''); if (frito && /^\d{5}$/.test(u)) u = '028400' + u; if (frito && u.length === 11 && u.indexOf('028400') === 0) u += upcChk(u); return u; };
-    (d.lines || []).forEach((l) => { l.upc = fullUpc(l.upc); });
+    (d.lines || []).forEach((l) => { l.upc = fullUpc(l.upc); if (l.stdName) l.stdName = String(l.stdName).replace(/['\u2018\u2019`\u00B4]/g, ''); });
     const findPid = (l) => { const code = norm(l.itemCode), upc = String(l.upc || '').replace(/\D/g, ''); let k;
       if (upc) k = Object.keys(P).find((x) => !P[x].pending && (P[x].upcs || []).some((u) => u.code === upc || u.code === upc.replace(/^0+/, '') || u.code === '0' + upc));
       if (!k && code) k = Object.keys(P).find((x) => !P[x].pending && P[x].supNo && norm(P[x].supNo) === code && (!P[x].dist || P[x].dist === dist)) || Object.keys(P).find((x) => !P[x].pending && P[x].supNo && norm(P[x].supNo) === code);
@@ -975,7 +975,7 @@ class Component extends DCLogic {
         chipStyle: base + (diff === 0 ? 'background: #EFE7D6; color: #4A453A' : diff > 0 ? 'background: #FDE3E1; color: #8C1A13' : 'background: #DFF3E5; color: #14572D'),
         retailStyle: 'font: inherit; font-size: 15px; font-weight: 800; padding: 6px 8px; border: 2px solid ' + col + '; border-radius: 8px; min-height: 40px; box-sizing: border-box; width: 100%; text-align: right; background: #FFFFFF; color: ' + col,
         margin: r1(margin) + '%', profit: $(pr.retail - unit), marginStyle: 'color: ' + col,
-        onName: setProdField('name', (v) => (v.trim() ? { name: v, nameSaved: true } : null)),
+        onName: setProdField('name', (v) => (v.trim() ? { name: v.replace(/['\u2018\u2019`\u00B4]/g, ''), nameSaved: true } : null)),
         onDist: setProdField('dist', (v) => (v.trim() ? { dist: v } : null)),
         onCases: setLine('cases', (v) => { const n = toI(v); return n == null ? null : { cases: n }; }),
         onPer: setProdField('per', (v) => { const n = toI(v); return n == null || n < 1 ? null : { per: n, perSaved: true }; }),
@@ -1266,7 +1266,7 @@ class Component extends DCLogic {
     const lRows = lpids.map((pid) => { const p = s.products[pid]; const on = !!s.checked[pid];
       return { bg: on ? '#FFF4DE' : 'transparent', selMark: on ? 'X' : '', selStyle: 'min-height: 44px; font-size: 16px; font-weight: 800; border-radius: 8px; border: 2px solid ' + (on ? '#1F7A3F' : '#DED8C8') + '; background: ' + (on ? '#DFF3E5' : '#FFFFFF'),
         flipSel: () => this.setState({ checked: Object.assign({}, s.checked, { [pid]: !on }) }),
-        name: lt(pid, 'name', p.name), onName: ledit(pid, 'name', (v) => (v.trim() ? { name: v } : null)), upc: p.upc || 'no UPC',
+        name: lt(pid, 'name', p.name), onName: ledit(pid, 'name', (v) => (v.trim() ? { name: v.replace(/['\u2018\u2019`\u00B4]/g, '') } : null)), upc: p.upc || 'no UPC',
         group: p.group, onGroup: (e) => this.setState({ products: setProd(pid, { group: String(e.target.value) }) }),
         supplier: p.dist, onSupplier: (e) => this.setState({ products: setProd(pid, { dist: String(e.target.value) }) }),
         taxText: p.taxable ? 'Taxable' : 'Tax free', taxStyle: 'min-height: 44px; font-size: 13px; font-weight: 700; border-radius: 8px; border: 1px solid #DED8C8; background: ' + (p.taxable ? '#DFF3E5' : '#FFFFFF'), flipTax: () => this.setState({ products: setProd(pid, { taxable: !p.taxable }) }),
