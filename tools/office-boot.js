@@ -149,15 +149,26 @@
     setKey: function () { return window.BDInvoice.info(); },
     read: function (b64, mt, extra) { if (!b64 || b64.length > 7 * 1024 * 1024) return Promise.resolve({ ok: false, error: 'That photo is too large. Try a smaller photo.' }); return runJob('inv-read', { mediaType: mt || 'image/jpeg', extra: extra || '' }, b64); }
   };
-  document.write('<style>@media (max-width:820px){nav[aria-label="Back office"]{position:fixed !important;top:0;left:0;bottom:0;width:270px !important;max-width:82vw !important;flex:none !important;z-index:3000;overflow-y:auto;transform:translateX(-105%);transition:transform .2s;box-shadow:2px 0 14px rgba(0,0,0,.3)}nav[aria-label="Back office"].bdo-open{transform:none}main{flex:1 1 100% !important;padding:64px 12px 70px !important}#bdo-menu{display:block !important}}#bdo-menu{display:none;position:fixed;top:10px;left:10px;z-index:2500;min-height:44px;padding:0 16px;font:700 15px Inter,system-ui,sans-serif;border:0;border-radius:10px;background:#2A2118;color:#fff;box-shadow:0 1px 6px rgba(0,0,0,.3)}</style>');
+  document.write('<style>@media (max-width:820px){nav[aria-label="Back office"]{position:fixed !important;top:0;left:0;bottom:0;width:300px !important;max-width:86vw !important;height:100vh;height:100dvh;max-height:none !important;padding:18px 12px 40px !important;gap:2px !important;flex:none !important;z-index:3000;overflow-y:auto;transform:translateX(-105%);transition:transform .2s;box-shadow:2px 0 14px rgba(0,0,0,.3)}nav[aria-label="Back office"].bdo-open{transform:none}nav[aria-label="Back office"] a,nav[aria-label="Back office"] button{display:flex !important;align-items:center;box-sizing:border-box;width:100%;min-height:50px;padding:0 14px !important;font-size:17px !important;border-radius:10px !important}nav[aria-label="Back office"] div[style*="uppercase"]{font-size:13px !important;padding:18px 14px 6px !important}#bdo-back{display:none;position:fixed;inset:0;background:rgba(20,14,8,.5);z-index:2900}#bdo-back.on{display:block}main{flex:1 1 100% !important;padding:64px 12px 70px !important}main [style*="grid-template-columns: repeat(2, minmax"],main [style*="grid-template-columns: repeat(3, minmax"],main [style*="grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr)"],main [style*="grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr)"]{grid-template-columns:minmax(0,1fr) !important}main [style*="margin-top: 8px"][style*="display: flex; gap: 10px"]{flex-wrap:wrap !important}main [style*="margin-top: 8px"][style*="display: flex; gap: 10px"]>button{flex:1 1 44% !important;min-width:130px}.bdo-scroll{overflow-x:auto !important;-webkit-overflow-scrolling:touch}.bdo-scroll [style*="grid-template-columns: 2.9fr"],.bdo-scroll [style*="grid-template-columns: 2.4fr .7fr"],.bdo-scroll [style*="grid-template-columns: 2.6fr"]{min-width:820px}#bdo-menu{display:block !important}}#bdo-menu{display:none;position:fixed;top:10px;left:10px;z-index:2500;min-height:56px;min-width:56px;padding:0 20px;font:800 18px Inter,system-ui,sans-serif;border:0;border-radius:10px;background:#2A2118;color:#fff;box-shadow:0 1px 6px rgba(0,0,0,.3)}</style>');
   document.addEventListener('DOMContentLoaded', function () {
     var b = document.createElement('button'); b.textContent = 'Sign out'; b.className = 'noprint';
     b.style.cssText = 'position:fixed;right:10px;bottom:10px;z-index:99999;font:600 12px Inter,system-ui,sans-serif;padding:6px 12px;border-radius:99px;border:1px solid #CFC7B4;background:#fff;color:#1D1B16;cursor:pointer';
     b.onclick = function () { window.BDWeb.signOut(); }; document.body.appendChild(b);
-    var m = document.createElement('button'); m.id = 'bdo-menu'; m.className = 'noprint'; m.textContent = 'Menu'; document.body.appendChild(m);
+    var m = document.createElement('button'); m.id = 'bdo-menu'; m.className = 'noprint'; m.textContent = '\u2630  Menu'; document.body.appendChild(m);
     var navEl = function () { return document.querySelector('nav[aria-label="Back office"]'); };
-    m.onclick = function () { var n = navEl(); if (n) n.classList.toggle('bdo-open'); };
+    var bk = document.createElement('div'); bk.id = 'bdo-back'; bk.className = 'noprint'; document.body.appendChild(bk);
+    var sync = function () { var n = navEl(); bk.classList.toggle('on', !!(n && n.classList.contains('bdo-open'))); };
+    bk.onclick = function () { var n = navEl(); if (n) n.classList.remove('bdo-open'); sync(); };
+    m.onclick = function () { var n = navEl(); if (n) n.classList.toggle('bdo-open'); sync(); };
+    setInterval(sync, 200);
     document.addEventListener('click', function (e) { var n = navEl(); if (n && n.classList.contains('bdo-open') && e.target !== m && n.contains(e.target)) setTimeout(function () { n.classList.remove('bdo-open'); }, 50); else if (n && n.classList.contains('bdo-open') && e.target !== m && !n.contains(e.target)) n.classList.remove('bdo-open'); });
   });
+  // phones: wide tables scroll sideways inside their card instead of being cut off
+  function markScroll() {
+    if (window.innerWidth > 820) return;
+    var q = '[style*="grid-template-columns: 2.9fr"],[style*="grid-template-columns: 2.4fr .7fr"],[style*="grid-template-columns: 2.6fr"]';
+    document.querySelectorAll(q).forEach(function (el) { var c = el.parentElement; while (c && c.tagName !== 'MAIN') { var st = c.getAttribute('style') || ''; if (/border-radius/.test(st) && /border: 1px/.test(st)) break; c = c.parentElement; } if (c && c.tagName !== 'MAIN') c.classList.add('bdo-scroll'); });
+  }
+  document.addEventListener('DOMContentLoaded', function () { markScroll(); setInterval(markScroll, 1000); });
   document.write('<script src="./support.js"><\/script>');
 })();
