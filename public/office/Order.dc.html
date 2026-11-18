@@ -240,6 +240,20 @@ class Component extends DCLogic {
     return data;
   }
   // ---- real products, real sales history, real supplier order days ----
+  // The store's real order and delivery routine (owner, 2026-11-17). Used unless the owner changed that supplier's numbers by hand.
+  // od/dd = weekdays (0 = Sunday), lead = days from order to delivery, days = days one order has to cover (until the next order).
+  defaultSched(name) {
+    const n = String(name || '').toLowerCase(), D = [
+      [/beechwood/, { od: [1], dd: [2], lead: 1, days: 7 }],
+      [/beer capitol|beer capital/, { od: [4], dd: [5], lead: 1, days: 7 }],
+      [/wisconsin dist/, { od: [4], dd: [5], lead: 1, days: 14 }],
+      [/frito/, { od: [2], dd: [2], lead: 14, days: 14 }],
+      [/left bank|winebow|wine bow/, { od: [1], dd: [3], lead: 2, days: 30 }],
+      [/holiday|capitol-husting|capitol husting|general beverage|badger|breakthru|johnson/, { od: [3], dd: [4], lead: 1, days: 7 }]
+    ];
+    for (let i = 0; i < D.length; i++) if (D[i][0].test(n)) return D[i][1];
+    return null;
+  }
   schedule(sp) {
     const DN = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const parse = (t) => { const out = []; String(t || '').toLowerCase().split(/[^a-z]+/).forEach((w) => { const i = DN.indexOf(w.slice(0, 3)); if (i >= 0 && out.indexOf(i) < 0) out.push(i); }); return out.sort((a, b) => a - b); };
@@ -291,7 +305,7 @@ class Component extends DCLogic {
         (groups[p.dist] || (groups[p.dist] = [])).push({ pid, grp: p.group || '', tags: p.ptags || [], name: p.name, pack: per, onHand: Math.max(0, Math.round((p.stock || 0) * 10) / 10), w, wA, oosDays, season, learn: learnOf(pid), code: p.supNo || '', cost: Math.round((p.cost || 0) * per), sold, upc: p.upc || '', retail: p.retail || 0, code: p.supNo || '', on, why });
       });
       const SS = BDx.get('supSet', {}) || {};
-      const data = Object.keys(groups).filter((n) => groups[n].some((it) => it.on)).sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1).map((n) => { const sc = this.schedule(byName[n]), ov = SS[n] || {};
+      const data = Object.keys(groups).filter((n) => groups[n].some((it) => it.on)).sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1).map((n) => { const sc0 = this.schedule(byName[n]), df = this.defaultSched(n), sc = df ? { od: df.od, dd: df.dd, lead: df.lead, cycle: df.days } : sc0, ov = SS[n] || {};
         return { name: n, lead: ov.lead != null ? ov.lead : sc.lead, cycle: ov.days != null ? ov.days : sc.cycle, od: sc.od, dd: sc.dd, hasSched: sc.od.length > 0, items: groups[n].sort((a, b) => a.name < b.name ? -1 : 1) }; });
       if (!data.length) return null;
       this._real = true; return data;
@@ -392,7 +406,7 @@ class Component extends DCLogic {
     const toC = (t) => { const n = parseFloat(String(t).replace(/[^0-9.]/g, '')); return isNaN(n) ? null : Math.round(n * 100); };
     const fmtD = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     let nextDate; { const next = new Date(); next.setDate(next.getDate() + s.days); nextDate = fmtD(next);
-      if (this.isReal && sup.hasSched) { const o = new Date(); for (let k = 0; k < 8 && sup.od.indexOf(o.getDay()) < 0; k++) o.setDate(o.getDate() + 1); nextDate = fmtD(o) + (', delivered ' + (() => { const d = new Date(o); d.setDate(d.getDate() + s.lead); return s.lead === 0 ? 'same day' : d.toLocaleDateString('en-US', { weekday: 'long' }); })()); } }
+      if (this.isReal && sup.hasSched) { const o = new Date(); try { if (sup.cycle >= 14) { const lastO = (window.BD.get('orders', []) || []).filter((x) => x && x.supplier === sup.name && x.at).map((x) => Date.parse(x.at)).sort((a, b) => b - a)[0]; if (lastO) { const gap = sup.cycle >= 25 ? 28 : 14, t0 = new Date(lastO); t0.setHours(12, 0, 0, 0); t0.setDate(t0.getDate() + gap); if (t0.getTime() > Date.now()) o.setTime(t0.getTime()); } } } catch (e) { /* ignore */ } for (let k = 0; k < 8 && sup.od.indexOf(o.getDay()) < 0; k++) o.setDate(o.getDate() + 1); nextDate = fmtD(o) + (', delivered ' + (() => { const d = new Date(o); d.setDate(d.getDate() + s.lead); return s.lead === 0 ? 'same day' : d.toLocaleDateString('en-US', { weekday: 'long' }); })()); } }
     const allCases = this.data.reduce((t, d, si) => t + d.items.reduce((u, it, ii) => u + casesFor(si, ii), 0), 0);
     const cards = [
       { label: 'This order', value: totCases + (totCases === 1 ? ' case' : ' cases'), sub: lines + (lines === 1 ? ' product' : ' products') + ', ' + totUnits + ' units' },
