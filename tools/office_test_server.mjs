@@ -15,9 +15,11 @@ globalThis.fetch = async (u, o = {}) => {
   log.push(m + ' ' + p + ' ' + (o.headers && o.headers.Authorization ? Buffer.from(o.headers.Authorization.slice(6), 'base64').toString().split(':')[0] : ''));
   const page = (a) => J({ results: a, pagesTotal: 1 });
   if (p.endsWith('/commodityGroups')) return page([{ id: 'g1', name: 'BEER' }]);
+  if (p.endsWith('/suppliers') && process.env.FAKE_N) return page(Array.from({length:20},(_, i)=>({id:'s'+i,name:'SUPPLIER '+i})));
   if (p.endsWith('/tags') || p.endsWith('/suppliers')) return page([]);
   if (p.endsWith('/organizationalUnits')) return page([{ id: 'ou1' }]);
   if (p.endsWith('/productStocks')) return page([{ product: { id: 'p1' }, amount: { actual: 5 } }]);
+  if (p.endsWith('/products') && m === 'GET' && process.env.FAKE_N) { const n = +process.env.FAKE_N, a = []; for (let i = 0; i < n; i++) a.push({ id: 'p' + i, number: String(1000 + i), name: 'PRODUCT NUMBER ' + i + ' 12PK CAN', codes: [{ productCode: String(100000000000 + i) }], commodityGroup: { id: 'g1' }, prices: [{ value: 3.99 }], supplierPrices: [{ orderCode: 'C' + i, containerSize: 12, value: 1.95, supplier: { id: 's' + (i % 20) } }], revision: 7 + i }); return page(a); }
   if (p.endsWith('/products') && m === 'GET') return page([{ id: 'p1', number: '100', name: 'FRITO TEST', codes: [{ productCode: '028400769266' }], commodityGroup: { id: 'g1' }, prices: [{ value: 3.99 }], supplierPrices: [{ orderCode: '00046167', containerSize: 1, value: 1.95 }], revision: 7 }]);
   if (p.endsWith('/receipts') || p.endsWith('/giftCards') || p.endsWith('/vouchers') || p.endsWith('/promotions') || p.endsWith('/discounts')) return page([]);
   if (p.endsWith('/stockReceipts') && m === 'POST') { const id = 'r' + (++rcvN); rcv[id] = { id, number: '1000' + rcvN, status: 'IN_PROGRESS', body: JSON.parse(o.body)[0] }; return J([{ id }], 201); }

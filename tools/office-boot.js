@@ -30,10 +30,15 @@
   var first = post({ action: 'load' });
   if (first.status === 401 || first.status === 403 || first.status === 429) { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } login(first.data.error || 'Wrong PIN.'); return; }
   if (first.status !== 200) { login('Could not load: ' + (first.data.error || first.status)); return; }
-  var cache = first.data.keys || {}, ver = first.data.at || {};
+  var cache = first.data.keys || {}, ver = first.data.at || {}, loadFailed = '';
   (first.data.rest || []).forEach(function (r) {
-    var t = ''; for (var i = 0; i < r.n; i++) { var g = post({ action: 'get', key: r.key, i: i }); t += (g.data && g.data.text) || ''; } cache[r.key] = t;
+    var t = ''; for (var i = 0; i < r.n; i++) {
+      var g = null; for (var tries = 0; tries < 4; tries++) { g = post({ action: 'get', key: r.key, i: i }); if (g.status === 200 && g.data && typeof g.data.text === 'string') break; }
+      if (!(g.status === 200 && g.data && typeof g.data.text === 'string')) { loadFailed = 'Part ' + (i + 1) + ' of ' + r.n + ' of "' + r.key + '" would not load (' + ((g.data && g.data.error) || g.status) + ').'; break; }
+      t += g.data.text;
+    } cache[r.key] = t;
   });
+  if (loadFailed) { login('Your data did not finish loading, so nothing was opened (this keeps your saved data safe). ' + loadFailed + ' Refresh to try again.'); return; }
 
   // ---- saving: every change is kept in memory at once and sent to the server a moment later ----
   var pending = {}, busy = false, timer = null, failed = false, pill = null, forced = {}, conflicts = {};
