@@ -1,0 +1,16 @@
+{
+  "name": "Beer Depot POS",
+  "short_name": "Beer Depot POS",
+  "description": "Receive invoices, order stock and settings for The Beer Depot.",
+  "id": "/office/",
+  "start_url": "/office/Receive.dc.html",
+  "scope": "/office/",
+  "display": "standalone",
+  "background_color": "#12264E",
+  "theme_color": "#12264E",
+  "icons": [
+    { "src": "/office/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/office/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/office/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
