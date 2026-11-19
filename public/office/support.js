@@ -401,11 +401,13 @@
         var p = P[pid]; if (!p) return; p.kid = k.id; kid.set(k.id, pid); if (k.no && !p.kno) p.kno = k.no;
         if (p.pend && p.pend.name != null && k.name === p.pend.name) delete p.pend.name;
         if (k.name && k.name !== p.name && !(p.pend && p.pend.name != null)) { note('name', p.name + ' -> ' + k.name); p.name = k.name; }
-        if (k.group && k.group !== p.group) { note('group', p.name + ': ' + (p.group || '-') + ' -> ' + k.group); p.group = k.group; }
+        if (p.groupSaved && k.group === p.group) p.groupSaved = false;
+        if (k.group && k.group !== p.group && !p.groupSaved) { note('group', p.name + ': ' + (p.group || '-') + ' -> ' + k.group); p.group = k.group; }
         if (pr != null && pr !== p.retail) { note('price', p.name + ': ' + ((p.retail || 0) / 100).toFixed(2) + ' -> ' + (pr / 100).toFixed(2)); p.retail = pr; if (p.upcs && p.upcs[0]) p.upcs[0].price = pr; }
         var added = 0; (k.codes || []).forEach(function (c) { if (!ix.owner(c) && (p.upcs || []).length < 15) { ix.add(pid, c); added++; } }); if (added) note('codes', p.name + ' +' + added);
         if (p.pend && p.pend.dist != null && dist === p.pend.dist) delete p.pend.dist;
-        if (dist && dist !== p.dist && !(p.pend && p.pend.dist != null)) { note('dist', p.name + ': ' + (p.dist || '-') + ' -> ' + dist); p.dist = dist; }
+        if (p.distSaved && dist === p.dist) p.distSaved = false;
+        if (dist && dist !== p.dist && !p.distSaved && !(p.pend && p.pend.dist != null)) { note('dist', p.name + ': ' + (p.dist || '-') + ' -> ' + dist); p.dist = dist; }
         if (p.pend && p.pend.supNo != null && sp && sp.code === p.pend.supNo) delete p.pend.supNo;
         if (sp && sp.code && sp.code.toUpperCase() !== 'UNKNOWN' && sp.code !== p.supNo && !(p.pend && p.pend.supNo != null)) p.supNo = sp.code;
         if (p.pend && p.pend.per != null && sp && Math.round(sp.box) === p.pend.per) delete p.pend.per;
