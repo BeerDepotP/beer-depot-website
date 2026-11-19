@@ -582,6 +582,7 @@
     return w;
   }
 
+  window.addEventListener('error', function (ev) { try { var b = document.body; if (!b || document.getElementById('bd-err')) return; var d = document.createElement('div'); d.id = 'bd-err'; d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#FBE3E1;border:2px solid #B3261E;color:#8C1D14;padding:12px 14px;border-radius:10px;font:14px -apple-system,sans-serif'; d.textContent = 'This screen hit a problem: ' + (ev && ev.message ? ev.message : 'unknown') + '. Take a photo of this and send it to Claude.'; b.appendChild(d); } catch (e) { /* ignore */ } });
   function boot() {
     var xdc = document.querySelector('x-dc'); var scriptEl = document.querySelector('script[data-dc-script]');
     if (!xdc || !scriptEl) return;
@@ -594,7 +595,7 @@
     var inst = new Component(props);
     // restore saved data
     var keep = KEEP[PAGE] || [];
-    try { var saved = BD.get('state:' + PAGE + ':' + VERSION, null); if (saved) keep.forEach(function (k) { if (saved[k] !== undefined) inst.state[k] = saved[k]; }); } catch (e) { /* ignore */ }
+    try { var saved = BD.get('state:' + PAGE + ':' + VERSION, null); if (saved) keep.forEach(function (k) { var sv = saved[k], d0 = inst.state[k]; if (sv === undefined) return; if (d0 !== undefined && d0 !== null && sv !== null && (Array.isArray(d0) !== Array.isArray(sv) || typeof d0 !== typeof sv)) return; inst.state[k] = sv; }); } catch (e) { /* ignore */ }
     if (PAGE === 'Receive') { var pp = BD.get('products', null); try { var np = BD.get('pendingProducts', null); if (np && pp) Object.keys(np).forEach(function (pid) { if (!pp[pid]) pp[pid] = np[pid]; }); } catch (e) { /* ignore */ } if (pp) inst.state.products = pp; }
     if (inst.afterLoad) try { inst.afterLoad(); } catch (e) { console.error(e); }
     xdc.style.display = 'block';
