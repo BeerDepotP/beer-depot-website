@@ -741,7 +741,7 @@ class Component extends DCLogic {
     Promise.all([B.editReq({ method: 'GET', path: '/suppliers', params: { page: 1, size: 500 } }), B.editReq({ method: 'GET', path: '/organizationalUnits', params: { page: 1, size: 50 } })]).then(([sp, ou]) => {
       if (!sp.ok || !ou.ok) throw new Error(sp.error || ou.error || ('KORONA answered ' + (sp.ok ? ou.status : sp.status) + '.'));
       const sups = (sp.body && sp.body.results) || [], units = (ou.body && ou.body.results) || [];
-      const want = String(inv.dist || '').trim().toLowerCase(), sup = sups.find((x) => String(x.name || '').trim().toLowerCase() === want) || sups.find((x) => want && String(x.name || '').toLowerCase().indexOf(want) >= 0);
+      const want = String(inv.dist || '').trim().toLowerCase(), nk = (v) => String(v || '').toLowerCase().replace(/capitol/g, 'capital').replace(/[^a-z0-9]+/g, ' ').trim(), wk = nk(inv.dist), sup = sups.find((x) => String(x.name || '').trim().toLowerCase() === want) || sups.find((x) => wk && nk(x.name) === wk) || sups.find((x) => want && String(x.name || '').toLowerCase().indexOf(want) >= 0) || sups.find((x) => wk && nk(x.name).indexOf(wk) >= 0);
       const unit = units.find((x) => /beer depot/i.test(x.name || '')) || units[0];
       if (!sup) issues.push('KORONA has no supplier named "' + inv.dist + '". Add it in KORONA or change the distributor.');
       if (!unit) issues.push('Could not find your store in KORONA.');
