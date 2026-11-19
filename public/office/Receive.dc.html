@@ -118,7 +118,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="font-size: 12px; font-weight: 600; {{ r.distHintStyle }}">{{ r.distHint }}</div>
 <div style="font-size: 12px; color: #4A453A">{{ r.stockLine }}<span style="color: #1F7A3F"> {{ r.nameHint }}</span></div>
 </div>
-<div style="padding-top: 6px; text-align: right; min-width: 0"><div style="font-size: 18px; font-weight: 800">{{ r.bottles }}</div><div style="font-size: 11px; color: #6B6558">bottles</div></div>
+<div><input id="bottles{{ r.n }}" type="text" inputmode="decimal" autocomplete="off" aria-label="Total bottles received" value="{{ r.bottlesT }}" onInput="{{ r.onBottles }}" onKeyDown="{{ onRowKey }}" style="font: inherit; font-size: 15px; font-weight: 800; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 40px; box-sizing: border-box; width: 100%; text-align: right; background: #FFFFFF"><div style="font-size: 11px; color: #1F7A3F; min-height: 14px">{{ r.looseHint }}</div></div>
 <div><input id="cases{{ r.n }}" type="text" inputmode="decimal" autocomplete="off" value="{{ r.casesT }}" onInput="{{ r.onCases }}" onKeyDown="{{ onRowKey }}" style="font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 40px; box-sizing: border-box; width: 100%; text-align: right; background: #FFFFFF"></div>
 <div><input id="per{{ r.n }}" type="text" inputmode="decimal" autocomplete="off" value="{{ r.perT }}" onInput="{{ r.onPer }}" onKeyDown="{{ onRowKey }}" style="font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 40px; box-sizing: border-box; width: 100%; text-align: right; background: #FFFFFF"><div style="font-size: 11px; color: #1F7A3F; min-height: 14px">{{ r.perHint }}</div></div>
 <div><input id="case{{ r.n }}" type="text" inputmode="decimal" autocomplete="off" value="{{ r.caseT }}" onInput="{{ r.onCase }}" onKeyDown="{{ onRowKey }}" style="font: inherit; font-size: 15px; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 40px; box-sizing: border-box; width: 100%; text-align: right; background: #FFFFFF"></div>
@@ -745,7 +745,7 @@ class Component extends DCLogic {
       const unit = units.find((x) => /beer depot/i.test(x.name || '')) || units[0];
       if (!sup) issues.push('KORONA has no supplier named "' + inv.dist + '". Add it in KORONA or change the distributor.');
       if (!unit) issues.push('Could not find your store in KORONA.');
-      const lines = inv.lines.map((l) => { const p = s.products[l.pid] || {}; const got = (l.units != null ? l.units : l.cases * (l.per || p.per || 1) + (l.free || 0)); const total = l.cases * l.caseCost / 100;
+      const lines = inv.lines.map((l) => { const p = s.products[l.pid] || {}; const got = (l.units != null ? l.units : l.cases * (l.per || p.per || 1) + (l.free || 0)); const total = (l.line != null ? l.line : l.cases * l.caseCost) / 100;
         return { pid: l.pid, name: l.name, kid: p.kid || '', upc: l.upc || p.upc || '', code: p.supNo || '', units: got, price: got > 0 ? Math.round(total / got * 10000) / 10000 : 0, total }; });
       lines.filter((x) => !x.kid).forEach((x) => issues.push(x.name + ' is not in KORONA yet, so it is left out. Create it in KORONA first, then send again.'));
       const sendable = lines.filter((x) => x.kid);
@@ -854,7 +854,7 @@ class Component extends DCLogic {
       if (k && !(upc || code) ) findPid.by = 'name'; else if (k) { const hitU = upc && (P[k].upcs || []).some((u) => u.code === upc || u.code === upc.replace(/^0+/, '') || u.code === '0' + upc), hitC = code && P[k].supNo && norm(P[k].supNo) === code; if (!hitU && !hitC) findPid.by = 'name'; }
       return k || null; };
     const acc = {}, order = []; let fresh = 0;
-    s.lines.forEach((l) => { const pr = P[l.pid]; if (!pr) return; acc[l.pid] = { units: l.cases * (pr.per || 1), total: l.cases * l.caseCost / 100, free: l.free || 0, per: pr.per || 1, seen: 1 }; order.push(l.pid); });
+    s.lines.forEach((l) => { const pr = P[l.pid]; if (!pr) return; acc[l.pid] = { units: l.cases * (pr.per || 1) + (l.loose || 0), total: (l.cases * l.caseCost + Math.round((l.loose || 0) * l.caseCost / (pr.per || 1))) / 100, free: l.free || 0, per: pr.per || 1, seen: 1 }; order.push(l.pid); });
     const seen = more ? (s.phSeen || []).slice() : [], newSeen = seen.slice(); let dupes = 0;
     const retsAll = (Array.isArray(d.returns) ? d.returns : []).filter((x) => Number(x.amount) > 0), retSig = 'ret|' + (d.invoiceNumber || '') + '|' + retsAll.map((x) => (x.itemCode || x.description || '') + ':' + Number(x.amount)).join(','), retSeen = seen.indexOf(retSig) >= 0;
     const retLeft = [], retDone = [];
@@ -946,7 +946,7 @@ class Component extends DCLogic {
       const pr = s.products[ln.pid];
       const unit = Math.round(ln.caseCost / pr.per);
       const diff = unit - pr.cost;
-      const line = ln.cases * ln.caseCost;
+      const line = ln.cases * ln.caseCost + Math.round((ln.loose || 0) * ln.caseCost / pr.per);
       itemsTotal += line;
       const margin = pr.retail > 0 ? (pr.retail - unit) / pr.retail * 100 : 0;
       const col = margin >= min ? '#14572D' : '#B3261E';
@@ -974,11 +974,12 @@ class Component extends DCLogic {
         upcT: t('upc', pr.upc), onUpcType: (e) => this.setState({ txt: Object.assign({}, s.txt, { ['r' + i + ':upc']: String(e.target.value) }) }), onUpcKey: (e) => { if (e.key === 'Enter') e.target.blur(); }, onUpc: (e) => { const v = String(e.target.value).replace(/\s/g, ''); if (v === String(pr.upc || '')) return; const o = v ? findUpcOwner(v, ln.pid, 0) : null; if (o && pr.pending && o.pid && o.pid !== ln.pid && s.products[o.pid] && !s.products[o.pid].pending) { this.useExisting(ln.pid, o.pid, v); return; } if (o) { this.setState({ dupMsg: dupText(v, o), txt: Object.assign({}, s.txt, { ['r' + i + ':upc']: pr.upc }) }); return; } const txt = Object.assign({}, s.txt, { ['r' + i + ':upc']: v }); this.setState({ products: setProd(ln.pid, { upc: v }), txt }); },
         groupV: pr.group, onGroup: (e) => this.setState({ products: setProd(ln.pid, { group: String(e.target.value) }) }),
         taxText: pr.taxable ? 'Taxable' : 'Tax free', taxStyle: 'min-height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; border-radius: 8px; border: 1px solid #DED8C8; background: ' + (pr.taxable ? '#DFF3E5' : '#FFFFFF'), onTax: () => this.setState({ products: setProd(ln.pid, { taxable: !pr.taxable }) }),
-        n: i, distV: pr.dist, bottles: String(ln.cases * pr.per + (ln.free || 0)),
+        n: i, distV: pr.dist, bottlesT: t('bottles', String(ln.cases * pr.per + (ln.loose || 0) + (ln.free || 0))), looseHint: (ln.loose || 0) > 0 ? ln.cases + ' case' + (ln.cases === 1 ? '' : 's') + ' + ' + ln.loose + ' loose' : '',
+        onBottles: (e) => { const v = String(e.target.value); const n = toI(v); if (n == null) { this.setState({ txt: raw('bottles', e) }); return; } const paid = Math.max(0, n - (ln.free || 0)), per = Math.max(1, pr.per), lines = s.lines.map((x, k) => (k === i ? Object.assign({}, x, { cases: Math.floor(paid / per), loose: paid % per }) : x)); const txt = dropTxt('r' + i + ':'); txt['r' + i + ':bottles'] = v; this.setState({ lines, txt }); },
         nameT: t('name', pr.name),
         distHint: willChange ? 'Will change to ' + s.dist.trim() + ' when you save' : (exempt && !same ? 'Stays ' + pr.dist + ' (change by hand)' : ''),
         distHintStyle: willChange ? 'color: #1F7A3F' : 'color: #7A4A00',
-        stockLine: pr.note + ', ' + pr.per + ' per case. On hand ' + pr.stock + ' → ' + (pr.stock + ln.cases * pr.per + ln.free) + '.', nameHint: pr.nameSaved ? 'Name saved to product' : '',
+        stockLine: pr.note + ', ' + pr.per + ' per case. On hand ' + pr.stock + ' → ' + (pr.stock + ln.cases * pr.per + (ln.loose || 0) + ln.free) + '.', nameHint: pr.nameSaved ? 'Name saved to product' : '',
         casesT: t('cases', String(ln.cases)), perT: t('per', String(pr.per)), caseT: t('case', d2(ln.caseCost)), unitT: t('unit', d2(unit)),
         freeT: t('free', String(ln.free)), lineT: t('line', d2(line)), retailT: t('retail', d2(pr.retail)),
         perHint: pr.perSaved ? 'saved to product' : '', retailHint: pr.retailSaved ? 'saved to product' : '',
@@ -993,7 +994,7 @@ class Component extends DCLogic {
         onCase: setLine('case', (v) => { const c = toC(v); return c == null ? null : { caseCost: c }; }),
         onUnit: setLine('unit', (v) => { const c = toC(v); return c == null ? null : { caseCost: c * pr.per }; }),
         onFree: setLine('free', (v) => { const n = toI(v); return n == null ? null : { free: n }; }),
-        onLine: setLine('line', (v) => { const c = toC(v); return c == null || ln.cases < 1 ? null : { caseCost: Math.round(c / ln.cases) }; }),
+        onLine: setLine('line', (v) => { const c = toC(v); const eq = ln.cases + (ln.loose || 0) / pr.per; return c == null || eq <= 0 ? null : { caseCost: Math.round(c / eq) }; }),
         onRetail: (e) => { const v = String(e.target.value); const c = toC(v); if (c == null) { this.setState({ txt: raw('retail', e) }); return; } const txt = dropTxt('r' + i + ':'); txt['r' + i + ':retail'] = v; const ro = s.retailOrig[ln.pid] == null && !pr.pending ? Object.assign({}, s.retailOrig, { [ln.pid]: pr.retail }) : s.retailOrig; this.setState({ products: setProd(ln.pid, { retail: c, retailSaved: true }), txt, retailOrig: ro }); },
         onRemove: () => { const lines = s.lines.filter((x, n) => n !== i); this.setState({ lines, txt: {} }); focusAdd(); },
         upStyle: mvStyle(i > 0), downStyle: mvStyle(i < s.lines.length - 1),
@@ -1518,15 +1519,15 @@ class Component extends DCLogic {
       if (book) { const bad = s.lines.filter((ln) => s.products[ln.pid].pending && (!(s.products[ln.pid].retail > 0) || !s.products[ln.pid].name.trim())); if (bad.length) { this.setState({ addMsg: 'New product "' + s.products[bad[0].pid].name + '" needs a retail price before you can book.', addOk: false }); return; } }
       const changes = []; const distCh = []; const products = Object.assign({}, s.products); let units = 0; let created = 0; const react = [];
       const lineRecs = s.lines.map((ln) => {
-        const pr = products[ln.pid]; const unit = Math.round(ln.caseCost / pr.per); const got = ln.cases * pr.per + ln.free;
+        const pr = products[ln.pid]; const unit = Math.round(ln.caseCost / pr.per); const lo = ln.loose || 0; const got = ln.cases * pr.per + lo + ln.free;
         units += got;
         if (book) {
-          if (ln.cases > 0 && unit !== pr.cost) { const m0 = marginOf(pr), m1 = pr.retail > 0 ? (pr.retail - unit) / pr.retail * 100 : 0; changes.push(pr.name + ': ' + $(pr.cost) + ' → ' + $(unit) + ' each, margin ' + r1(m0) + '% → ' + r1(m1) + '%'); }
+          if ((ln.cases > 0 || lo > 0) && unit !== pr.cost) { const m0 = marginOf(pr), m1 = pr.retail > 0 ? (pr.retail - unit) / pr.retail * 100 : 0; changes.push(pr.name + ': ' + $(pr.cost) + ' → ' + $(unit) + ' each, margin ' + r1(m0) + '% → ' + r1(m1) + '%'); }
           let dist = pr.dist;
           if (!exempt && s.dist.trim() && dist.trim().toLowerCase() !== s.dist.trim().toLowerCase()) { distCh.push(pr.name + ': ' + dist + ' → ' + s.dist.trim()); dist = s.dist.trim(); }
-          products[ln.pid] = Object.assign({}, pr, { cost: ln.cases > 0 ? unit : pr.cost, dist, stock: pr.stock + got, last: 'Booked ' + s.inv.trim() + ', ' + s.dt, perSaved: false, retailSaved: false, nameSaved: false, pending: false, active: true, autoOff: false, activatedOn: new Date().toLocaleDateString('en-CA') }); if (pr.pending) created += 1; if (pr.active === false) react.push(pr.name);
+          products[ln.pid] = Object.assign({}, pr, { cost: (ln.cases > 0 || lo > 0) ? unit : pr.cost, dist, stock: pr.stock + got, last: 'Booked ' + s.inv.trim() + ', ' + s.dt, perSaved: false, retailSaved: false, nameSaved: false, pending: false, active: true, autoOff: false, activatedOn: new Date().toLocaleDateString('en-CA') }); if (pr.pending) created += 1; if (pr.active === false) react.push(pr.name);
         }
-        return { pid: ln.pid, prevCost: book ? pr.cost : undefined, wasNew: book ? !!pr.pending : undefined, name: pr.name, upc: pr.upc, per: pr.per, cases: ln.cases, caseCost: ln.caseCost, free: ln.free, unit, line: ln.cases * ln.caseCost, units: got };
+        return { pid: ln.pid, prevCost: book ? pr.cost : undefined, wasNew: book ? !!pr.pending : undefined, name: pr.name, upc: pr.upc, per: pr.per, cases: ln.cases, loose: lo, caseCost: ln.caseCost, free: ln.free, unit, line: ln.cases * ln.caseCost + Math.round(lo * ln.caseCost / pr.per), units: got };
       });
       const tagItems = tagItemsFor(s.lines, s.products, s.retailOrig);
       const total = itemsTotal + ext;
@@ -1642,7 +1643,7 @@ class Component extends DCLogic {
         const invs = s.invoices.map((v) => (v.id === selInv.id ? Object.assign({}, v, { status: 'voided', voidedAt: new Date().toISOString(), tagItems: [] }) : v));
         this.setState({ products: P2, invoices: invs, voidAsk: null, saved: { title: 'Voided ' + selInv.no + '. ' + selInv.lines.reduce((t, l) => t + (l.units || 0), 0) + ' units were taken back out of stock.', lines: [{ text: 'Costs went back to what they were before when nothing changed them since. Products this invoice created stay in Products with stock taken back out.' }] } });
       },
-      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
+      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
       deleteDraft: () => { if (!selInv || (selInv.status !== 'saved' && selInv.status !== 'voided')) return; const invs = s.invoices.filter((v) => v.id !== selInv.id); this.setState({ invoices: invs, products: cleanOrphans(s.products, s.lines, invs), invSel: null, draftId: s.draftId === selInv.id ? null : s.draftId }); },
       hasSaved: !!s.saved, savedTitle: s.saved ? s.saved.title : '', savedLines: s.saved ? s.saved.lines : [],
       // invoices
