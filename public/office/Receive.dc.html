@@ -102,7 +102,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 6px 16px 16px; overflow-x: auto">
 <div style="min-width: 0">
 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0 6px">
-<div style="font-size: 13px; color: #4A453A; flex: 1 1 auto">Name, per case, retail price and distributor save to the product. Case cost, unit cost and line total follow each other. Press Enter in any box to go back to the scan box.</div>
+<div style="font-size: 13px; color: #4A453A; flex: 1 1 auto">Name, per case, retail price and distributor save to the product. Case cost, unit cost and line total follow each other. Press Enter in any box to save it and stay where you are.</div>
 <label for="minm" style="font-size: 13px; font-weight: 700">Margin turns red below</label>
 <input id="minm" type="text" inputmode="numeric" value="{{ minMargin }}" onInput="{{ onMin }}" style="width: 70px; font: inherit; font-size: 15px; font-weight: 700; padding: 6px 8px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 40px; box-sizing: border-box; text-align: center"><span style="font-weight: 700">%</span>
 </div>
@@ -922,7 +922,7 @@ class Component extends DCLogic {
       return out;
     };
     const defCost = (pid) => Math.round((s.products[pid].cost || 500) * s.products[pid].per);
-    const focusAdd = () => setTimeout(() => { const a = document.getElementById('add'); if (a) a.focus(); }, 0);
+    const focusAdd = () => setTimeout(() => { const a = document.getElementById('add'); if (a) a.focus({ preventScroll: true }); }, 0);
     const setProd = (pid, patch) => {
       const products = Object.assign({}, s.products); const np = Object.assign({}, products[pid], patch);
       if (patch.upc != null || patch.retail != null) { const u = np.upcs.slice(); u[0] = Object.assign({}, u[0], { code: np.upc, price: np.retail }); np.upcs = u; }
@@ -1568,7 +1568,7 @@ class Component extends DCLogic {
       comment: s.comment, ext: s.ext, onExt: (e) => this.setState({ ext: String(e.target.value) }),
       noLines: s.lines.length === 0,
       addMsg: s.addMsg, addMsgColor: s.addOk ? '#1F7A3F' : '#B3261E',
-      onRowKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); const a = document.getElementById('add'); if (a) a.focus(); } },
+      onRowKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (e.target && e.target.blur) e.target.blur(); } },
       onAddInput: (e) => this.setState({ aq: String(e.target.value) }),
       hasAq: aqResults.length > 0, aqResults,
       onAddKey: (e) => {
