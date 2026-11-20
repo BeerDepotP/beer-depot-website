@@ -90,8 +90,8 @@
       Object.keys(v).forEach(function (k) { if ((ver[k] || 0) === v[k].at) return; if (isSalesKey(k)) { delete cache[k]; lazy[k] = v[k].n; ver[k] = v[k].at; return; } changed.push(k); });
       if (!changed.length || Object.keys(pending).length) return;
       return Promise.all(changed.map(function (k) { return fetchKey(k, v[k].n).then(function (t) { cache[k] = t; ver[k] = v[k].at; }); })).then(function () {
-        var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) { show('Updated from another device. Tap anywhere, then it refreshes.', false); document.addEventListener('click', function once() { document.removeEventListener('click', once); location.reload(); }); return; }
-        location.reload();
+        var tryReload = function () { var ae = document.activeElement; if ((ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) || (window.__bdAct && Date.now() - window.__bdAct < 120000)) { setTimeout(tryReload, 15000); return; } location.reload(); };
+        tryReload();
       });
     }).then(function () { looking = false; }, function () { looking = false; });
   }

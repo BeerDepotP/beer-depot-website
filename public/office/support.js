@@ -620,3 +620,14 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
+
+/* Never lose the place: remember when the person last touched the page (a refresh from another device waits until they have been idle 2 minutes) and keep the scroll position across a refresh */
+(function () {
+  try {
+    var key = 'bd-scroll:' + location.pathname, mark = function () { window.__bdAct = Date.now(); };
+    ['keydown', 'mousedown', 'wheel', 'touchstart', 'input', 'scroll'].forEach(function (ev) { window.addEventListener(ev, mark, { passive: true, capture: true }); });
+    window.addEventListener('beforeunload', function () { try { sessionStorage.setItem(key, JSON.stringify({ y: window.scrollY, t: Date.now() })); } catch (e) { /* ignore */ } });
+    var saved = null; try { saved = JSON.parse(sessionStorage.getItem(key) || 'null'); sessionStorage.removeItem(key); } catch (e) { /* ignore */ }
+    if (saved && Date.now() - saved.t < 60000 && saved.y > 0) { var n = 0, t = setInterval(function () { window.scrollTo(0, saved.y); if (++n > 12 || Math.abs(window.scrollY - saved.y) < 3 && n > 3) clearInterval(t); }, 250); }
+  } catch (e) { /* ignore */ }
+})();
