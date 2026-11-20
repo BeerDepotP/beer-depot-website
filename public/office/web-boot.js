@@ -114,7 +114,7 @@
       if (lazy[k]) { var t = '', ok = true; for (var i = 0; i < lazy[k]; i++) { var g = null; for (var tr = 0; tr < 3; tr++) { g = post({ action: 'get', key: k, i: i }); if (g.status === 200 && g.data && typeof g.data.text === 'string') break; } if (!(g.status === 200 && g.data && typeof g.data.text === 'string')) { ok = false; break; } t += g.data.text; } if (ok) { cache[k] = t; delete lazy[k]; return t; } }
       return null;
     },
-    set: function (k, text) { cache[k] = String(text); queue(k); return true; },
+    set: function (k, text) { text = String(text); if (cache[k] === text && !pending[k]) return true; /* nothing changed: do not save it again (that made other devices refresh) */ cache[k] = text; queue(k); return true; },
     keys: function () { var o = Object.keys(cache); Object.keys(lazy).forEach(function (k) { if (o.indexOf(k) < 0) o.push(k); }); return o; },
     del: function (k) { delete cache[k]; queue(k); }
   };
