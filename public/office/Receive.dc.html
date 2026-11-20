@@ -69,6 +69,24 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="{{ phStyle }}">{{ phMsg }}</div>
 <sc-for list="{{ phLines }}" as="x" hint-placeholder-count="2"><div style="font-size: 13px; color: #4A453A">&bull; {{ x.text }}</div></sc-for>
 </div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<button id="saveBtn" onClick="{{ save }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 700; border: 2px solid #1F7A3F; border-radius: 10px; background: {{ saveBg }}; color: {{ saveFg }}">{{ saveLabel }}</button>
+<button onClick="{{ korSendTop }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: #FFFFFF; color: #1F5FA8">Send to KORONA</button>
+<button onClick="{{ openTags }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Print price tags{{ tagCountText }}</button>
+<button id="bookBtn" onClick="{{ book }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Book: update stock and costs</button>
+<button onClick="{{ discard }}" style="min-height: 52px; padding: 0 18px; font-size: 15px; font-weight: 600; border: 0; border-radius: 10px; background: #EFE7D6; color: #1D1B16">Discard</button>
+</div>
+<sc-if value="{{ korOpenTop }}" hint-placeholder-val="{{ false }}"><div id="korPanelTop" style="border: 2px solid #1F5FA8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; background: #F2F7FD">
+<div style="font-size: 15px; font-weight: 800">{{ korMsg }}</div>
+<sc-if value="{{ korHasHead }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px">Supplier in KORONA: <b>{{ korSup }}</b>. It is created as a SAVED stock receipt with the invoice number in Description. It is never booked.</div></sc-if>
+<sc-for list="{{ korLines }}" as="x" hint-placeholder-count="3"><div style="font-size: 13px; display: grid; grid-template-columns: 1fr auto auto; gap: 10px"><span>{{ x.name }}</span><span>{{ x.units }} units</span><span>{{ x.price }} each</span></div></sc-for>
+<sc-for list="{{ korEdits }}" as="x" hint-placeholder-count="2"><div style="font-size: 13px; border-top: 1px solid #C9D6E8; padding-top: 4px"><b>{{ x.name }}</b><div>{{ x.text }}</div></div></sc-for>
+<sc-if value="{{ korEdMsg }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px; font-weight: 800">{{ korEdMsg }}</div></sc-if>
+<sc-if value="{{ korEdGo }}" hint-placeholder-val="{{ false }}"><div><button onClick="{{ korEdApply }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: #FFFFFF; color: #1F5FA8">Apply these product changes in KORONA</button></div></sc-if>
+<sc-for list="{{ korIssues }}" as="x" hint-placeholder-count="2"><div style="font-size: 13px; font-weight: 700; color: #8C1D14">&bull; {{ x.text }}</div></sc-for>
+<sc-if value="{{ korAlready }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; font-weight: 800; color: #8C1D14">{{ korAlready }}</div></sc-if>
+<div style="display: flex; gap: 8px"><sc-if value="{{ korCanGo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ korSendGo }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #1F5FA8; color: #FFFFFF">Send now</button></sc-if><button onClick="{{ korClose }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #6B6558; border-radius: 10px; background: #FFFFFF">Close</button></div>
+</div></sc-if>
 <div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
 <div style="display: flex; flex-direction: column; gap: 4px"><label for="inv" style="font-size: 13px; color: #6B6558">Invoice number (enter first)</label>
@@ -154,18 +172,12 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="display: flex; justify-content: space-between"><span>Items</span><span>{{ itemsTotal }}</span></div>
 <div style="display: flex; justify-content: space-between"><span>External costs</span><span>{{ extTotal }}</span></div>
 <div style="display: flex; justify-content: space-between; font-size: 28px; font-weight: 700; border-top: 2px solid #1D1B16; padding-top: 8px"><span>Invoice total</span><span>{{ grand }}</span></div>
-<div style="display: flex; gap: 10px; margin-top: 8px">
-<button id="saveBtn" onClick="{{ save }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 700; border: 2px solid #1F7A3F; border-radius: 10px; background: #FFFFFF; color: #14572D">Save (stock not changed)</button>
-<button onClick="{{ openTags }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Print price tags{{ tagCountText }}</button>
-<button id="bookBtn" onClick="{{ book }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Book: update stock and costs</button>
-<button onClick="{{ discard }}" style="min-height: 52px; padding: 0 18px; font-size: 15px; font-weight: 600; border: 0; border-radius: 10px; background: #EFE7D6; color: #1D1B16">Discard</button>
-</div>
 </div>
 </div>
 <sc-if value="{{ hasSaved }}" hint-placeholder-val="{{ false }}">
 <div role="status" style="background: #FFFFFF; border: 2px solid #1F7A3F; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
-<div style="font-size: 17px; font-weight: 800; color: #0F4524">{{ savedTitle }}</div>
-<sc-for list="{{ savedLines }}" as="x" hint-placeholder-count="3"><div style="font-size: 14px">{{ x.text }}</div></sc-for>
+<sc-if value="{{ savedText }}" hint-placeholder-val="{{ true }}"><div style="font-size: 17px; font-weight: 800; color: #0F4524">{{ savedTitle }}</div>
+<sc-for list="{{ savedLines }}" as="x" hint-placeholder-count="3"><div style="font-size: 14px">{{ x.text }}</div></sc-for></sc-if>
 <sc-if value="{{ savedHasTags }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openSavedTags }}" style="align-self: flex-start; min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #2A2118; color: #FFFFFF">Print price tags ({{ savedTagCount }})</button></sc-if>
 </div>
 </sc-if>
@@ -208,7 +220,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ selIsDraft }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 8px"><button onClick="{{ openDraft }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Open to continue or book</button><button onClick="{{ deleteDraft }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Delete this saved receipt</button></div></sc-if>
 <sc-if value="{{ selCanSend }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px">
 <div><button onClick="{{ korPrepGo }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: #FFFFFF; color: #1F5FA8">Send to KORONA (saved, not booked)</button></div>
-<sc-if value="{{ korOpen }}" hint-placeholder-val="{{ false }}"><div style="border: 2px solid #1F5FA8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; background: #F2F7FD">
+<sc-if value="{{ korOpen }}" hint-placeholder-val="{{ false }}"><div id="korPanel" style="border: 2px solid #1F5FA8; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 6px; background: #F2F7FD">
 <div style="font-size: 15px; font-weight: 800">{{ korMsg }}</div>
 <sc-if value="{{ korHasHead }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px">Supplier in KORONA: <b>{{ korSup }}</b>. It is created as a SAVED stock receipt with the invoice number in Description. It is never booked.</div></sc-if>
 <sc-for list="{{ korLines }}" as="x" hint-placeholder-count="3"><div style="font-size: 13px; display: grid; grid-template-columns: 1fr auto auto; gap: 10px"><span>{{ x.name }}</span><span>{{ x.units }} units</span><span>{{ x.price }} each</span></div></sc-for>
@@ -1656,6 +1668,10 @@ class Component extends DCLogic {
       groupOptList, itemsTotal: $(itemsTotal), extTotal: $(ext), grand: $(itemsTotal + ext),
       discard: () => this.setState({ phPics: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
       save: () => run(false),
+      korSendTop: () => { if (this._save) this._save(); setTimeout(() => { const st = this.state, inv = (st.invoices || []).find((v) => v.id === st.draftId); if (inv && inv.no === String(st.inv || '').trim()) { this.korPrep(inv); setTimeout(() => { try { const el = document.getElementById('korPanelTop'); if (el) el.scrollIntoView({ block: 'center' }); } catch (e) { /* ignore */ } }, 400); } }, 150); },
+      saveLabel: s.saved && /^Saved /.test(s.saved.title) ? 'Saved ' + s.saved.title.split(' ')[1] + ' \u2713 (stock not changed)' : 'Save (stock not changed)',
+      saveBg: s.saved && /^Saved /.test(s.saved.title) ? '#E4F3E8' : '#FFFFFF', saveFg: '#14572D',
+      savedText: !(s.saved && /^Saved /.test(s.saved.title)),
       book: () => run(true),
       selIsDraft: !!selInv && selInv.status === 'saved',
       _wire: (this._save = () => run(false), this._clean = cleanOrphans, 0),
@@ -1663,7 +1679,7 @@ class Component extends DCLogic {
       picOpen: !!s.picOpen, picSrc: s.picSrc || '', picMsg: s.picMsg || '', picClose: () => this.setState({ picOpen: false, picSrc: '', picMsg: '' }),
       selCanSend: !!selInv && selInv.status !== 'voided' && typeof window !== 'undefined' && !!(window.BDKorona && window.BDKorona.editReq),
       korPrepGo: () => { if (selInv) this.korPrep(selInv); },
-      korOpen: !!(s.korPrev && selInv && s.korPrev.invId === selInv.id), korMsg: s.korPrev ? s.korPrev.msg : '', korHasHead: !!(s.korPrev && s.korPrev.supName && (s.korPrev.st === 'ready' || s.korPrev.st === 'blocked')), korSup: s.korPrev ? s.korPrev.supName || '' : '',
+      korOpenTop: !!(s.korPrev && s.view === 'receive' && s.korPrev.invId === s.draftId), korOpen: !!(s.korPrev && selInv && s.korPrev.invId === selInv.id), korMsg: s.korPrev ? s.korPrev.msg : '', korHasHead: !!(s.korPrev && s.korPrev.supName && (s.korPrev.st === 'ready' || s.korPrev.st === 'blocked')), korSup: s.korPrev ? s.korPrev.supName || '' : '',
       korLines: s.korPrev && s.korPrev.lines ? s.korPrev.lines.filter((x) => x.kid).map((x) => ({ name: x.name, units: x.units, price: '$' + x.price })) : [],
       korIssues: s.korPrev && s.korPrev.issues ? s.korPrev.issues.map((t) => ({ text: t })) : [],
       korAlready: s.korPrev && s.korPrev.already ? 'This invoice was already sent to KORONA on ' + String(s.korPrev.already.at).slice(0, 10) + (s.korPrev.already.number ? ' (receipt ' + s.korPrev.already.number + ')' : '') + '. Sending again makes a second receipt.' : '',
@@ -1683,7 +1699,7 @@ class Component extends DCLogic {
       },
       openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, phPics: (selInv.pics || []).slice(), phSeen: (selInv.seen || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
       deleteDraft: () => { if (!selInv || (selInv.status !== 'saved' && selInv.status !== 'voided')) return; const invs = s.invoices.filter((v) => v.id !== selInv.id); this.setState({ invoices: invs, products: cleanOrphans(s.products, s.lines, invs), invSel: null, draftId: s.draftId === selInv.id ? null : s.draftId }); },
-      hasSaved: !!s.saved, savedTitle: s.saved ? s.saved.title : '', savedLines: s.saved ? s.saved.lines : [],
+      hasSaved: !!s.saved && !/^Saved /.test(s.saved.title), savedTitle: s.saved ? s.saved.title : '', savedLines: s.saved ? s.saved.lines : [],
       // invoices
       invQ: s.invQ, onInvQ: (e) => this.setState({ invQ: String(e.target.value), invSel: null }),
       invCountText: invAll.length + (invAll.length === 1 ? ' invoice' : ' invoices') + (q ? ' match' : ' saved'), noInvoices: invAll.length === 0, invRows,
