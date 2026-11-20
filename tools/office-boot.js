@@ -31,7 +31,9 @@
   if (first.status === 401 || first.status === 403 || first.status === 429) { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } login(first.data.error || 'Wrong PIN.'); return; }
   if (first.status !== 200) { login('Could not load: ' + (first.data.error || first.status)); return; }
   var cache = first.data.keys || {}, ver = first.data.at || {}, loadFailed = '';
+  var lazy = {}, isSalesKey = function (k) { return /^sales:\d{4}-\d{2}$/.test(k); };
   (first.data.rest || []).forEach(function (r) {
+    if (isSalesKey(r.key)) { lazy[r.key] = r.n; return; } /* sales months are big: fetched only when a screen asks for them */
     var t = ''; for (var i = 0; i < r.n; i++) {
       var g = null; for (var tries = 0; tries < 4; tries++) { g = post({ action: 'get', key: r.key, i: i }); if (g.status === 200 && g.data && typeof g.data.text === 'string') break; }
       if (!(g.status === 200 && g.data && typeof g.data.text === 'string')) { loadFailed = 'Part ' + (i + 1) + ' of ' + r.n + ' of "' + r.key + '" would not load (' + ((g.data && g.data.error) || g.status) + ').'; break; }
@@ -85,7 +87,7 @@
     if (looking || busy || Object.keys(pending).length || Object.keys(conflicts).length) return; looking = true;
     post({ action: 'versions' }, true).then(function (r) {
       if (r.status !== 200 || !r.data.v) return; var v = r.data.v, changed = [];
-      Object.keys(v).forEach(function (k) { if ((ver[k] || 0) !== v[k].at) changed.push(k); });
+      Object.keys(v).forEach(function (k) { if ((ver[k] || 0) === v[k].at) return; if (isSalesKey(k)) { delete cache[k]; lazy[k] = v[k].n; ver[k] = v[k].at; return; } changed.push(k); });
       if (!changed.length || Object.keys(pending).length) return;
       return Promise.all(changed.map(function (k) { return fetchKey(k, v[k].n).then(function (t) { cache[k] = t; ver[k] = v[k].at; }); })).then(function () {
         var ae = document.activeElement; if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)) { show('Updated from another device. Tap anywhere, then it refreshes.', false); document.addEventListener('click', function once() { document.removeEventListener('click', once); location.reload(); }); return; }
@@ -107,9 +109,13 @@
   function whenSaved() { return new Promise(function (res) { var t0 = Date.now(); (function chk() { if (Object.keys(pending).length && !busy && !timer) flush(); if ((!Object.keys(pending).length && !busy) || Date.now() - t0 > 120000) return res(); setTimeout(chk, 250); })(); }); }
   window.BDWeb = { whenSaved: whenSaved, reloadWhenSaved: function () { clearTimeout(timer); timer = null; flush(); whenSaved().then(function () { var note = ''; try { var v = post({ action: 'versions' }); var m = v.data && v.data.v && v.data.v.products; note = m ? 'The website holds ' + (m.len / 1048576).toFixed(1) + ' MB of products (' + m.n + ' piece' + (m.n === 1 ? '' : 's') + ').' : 'The website holds NO products. The save did not reach the server.'; if (failed) note += ' Some saves failed.'; sessionStorage.setItem('bdo-note', note); } catch (e) { /* none */ } location.reload(); }); }, signOut: function () { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } location.reload(); } };
   window.BDDisk = {
-    get: function (k) { return Object.prototype.hasOwnProperty.call(cache, k) ? cache[k] : null; },
+    get: function (k) {
+      if (Object.prototype.hasOwnProperty.call(cache, k)) return cache[k];
+      if (lazy[k]) { var t = '', ok = true; for (var i = 0; i < lazy[k]; i++) { var g = null; for (var tr = 0; tr < 3; tr++) { g = post({ action: 'get', key: k, i: i }); if (g.status === 200 && g.data && typeof g.data.text === 'string') break; } if (!(g.status === 200 && g.data && typeof g.data.text === 'string')) { ok = false; break; } t += g.data.text; } if (ok) { cache[k] = t; delete lazy[k]; return t; } }
+      return null;
+    },
     set: function (k, text) { cache[k] = String(text); queue(k); return true; },
-    keys: function () { return Object.keys(cache); },
+    keys: function () { var o = Object.keys(cache); Object.keys(lazy).forEach(function (k) { if (o.indexOf(k) < 0) o.push(k); }); return o; },
     del: function (k) { delete cache[k]; queue(k); }
   };
 
@@ -147,7 +153,7 @@
   window.BDKorona = {
     info: function () { return kor('info'); }, editInfo: function () { return kor('editInfo'); },
     save: function () { return kor('info'); }, clear: function () { return kor('info'); }, editSave: function () { return kor('editInfo'); }, editClear: function () { return kor('editInfo'); },
-    pull: function (o) { return runJob('kor-pull', o); }, receipts: function (o) { return runJob('kor-receipts', o); }, gift: function () { return runJob('kor-gift', {}); },
+    pull: function (o) { return runJob('kor-pull', o); }, receipts: function () { return Promise.resolve({ ok: true, data: { receipts: [], maxRevision: 0 } }); /* KORONA does not allow the website to read sales; the Mac app keeps the sales history up to date here */ }, gift: function () { return runJob('kor-gift', {}); },
     editReq: function (r) { return kor('editReq', r); }
   };
   window.BDPhoto = {
