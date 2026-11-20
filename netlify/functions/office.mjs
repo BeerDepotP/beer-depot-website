@@ -3,8 +3,10 @@
 //   load                      -> { keys:{name:text}, rest:[{key,n}] }       POS data (small keys inline, big ones fetched in pieces)
 //   get {key,i} / put {key,i,n,len,text} / del {key}
 //   kor {fn:"info"|"editInfo"|"editReq", arg}   KORONA calls that finish fast (editReq can only touch stock receipts and products, never book)
+//   photo-put {id,b64} / photo-get {id}       invoice photos (own store, one small JPEG each)
 //   inv-info                                    is the Anthropic key set up
 //   job-in {id,i,text} / job-status {id} / job-get {id,i} / job-drop {id}   long jobs (run by office-job-background)
+import { getStore } from "@netlify/blobs";
 import { checkPin, json } from "../lib/pin.mjs";
 import { makeKorona } from "../lib/office-kor.mjs";
 import { makeInvoice } from "../lib/office-inv.mjs";
@@ -49,6 +51,14 @@ export default async (req) => {
         catch (e) { return json({ ok: false, status: 0, body: null, error: String(e.message || e) }); }
       }
       return json({ error: "Unknown." }, 400);
+    }
+    if (a === "photo-put") { // invoice photos: one small JPEG each, kept apart from the shared records
+      if (!okId(b.id) || typeof b.b64 !== "string" || b.b64.length > 3 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(b.b64)) return json({ error: "Bad photo." }, 400);
+      await getStore({ name: "beer-depot-photos", consistency: "strong" }).set(b.id, b.b64); return json({ ok: true });
+    }
+    if (a === "photo-get") {
+      if (!okId(b.id)) return json({ error: "Bad photo." }, 400);
+      const t = await getStore({ name: "beer-depot-photos", consistency: "strong" }).get(b.id); return t ? json({ b64: t }) : json({ error: "That photo is not on the website." }, 404);
     }
     if (a === "inv-info") return json(makeInvoice({ fetch }).info());
     if (a === "job-in") { if (!okId(b.id)) return json({ error: "Bad job." }, 400); await putJobPiece(st, b.id, "in", b.i, b.text); return json({ ok: true }); }

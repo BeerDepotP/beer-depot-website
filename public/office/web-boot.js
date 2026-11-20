@@ -149,6 +149,10 @@
     pull: function (o) { return runJob('kor-pull', o); }, receipts: function (o) { return runJob('kor-receipts', o); }, gift: function () { return runJob('kor-gift', {}); },
     editReq: function (r) { return kor('editReq', r); }
   };
+  window.BDPhoto = {
+    put: function (id, b64) { return post({ action: 'photo-put', id: id, b64: b64 }, true).then(function (r) { return r.status === 200 ? { ok: true } : { ok: false, error: (r.data && r.data.error) || 'Could not save the photo.' }; }, function () { return { ok: false, error: 'No connection.' }; }); },
+    get: function (id) { return post({ action: 'photo-get', id: id }, true).then(function (r) { return r.status === 200 && r.data && r.data.b64 ? { ok: true, b64: r.data.b64 } : { ok: false, error: (r.data && r.data.error) || 'Could not open the photo.' }; }, function () { return { ok: false, error: 'No connection.' }; }); }
+  };
   window.BDInvoice = {
     info: function () { return post({ action: 'inv-info' }, true).then(function (r) { return r.data; }); },
     setKey: function () { return window.BDInvoice.info(); },
