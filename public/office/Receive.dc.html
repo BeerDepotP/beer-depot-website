@@ -1567,7 +1567,7 @@ class Component extends DCLogic {
       const tagItems = tagItemsFor(s.lines, s.products, s.retailOrig);
       const total = itemsTotal + ext;
       const id = s.draftId || ('i' + (s.invoices.length + 1) + '-' + s.inv.trim() + '-' + Date.now());
-      const rec = { id, no: s.inv.trim(), dist: s.dist, date: s.dt, ext, comment: s.comment, status: book ? 'booked' : 'saved', lines: lineRecs, tagItems: book ? tagItems : [], pics: (s.phPics || []).slice() };
+      const rec = { id, no: s.inv.trim(), dist: s.dist, date: s.dt, ext, comment: s.comment, status: book ? 'booked' : 'saved', lines: lineRecs, tagItems: book ? tagItems : [], pics: (s.phPics || []).slice(), seen: (s.phSeen || []).slice() };
       if (book && typeof window !== 'undefined' && window.BD && window.BD.pushOutbox) window.BD.pushOutbox('stockReceipt', rec);
       if (book && typeof window !== 'undefined' && window.BD && window.BD.noteDelivery) window.BD.noteDelivery(s.dist.trim(), s.dt);
       const invoices = s.invoices.some((v) => v.id === id) ? s.invoices.map((v) => (v.id === id ? rec : v)) : [rec].concat(s.invoices);
@@ -1681,7 +1681,7 @@ class Component extends DCLogic {
         const invs = s.invoices.map((v) => (v.id === selInv.id ? Object.assign({}, v, { status: 'voided', voidedAt: new Date().toISOString(), tagItems: [] }) : v));
         this.setState({ products: P2, invoices: invs, voidAsk: null, saved: { title: 'Voided ' + selInv.no + '. ' + selInv.lines.reduce((t, l) => t + (l.units || 0), 0) + ' units were taken back out of stock.', lines: [{ text: 'Costs went back to what they were before when nothing changed them since. Products this invoice created stay in Products with stock taken back out.' }] } });
       },
-      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, phPics: (selInv.pics || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
+      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, phPics: (selInv.pics || []).slice(), phSeen: (selInv.seen || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
       deleteDraft: () => { if (!selInv || (selInv.status !== 'saved' && selInv.status !== 'voided')) return; const invs = s.invoices.filter((v) => v.id !== selInv.id); this.setState({ invoices: invs, products: cleanOrphans(s.products, s.lines, invs), invSel: null, draftId: s.draftId === selInv.id ? null : s.draftId }); },
       hasSaved: !!s.saved, savedTitle: s.saved ? s.saved.title : '', savedLines: s.saved ? s.saved.lines : [],
       // invoices
