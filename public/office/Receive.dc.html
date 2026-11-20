@@ -760,7 +760,9 @@ class Component extends DCLogic {
   // ---- product edits: names, extra UPCs, one distributor row. Preview first, nothing changes until Apply. ----
   korEdPrep(inv, sendable, sup) {
     const B = window.BDKorona, s = this.state, frito = /frito/i.test(inv.dist || '');
-    Promise.all(sendable.map((x) => B.editReq({ method: 'GET', path: '/products/' + x.kid }).then((r) => ({ x, kp: r.ok ? r.body : null })))).then((all) => {
+    const gnorm = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, ''), gmap = {}, missGroups = {};
+    const gp = B.editReq({ method: 'GET', path: '/commodityGroups', params: { size: 500 } }).then((r) => { const l = r.ok ? (Array.isArray(r.body) ? r.body : (r.body && r.body.results) || []) : []; l.forEach((g) => { if (g && g.id && g.name) gmap[gnorm(g.name)] = g.id; }); }).catch(() => {});
+    gp.then(() => Promise.all(sendable.map((x) => B.editReq({ method: 'GET', path: '/products/' + x.kid }).then((r) => ({ x, kp: r.ok ? r.body : null }))))).then((all) => {
       const edits = [];
       all.forEach(({ x, kp }) => { if (!kp) return; const p = s.products[x.pid] || {}, body = {}, d = [];
         const codes = (kp.codes || []).map((c) => ({ productCode: c.productCode, containerSize: c.containerSize || 1 })), have = {}; codes.forEach((c) => { have[c.productCode] = 1; });
@@ -774,8 +776,13 @@ class Component extends DCLogic {
           const same = cur.length === 1 && cur[0].supplier && cur[0].supplier.id === sup.id && cur[0].orderCode === row.orderCode && (cur[0].containerSize || 1) === row.containerSize && Math.abs((cur[0].value || 0) - row.value) < 0.0001;
           if (!same) { body.supplierPrices = [row]; d.push(sup.name + ' row: order code ' + row.orderCode + ', case of ' + row.containerSize + ', $' + row.value + ' each' + (cur.length > 1 || (cur[0] && cur[0].supplier && cur[0].supplier.id !== sup.id) ? ' (replaces ' + cur.length + ' old row' + (cur.length > 1 ? 's' : '') + ')' : '')); }
         }
+        if (!frito && p.groupSaved && p.group && !/^other$/i.test(p.group)) {
+          const gid = gmap[gnorm(p.group)], cur = kp.commodityGroup && kp.commodityGroup.id;
+          if (!gid) missGroups[p.group] = 1; else if (gid !== cur) { body.commodityGroup = { id: gid }; d.push('commodity group -> ' + p.group); }
+        }
         if (d.length) edits.push({ kid: x.kid, name: x.name, d, body }); });
-      const kp0 = this.state.korPrev; if (kp0 && kp0.invId === inv.id) this.setState({ korPrev: Object.assign({}, kp0, { edits, edMsg: edits.length ? '' : 'No product changes needed.' }) });
+      const mg = Object.keys(missGroups).length ? 'KORONA has no commodity group named ' + Object.keys(missGroups).join(', ') + ' (not sent). ' : '';
+      const kp0 = this.state.korPrev; if (kp0 && kp0.invId === inv.id) this.setState({ korPrev: Object.assign({}, kp0, { edits, edMsg: mg + (edits.length ? '' : 'No product changes needed.') }) });
     }).catch((e) => { const kp0 = this.state.korPrev; if (kp0 && kp0.invId === inv.id) this.setState({ korPrev: Object.assign({}, kp0, { edits: [], edMsg: 'Could not read the products: ' + String(e.message || e) }) }); });
   }
   korEdApply() {
