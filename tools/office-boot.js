@@ -40,6 +40,7 @@
   });
   if (loadFailed) { login('Your data did not finish loading, so nothing was opened (this keeps your saved data safe). ' + loadFailed + ' Refresh to try again.'); return; }
 
+  try { var note0 = sessionStorage.getItem('bdo-note'); if (note0) { sessionStorage.removeItem('bdo-note'); var cnt = ''; try { cnt = ' After reopening: ' + Object.keys(JSON.parse(cache.products || '{}')).length + ' products loaded.'; } catch (e) { cnt = ' After reopening the products could not be read.'; } document.addEventListener('DOMContentLoaded', function () { var d = document.createElement('div'); d.className = 'noprint'; d.textContent = note0 + cnt; d.style.cssText = 'position:fixed;left:10px;right:10px;top:10px;z-index:99999;font:600 14px Inter,system-ui,sans-serif;padding:10px 14px;border-radius:10px;background:#12264E;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3)'; d.onclick = function () { d.remove(); }; document.body.appendChild(d); setTimeout(function () { d.remove(); }, 20000); }); } } catch (e) { /* none */ }
   // ---- saving: every change is kept in memory at once and sent to the server a moment later ----
   var pending = {}, busy = false, timer = null, failed = false, pill = null, forced = {}, conflicts = {};
   function show(txt, bad) {
@@ -104,7 +105,7 @@
 
   // Waits until everything is saved to the server (used before a page reload so a sync is not thrown away)
   function whenSaved() { return new Promise(function (res) { var t0 = Date.now(); (function chk() { if (Object.keys(pending).length && !busy && !timer) flush(); if ((!Object.keys(pending).length && !busy) || Date.now() - t0 > 120000) return res(); setTimeout(chk, 250); })(); }); }
-  window.BDWeb = { whenSaved: whenSaved, reloadWhenSaved: function () { clearTimeout(timer); timer = null; flush(); whenSaved().then(function () { location.reload(); }); }, signOut: function () { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } location.reload(); } };
+  window.BDWeb = { whenSaved: whenSaved, reloadWhenSaved: function () { clearTimeout(timer); timer = null; flush(); whenSaved().then(function () { var note = ''; try { var v = post({ action: 'versions' }); var m = v.data && v.data.v && v.data.v.products; note = m ? 'The website holds ' + (m.len / 1048576).toFixed(1) + ' MB of products (' + m.n + ' piece' + (m.n === 1 ? '' : 's') + ').' : 'The website holds NO products. The save did not reach the server.'; if (failed) note += ' Some saves failed.'; sessionStorage.setItem('bdo-note', note); } catch (e) { /* none */ } location.reload(); }); }, signOut: function () { try { localStorage.removeItem(PIN_KEY); } catch (e) { /* none */ } location.reload(); } };
   window.BDDisk = {
     get: function (k) { return Object.prototype.hasOwnProperty.call(cache, k) ? cache[k] : null; },
     set: function (k, text) { cache[k] = String(text); queue(k); return true; },
