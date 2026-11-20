@@ -65,7 +65,7 @@
     }
     go.then(function () { busy = false; failed = false; flush(); }).catch(function (e) {
       busy = false;
-      if (e && e.conflict) { conflicts[k] = true; conflictBar(); return; }
+      if (e && e.conflict) { forced[k] = true; pending[k] = true; setTimeout(flush, 50); return; } /* no red bar: your change always goes through, and look() below pulls other devices' changes in */
       failed = true; pending[k] = true; show('Not saved yet. Trying again...', true); clearTimeout(timer); timer = setTimeout(flush, 5000); });
   }
   function conflictBar() {
@@ -93,7 +93,7 @@
       });
     }).then(function () { looking = false; }, function () { looking = false; });
   }
-  setInterval(look, 20000); document.addEventListener('visibilitychange', function () { if (!document.hidden) look(); });
+  setInterval(look, 6000); document.addEventListener('visibilitychange', function () { if (!document.hidden) look(); });
   function queue(k) { pending[k] = true; clearTimeout(timer); timer = setTimeout(flush, 700); }
   window.addEventListener('beforeunload', function (e) { if (Object.keys(pending).length || busy) { e.preventDefault(); e.returnValue = 'Your last change is still being saved.'; } });
 
