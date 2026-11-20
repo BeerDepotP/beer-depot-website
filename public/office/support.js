@@ -4,7 +4,7 @@
    Also saves each board's data on this computer and shares products between boards. */
 (function () {
   'use strict';
-  var PAGE = (location.pathname.split('/').pop() || 'Main.dc.html').replace(/\.dc\.html$/, '');
+  var PAGE = (function () { /* the website may show the address without .html and in small letters (receive.dc): always get back to the real screen name, like Receive */ var n = (location.pathname.split('/').pop() || 'Main.dc.html').replace(/\.html$/i, '').replace(/\.dc$/i, ''); try { n = decodeURIComponent(n); } catch (e) { /* keep */ } return n ? n.charAt(0).toUpperCase() + n.slice(1) : 'Main'; })();
   var LS = window.localStorage;
   var VERSION = 'v1';
 
