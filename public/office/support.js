@@ -146,7 +146,7 @@
   function usable(e) { return !!(e && e.at && (e.kor || !!e.live === BD.isLive())); }
   function loadMonth(k) {
     if (MONTHS[k]) return MONTHS[k];
-    var days = {}, cat = {};
+    var days = {}, cat = {}, PP = BD.get('products', {}) || {};
     // a receipt is filed by the month it was saved in (UTC), so also look at the neighbouring files and keep only this local month
     [shiftMonth(k, -1), k, shiftMonth(k, 1)].forEach(function (fk) {
       (BD.get(fk, []) || []).forEach(function (e) {
@@ -158,6 +158,7 @@
           var cr = l.cents || 0;
           if (l.lotto) { if (cr > 0) lotTix += l.qty || 1; else lotWins += 1; return; }
           var ca = l.cashEx != null ? l.cashEx : cr, q = l.u != null ? l.u : (l.qty || 1), id = l.pid || ('x:' + l.name);
+          if (!cr && !ca && l.pid && e.kor && q > 0 && PP[l.pid] && PP[l.pid].retail > 0) { cr = ca = Math.round(PP[l.pid].retail * q); if (l.txbl == null || l.txbl === false) l = Object.assign({}, l, { txbl: PP[l.pid].taxable !== false }); } /* KORONA receipts that came without line prices: use the product's price */
           if (!cat[id]) cat[id] = { id: id, name: l.name, group: l.grp || 'Other', price: q ? Math.round(ca / q) : ca, cost: q ? Math.round((l.cost || 0) / q) : 0, tax: l.txbl !== false, w: 1 };
           sub += cr; base += cash ? ca : cr; retail += ca; cost += l.cost || 0; units += q;
           if (l.txbl !== false) tb += cash ? ca : cr;
@@ -431,9 +432,9 @@
         if (!r.at) return; var d = new Date(r.at); if (isNaN(d.getTime())) return;
         var no = /^\d+$/.test(r.no) ? parseInt(r.no, 10) : r.no, mk = 'sales:' + d.getFullYear() + '-' + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1);
         var ls = [], S = 0, D = 0, cnt = 0;
-        (r.items || []).forEach(function (i) { var pid = kid.get(i.pid), p = pid ? P[pid] : null, c = toCents(i.total), lot = !!(p && p.lottery);
+        (r.items || []).forEach(function (i) { var pid = kid.get(i.pid), p = pid ? P[pid] : null, c = toCents(i.total), lot = !!(p && p.lottery); if (!c && p && !lot && i.qty > 0 && p.retail > 0) c = Math.max(0, Math.round(p.retail * i.qty) - toCents(i.disc)); /* no line price from KORONA: use the product's price */
           S += c; D += toCents(i.disc); if (!lot) cnt += i.qty > 0 ? i.qty : 0;
-          ls.push({ qty: i.qty, name: i.name || (p && p.name) || '', detail: '', cents: c, pid: pid || undefined, units: 1, tx: i.tax > 0, lotto: lot, txbl: i.tax > 0, cashEx: c, u: i.qty, grp: (p && p.group) || 'Other', cost: p ? Math.round((p.cost || 0) * i.qty) : 0 }); });
+          ls.push({ qty: i.qty, name: i.name || (p && p.name) || '', detail: '', cents: c, pid: pid || undefined, units: 1, tx: i.tax > 0, lotto: lot, txbl: i.tax > 0 || (!toCents(i.total) && !!(p && p.taxable !== false)), cashEx: c, u: i.qty, grp: (p && p.group) || 'Other', cost: p ? Math.round((p.cost || 0) * i.qty) : 0 }); });
         var cashP = 0, cardP = 0, giftP = 0; (r.pays || []).forEach(function (y) { var amt = toCents(y.amount) - toCents(y.change || 0); if (/CASH/.test(y.kind)) cashP += amt; else if (/GIFT|VOUCHER|CARD_GIFT/.test(y.kind)) giftP += amt; else cardP += amt; });
         var total = toCents(r.total) || (cashP + cardP + giftP), tender = giftP && !cashP && !cardP ? 'Gift card' : cashP && cardP ? 'Split' : cashP ? 'Cash' : 'Credit';
         var e = { no: no, kor: true, korId: r.id, src: 'KORONA', cashier: r.employee || '', cust: '', custName: '', taxEx: false, voided: !!r.voided, at: d.toISOString(), time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), date: d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }), tender: tender, split: tender === 'Split', cashPart: cashP, cardPart: cardP, lines: ls, itemCount: Math.round(cnt), sub: S, lotIn: 0, lotOut: 0, disc: D, tax: Math.max(0, total - (S - D)), adj: 0, round: 0, total: total, gift: giftP, gcNo: '', gcLeft: null, given: 0, change: 0 };
