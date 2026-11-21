@@ -927,7 +927,7 @@ class Component extends DCLogic {
         if (l.itemCode && norm(l.itemCode) !== norm(p.supNo)) { chg.push('item code ' + (p.supNo || 'none') + ' -> ' + l.itemCode); p.pend = Object.assign({}, p.pend, { supNo: String(l.itemCode) }); p.supNo = String(l.itemCode); }
         if (dist && p.dist !== dist) { chg.push('distributor ' + (p.dist || 'none') + ' -> ' + dist); p.pend = Object.assign({}, p.pend, { dist }); p.dist = dist; }
         P[pid] = p; const au = this.addUpc(P, pid, l.upc); if (au) chg.push('added UPC ' + au);
-        if (chg.length) { out.push(p.name + ': ' + chg.join('; ')); }
+        const showChg = chg.filter((c) => !/^(item code|added UPC)/.test(c)); if (showChg.length) { out.push(p.name + ': ' + showChg.join('; ')); } /* item code and UPC updates are routine: not shown */
       }
       const a = acc[pid] || (acc[pid] = { units: 0, total: 0, free: 0, per: P[pid].per || perInv || 1 }); if (!acc[pid].seen) { order.push(pid); acc[pid].seen = 1; }
       a.units += cases * (perInv || P[pid].per || 1); a.total += total; a.free += Math.round(Number(l.freeUnits) || 0);
@@ -946,7 +946,7 @@ class Component extends DCLogic {
     if (d.notes) warn.push('Note from the reader: ' + d.notes);
     const dt = d.invoiceDate ? new Date(d.invoiceDate + 'T12:00:00') : null;
     this.setState({ products: P, lines, inv: d.invoiceNumber ? String(d.invoiceNumber) : s.inv, dist, ext: fee ? fee.toFixed(2) : (more ? s.ext : ''), comment: [more ? s.comment : '', retNote].filter(Boolean).join(' | '), dt: !more && dt && !isNaN(dt) ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : s.dt, view: 'receive',
-      phSeen: newSeen, phBusy: false, phMsg: (dupes ? dupes + ' lines were already on this receipt from an earlier read and were skipped. ' : '') + 'Read ' + lines.length + ' products' + (fresh ? ' (' + fresh + ' new)' : '') + ' with ' + (d.model || 'Claude') + (d.escalated ? ' after a second look' : '') + '. ' + msg, phWarn: !!(warn.length || (want && Math.abs(shown - want) > Math.max(50, want * 0.01))), phLines: out.concat(warn).map((t) => ({ text: t })) });
+      phSeen: newSeen, phBusy: false, phMsg: (dupes ? dupes + ' lines were already on this receipt from an earlier read and were skipped. ' : '') + lines.length + '/' + Math.max(lines.length, (d.lines || []).length) + ' items added \u00B7 ' + lines.reduce((t, l) => t + Math.max(0, l.cases), 0) + ' cases. ' + msg, phWarn: !!(warn.length || (want && Math.abs(shown - want) > Math.max(50, want * 0.01))), phLines: out.concat(warn).map((t) => ({ text: t })) });
   }
   renderVals() {
     const s = this.state;
