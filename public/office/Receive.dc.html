@@ -67,11 +67,11 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><input id="phfile" type="file" accept="image/*,.heic,.heif,.HEIC,.HEIF,image/heic,image/heif" multiple onChange="{{ phPick }}" style="font: inherit; font-size: 14px; min-height: 44px"><button onClick="{{ syncNow }}" style="{{ syncBtnStyle }}">{{ syncBtn }}</button></div>
 <details style="font-size: 13px"><summary style="cursor: pointer; min-height: 36px; font-weight: 700">No API key? Paste an invoice read in a Claude chat</summary><textarea value="{{ pasteTxt }}" onInput="{{ pasteIn }}" rows="5" placeholder="Paste the invoice code block here" style="width: 100%; font: 12px monospace; margin-top: 6px"></textarea><button onClick="{{ pasteGo }}" style="min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #F26B1D; color: #FFFFFF; margin-top: 6px">Load pasted invoice</button></details>
 <div style="{{ phStyle }}">{{ phMsg }}</div>
-<sc-for list="{{ phLines }}" as="x" hint-placeholder-count="2"><div style="font-size: 13px; color: #4A453A">&bull; {{ x.text }}</div></sc-for>
+<sc-for list="{{ phLines }}" as="x" hint-placeholder-count="2"><div style="font-size: 13px; color: #4A453A; display: flex; gap: 8px; align-items: center; flex-wrap: wrap"><span>&bull; {{ x.text }}</span><sc-if value="{{ x.hasGo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ x.go }}" style="font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border: 1px solid #8A5A14; border-radius: 8px; background: #FFF4DE; color: #6B4208; cursor: pointer">Go to it</button></sc-if></div></sc-for>
 </div>
 <div style="display: flex; gap: 10px; flex-wrap: wrap">
 <button id="saveBtn" onClick="{{ save }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 700; border: 2px solid #1F7A3F; border-radius: 10px; background: {{ saveBg }}; color: {{ saveFg }}">{{ saveLabel }}</button>
-<button onClick="{{ korSendTop }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: #FFFFFF; color: #1F5FA8">Send to KORONA</button>
+<button onClick="{{ korSendTop }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: {{ sendTopBg }}; color: #1F5FA8">{{ sendTopLabel }}</button>
 <button onClick="{{ openTags }}" style="flex: 0 0 auto; min-height: 52px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #1D1B16">Print price tags{{ tagCountText }}</button>
 <button id="bookBtn" onClick="{{ book }}" style="flex: 1 1 auto; min-height: 52px; font-size: 16px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Book: update stock and costs</button>
 <button onClick="{{ discard }}" style="min-height: 52px; padding: 0 18px; font-size: 15px; font-weight: 600; border: 0; border-radius: 10px; background: #EFE7D6; color: #1D1B16">Discard</button>
@@ -185,6 +185,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </sc-if>
 <sc-if value="{{ showInvoices }}" hint-placeholder-val="{{ false }}">
 <div style="display: flex; flex-direction: column; gap: 14px">
+<sc-if value="{{ sendAllShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 2px solid #1F5FA8; border-radius: 14px; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center"><button onClick="{{ sendAllGo }}" style="min-height: 48px; padding: 0 18px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #1F5FA8; color: #FFFFFF">{{ sendAllLabel }}</button><div style="font-size: 14px; font-weight: 600; color: #1D1B16; flex: 1 1 260px">{{ sendAllMsg }}</div></div></sc-if>
 <div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 6px">
 <label for="invQ" style="font-size: 13px; color: #6B6558">Search saved invoices by invoice number, distributor, product name or UPC</label>
 <input id="invQ" type="text" autocomplete="off" placeholder="Invoice number, product name or UPC&hellip;" value="{{ invQ }}" onInput="{{ onInvQ }}" style="font: inherit; font-size: 18px; padding: 12px 14px; border: 2px solid #2A2118; border-radius: 10px; min-height: 52px; box-sizing: border-box; width: 100%">
@@ -806,6 +807,32 @@ class Component extends DCLogic {
       const e = list[i]; upd('Updating ' + (i + 1) + ' of ' + list.length + ': ' + e.name);
       B.editReq({ method: 'PATCH', path: '/products/' + e.kid, body: e.body }).then((r) => { if (r.ok) ok++; else { bad.push(e.kid); this.setState({ korPrev: Object.assign({}, this.state.korPrev, { edErr: e.name + ': KORONA answered ' + r.status + ' ' + (typeof r.body === 'string' ? r.body : JSON.stringify(r.body)).slice(0, 300) }) }); } next(i + 1); }).catch((x) => { bad.push(e.kid); next(i + 1); }); };
     upd('Starting...'); next(0);
+  }
+  goFor(text) {
+    const s = this.state, t = String(text || ''), jump = (id) => () => { const el = typeof document !== 'undefined' && document.getElementById(id); if (el) { el.scrollIntoView({ block: 'center' }); try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } } };
+    let m = /^Line (\d+)/.exec(t); if (m && s.lines[Number(m[1]) - 1]) return jump('name' + (Number(m[1]) - 1));
+    if (/CHECK THE DISTRIBUTOR|distributor/i.test(t) && /^(The invoice says|distributor)/i.test(t)) return jump('dist');
+    const head = t.replace(/^(PRICE CHANGE|New product to finish:|Group changed:|RETURNED[^:]*:)\s*/, '').split(':')[0].trim().toLowerCase();
+    if (head) { const i = s.lines.findIndex((l) => { const p = s.products[l.pid]; return p && String(p.name || '').toLowerCase() === head || (p && head.indexOf(String(p.name || '').toLowerCase()) === 0); }); if (i >= 0) return jump('name' + i); }
+    return null;
+  }
+  korWait(invId) { return new Promise((res) => { const tick = () => { const k = this.state.korPrev; if (k && k.invId === invId && k.st !== 'busy' && k.st !== undefined) res(k); else setTimeout(tick, 400); }; setTimeout(tick, 600); }); }
+  async korSendAll() {
+    if (this.state.sendAllBusy) return;
+    const todo = this.state.invoices.filter((v) => v.status === 'saved' && !v.korSent).map((v) => v.id); if (!todo.length) return;
+    this.setState({ sendAllBusy: true, sendAllMsg: 'Starting...' }); let sent = 0;
+    for (let i = 0; i < todo.length; i++) {
+      const inv = this.state.invoices.find((v) => v.id === todo[i]); if (!inv) continue;
+      this.setState({ invSel: inv.id, sendAllMsg: 'Invoice ' + inv.no + ' (' + (i + 1) + ' of ' + todo.length + '): checking KORONA...' });
+      this.korPrep(inv); let k = await this.korWait(inv.id);
+      const leftOut = (k.issues || []).some((t) => /not in KORONA yet|no supplier/.test(t));
+      if (k.st !== 'ready' || leftOut) { this.setState({ sendAllBusy: false, sendAllMsg: 'Stopped at invoice ' + inv.no + ' because it needs a look (details below). ' + sent + ' sent so far. Fix it, then tap Send All again.' }); return; }
+      this.setState({ sendAllMsg: 'Invoice ' + inv.no + ' (' + (i + 1) + ' of ' + todo.length + '): sending...' });
+      this.korSend(inv); k = await this.korWait(inv.id);
+      if (k.st !== 'done') { this.setState({ sendAllBusy: false, sendAllMsg: 'Stopped at invoice ' + inv.no + ': ' + (k.msg || 'KORONA did not accept it') + ' ' + sent + ' sent so far.' }); return; }
+      sent++;
+    }
+    this.setState({ sendAllBusy: false, sendAllMsg: 'Done. ' + sent + ' invoice' + (sent === 1 ? '' : 's') + ' sent to KORONA as saved receipts. None booked.' });
   }
   korSend(inv) {
     const B = window.BDKorona, kp = this.state.korPrev; if (!kp || kp.st !== 'ready') return;
@@ -1612,7 +1639,7 @@ class Component extends DCLogic {
       syncBtn: s.syncBusy ? 'Syncing...' : 'Sync now \u00B7 ' + (window.BD.syncBadge ? window.BD.syncBadge().text : ''), syncBtnStyle: (() => { const b = window.BD.syncBadge ? window.BD.syncBadge() : { bg: '#FFFFFF', border: '#8A5A14', color: '#1D1B16' }; return 'min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 700; border-radius: 99px; background: ' + b.bg + '; border: 2px solid ' + b.border + '; color: ' + b.color; })(), syncNow: () => { if (s.syncBusy) return; if (s.lines.length) { this.setState({ phWarn: true, phMsg: 'An invoice is open with ' + s.lines.length + ' lines. Save it or clear it first, then sync, so nothing is lost.', phLines: [] }); return; } if (!window.BD || !window.BD.kor || !window.BD.kor.sync) { this.setState({ phWarn: true, phMsg: 'The KORONA link needs the newest Mac app.', phLines: [] }); return; }
         this.setState({ syncBusy: true, phWarn: false, phMsg: 'Asking KORONA for the latest products, stock and sales...', phLines: [] });
         window.BD.kor.sync({ enable: true }).then((r) => { if (r.ok && r.got === 0) { this.setState({ syncBusy: false, phWarn: true, phMsg: 'KORONA answered but sent 0 products. Details for Claude: ' + JSON.stringify(r.diag || {}) + '', phLines: [] }); } else if (r.ok) { this.setState({ phWarn: false, phMsg: 'Synced: KORONA sent ' + r.got + ' products (' + ((r.ch && r.ch['new']) || 0) + ' new). Saving...', phLines: [] }); window.BDWeb.reloadWhenSaved(); } else { this.setState({ syncBusy: false, phWarn: true, phMsg: 'Sync problem: ' + r.error, phLines: [] }); } }); },
-      phMsg: s.phMsg || '', phLines: s.phLines || [], phStyle: 'font-size: 14px; font-weight: 700; color: ' + (s.phWarn ? '#8C1D14' : '#14572D'), phPick: (e) => { const fs = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; if (!fs.length || s.phBusy) return; const run = (i) => { if (i >= fs.length) { clearInterval(this._keep); return; } if (i === 0) { this._bs = []; if (this._keep) clearInterval(this._keep); this._keep = setInterval(() => { window.__bdAct = Date.now(); }, 10000); } if (fs.length > 1) this.setState({ phPage: 'Photo ' + (i + 1) + ' of ' + fs.length + '. ' }); this.photoInvoice(fs[i], fs.length > 1 ? (i + 1) + ' of ' + fs.length : '').then((ok) => { if (ok !== false) run(i + 1); else clearInterval(this._keep); }); }; run(0); },
+      phMsg: s.phMsg || '', phStyle: 'font-size: 14px; font-weight: 700; color: ' + (s.phWarn ? '#8C1D14' : '#14572D'), phPick: (e) => { const fs = Array.prototype.slice.call(e.target.files || []); e.target.value = ''; if (!fs.length || s.phBusy) return; const run = (i) => { if (i >= fs.length) { clearInterval(this._keep); return; } if (i === 0) { this._bs = []; if (this._keep) clearInterval(this._keep); this._keep = setInterval(() => { window.__bdAct = Date.now(); }, 10000); } if (fs.length > 1) this.setState({ phPage: 'Photo ' + (i + 1) + ' of ' + fs.length + '. ' }); this.photoInvoice(fs[i], fs.length > 1 ? (i + 1) + ' of ' + fs.length : '').then((ok) => { if (ok !== false) run(i + 1); else clearInterval(this._keep); }); }; run(0); },
       inv: s.inv, onInv: (e) => this.setState({ inv: String(e.target.value) }), dt: s.dt, onDt: (e) => this.setState({ dt: String(e.target.value) }),
       dist: s.dist, onDist: (e) => this.setState({ dist: String(e.target.value) }), isExempt: exempt,
       comment: s.comment, ext: s.ext, onExt: (e) => this.setState({ ext: String(e.target.value) }),
@@ -1668,6 +1695,13 @@ class Component extends DCLogic {
       groupOptList, itemsTotal: $(itemsTotal), extTotal: $(ext), grand: $(itemsTotal + ext),
       discard: () => this.setState({ phPics: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
       save: () => run(false),
+      sendTopLabel: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? 'Sent to KORONA \u2713' + (v.korSent.number ? ' (' + v.korSent.number + ')' : '') : 'Send to KORONA'; })(),
+      sendTopBg: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? '#DCEBFA' : '#FFFFFF'; })(),
+      sendAllShow: !!(typeof window !== 'undefined' && window.BDKorona && window.BDKorona.editReq) && (s.invoices || []).some((v) => v.status === 'saved' && !v.korSent) || !!s.sendAllMsg,
+      sendAllLabel: s.sendAllBusy ? 'Sending...' : 'Send All to KORONA (' + (s.invoices || []).filter((v) => v.status === 'saved' && !v.korSent).length + ')',
+      sendAllMsg: s.sendAllMsg || 'Sends every saved invoice that is not in KORONA yet, one after the other. It stops on any invoice that needs a look. Nothing is booked.',
+      sendAllGo: () => this.korSendAll(),
+      phLines: (s.phLines || []).map((x) => { const g = this.goFor(x.text); return { text: x.text, hasGo: !!g, go: g || (() => {}) }; }),
       korSendTop: () => { if (this._save) this._save(); setTimeout(() => { const st = this.state, inv = (st.invoices || []).find((v) => v.id === st.draftId); if (inv && inv.no === String(st.inv || '').trim()) { this.korPrep(inv); setTimeout(() => { try { const el = document.getElementById('korPanelTop'); if (el) el.scrollIntoView({ block: 'center' }); } catch (e) { /* ignore */ } }, 400); } }, 150); },
       saveLabel: s.saved && /^Saved /.test(s.saved.title) ? 'Saved ' + s.saved.title.split(' ')[1] + ' \u2713 (stock not changed)' : 'Save (stock not changed)',
       saveBg: s.saved && /^Saved /.test(s.saved.title) ? '#E4F3E8' : '#FFFFFF', saveFg: '#14572D',
