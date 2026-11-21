@@ -61,7 +61,40 @@ function Bar-Bits($code) {
 }
 
 # ---------- one tag ----------
+function Draw-Scan($g, $t, $w, $h) {
+  $K = [Math]::Min($w / 2.25, $h / 1.25)
+  $W = $w * 100; $H = $h * 100
+  $g.Clear([System.Drawing.Color]::White)
+  $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+  $pt = [System.Drawing.GraphicsUnit]::Point
+  $bold = [System.Drawing.FontStyle]::Bold
+  $black = [System.Drawing.Brushes]::Black
+  $x = 8 * $K; $inner = $W - 16 * $K
+  $name = [string]$t.name; if ($t.label) { $name = $name + '  ' + $t.label }
+  $sf = New-Object System.Drawing.StringFormat
+  $size = 7 * $K; $nameH = 22 * $K
+  $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt)
+  while ($size -gt 3.5 -and $g.MeasureString($name, $fn, [int]$inner, $sf).Height -gt $nameH) { $fn.Dispose(); $size = $size - 0.25; $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt) }
+  $g.DrawString($name, $fn, $black, (New-Object System.Drawing.RectangleF($x, (3 * $K), $inner, $nameH)), $sf)
+  $fp = New-Object System.Drawing.Font('Arial', (8 * $K), $bold, $pt)
+  $g.DrawString([string]$t.cash, $fp, $black, $x, (26 * $K))
+  $bits = ''; if ($t.code) { $bits = Bar-Bits ([string]$t.code) }
+  $fs = New-Object System.Drawing.Font('Arial', (7 * $K), [System.Drawing.FontStyle]::Regular, $pt)
+  if ($bits) {
+    $q = 10; $n = $bits.Length + 2 * $q; $mw = $inner / $n; $top = 40 * $K; $bh = 62 * $K; $i = 0
+    while ($i -lt $bits.Length) {
+      if ($bits[$i] -eq '1') { $j = $i; while ($j -lt $bits.Length -and $bits[$j] -eq '1') { $j++ }
+        $g.FillRectangle($black, [single]($x + ($q + $i) * $mw), [single]$top, [single](($j - $i) * $mw), [single]$bh); $i = $j } else { $i++ }
+    }
+    $g.DrawString([string]$t.code, $fs, $black, $x, (105 * $K))
+  } else {
+    $g.DrawString('NO BARCODE', $fp, $black, $x, (60 * $K))
+  }
+  $fn.Dispose(); $fp.Dispose(); $fs.Dispose(); $sf.Dispose()
+}
+
 function Draw-Tag($g, $t, $w, $h) {
+  if ($t.style -eq 'scan') { Draw-Scan $g $t $w $h; return }
   $K = [Math]::Min($w / 2.25, $h / 1.25)
   $W = $w * 100; $H = $h * 100
   $g.Clear([System.Drawing.Color]::White)
