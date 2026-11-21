@@ -71,9 +71,11 @@ function Draw-Tag($g, $t, $w, $h) {
   $black = [System.Drawing.Brushes]::Black
   $x = 8 * $K; $inner = $W - 16 * $K
   $name = [string]$t.name; if ($t.label) { $name = $name + '  ' + $t.label }
-  $fn = New-Object System.Drawing.Font('Arial', (9.5 * $K), $bold, $pt)
-  $sf = New-Object System.Drawing.StringFormat; $sf.Trimming = [System.Drawing.StringTrimming]::EllipsisWord
-  $g.DrawString($name, $fn, $black, (New-Object System.Drawing.RectangleF($x, (4 * $K), $inner, (30 * $K))), $sf)
+  $sf = New-Object System.Drawing.StringFormat
+  $nameW = $inner - 52 * $K; $nameH = 28 * $K; $size = 9.5 * $K
+  $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt)
+  while ($size -gt 4 -and $g.MeasureString($name, $fn, [int]$nameW, $sf).Height -gt $nameH) { $fn.Dispose(); $size = $size - 0.25; $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt) }
+  $g.DrawString($name, $fn, $black, (New-Object System.Drawing.RectangleF($x, (4 * $K), $nameW, $nameH)), $sf)
   $fc = New-Object System.Drawing.Font('Arial', (30 * $K), $bold, $pt)
   $g.DrawString([string]$t.cash, $fc, $black, $x, (32 * $K))
   $fr = New-Object System.Drawing.Font('Arial', (9 * $K), $bold, $pt)
