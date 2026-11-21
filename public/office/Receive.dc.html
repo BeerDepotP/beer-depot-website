@@ -88,6 +88,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ korAlready }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; font-weight: 800; color: #8C1D14">{{ korAlready }}</div></sc-if>
 <div style="display: flex; gap: 8px"><sc-if value="{{ korCanGo }}" hint-placeholder-val="{{ false }}"><button onClick="{{ korSendGo }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #1F5FA8; color: #FFFFFF">Send now</button></sc-if><button onClick="{{ korClose }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #6B6558; border-radius: 10px; background: #FFFFFF">Close</button></div>
 </div></sc-if>
+<sc-if value="{{ reviewShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FBE3E1; border: 2px solid #B3261E; border-radius: 14px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><div style="flex: 1 1 260px; font-size: 14px; font-weight: 700; color: #8C1D14">{{ reviewText }}</div><button onClick="{{ reviewDone }}" style="min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 800; border: 0; border-radius: 10px; background: #B3261E; color: #FFFFFF">I Checked It</button></div></sc-if>
 <div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 12px">
 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
 <div style="display: flex; flex-direction: column; gap: 4px"><label for="inv" style="font-size: 13px; color: #6B6558">Invoice number (enter first)</label>
@@ -219,6 +220,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ picOpen }}" hint-placeholder-val="{{ false }}"><div onClick="{{ picClose }}" style="position: fixed; inset: 0; z-index: 99998; background: rgba(0,0,0,.82); display: flex; flex-direction: column; align-items: center; padding: 12px; overflow: auto"><div style="color: #FFFFFF; font-size: 15px; font-weight: 800; padding: 6px 0">{{ picMsg }} (tap anywhere to close)</div><sc-if value="{{ picSrc }}" hint-placeholder-val="{{ false }}"><img src="{{ picSrc }}" style="max-width: 100%; border-radius: 6px; background: #FFFFFF" /></sc-if></div></sc-if>
 <sc-if value="{{ selHasPics }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 8px; flex-wrap: wrap"><sc-for list="{{ selPics }}" as="pc" hint-placeholder-count="1"><button onClick="{{ pc.open }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #2A2118; border-radius: 10px; background: #FFFFFF; color: #2A2118">{{ pc.label }}</button></sc-for></div></sc-if>
 <sc-if value="{{ selHasTags }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openSelTags }}" style="align-self: flex-start; min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #2A2118; color: #FFFFFF">Print price tags ({{ selTagCount }})</button></sc-if>
+<sc-if value="{{ selReviewShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FBE3E1; border: 2px solid #B3261E; border-radius: 12px; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center"><div style="flex: 1 1 260px; font-size: 14px; font-weight: 700; color: #8C1D14">{{ selReviewText }}</div><button onClick="{{ selReviewDone }}" style="min-height: 44px; padding: 0 16px; font-size: 14px; font-weight: 800; border: 0; border-radius: 10px; background: #B3261E; color: #FFFFFF">I Checked It</button></div></sc-if>
 <sc-if value="{{ selIsDraft }}" hint-placeholder-val="{{ false }}"><div style="display: flex; gap: 8px"><button onClick="{{ openDraft }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 0; border-radius: 10px; background: #1F7A3F; color: #FFFFFF">Open to continue or book</button><button onClick="{{ deleteDraft }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 1px solid #B3261E; border-radius: 10px; background: #FFFFFF; color: #B3261E">Delete this saved receipt</button></div></sc-if>
 <sc-if value="{{ selCanSend }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px">
 <div><button onClick="{{ korPrepGo }}" style="min-height: 48px; padding: 0 16px; font-size: 15px; font-weight: 800; border: 2px solid #1F5FA8; border-radius: 10px; background: #FFFFFF; color: #1F5FA8">Send to KORONA (saved, not booked)</button></div>
@@ -767,6 +769,8 @@ class Component extends DCLogic {
       if (!unit) issues.push('Could not find your store in KORONA.');
       const lines = inv.lines.map((l) => { const p = s.products[l.pid] || {}; const got = (l.units != null ? l.units : l.cases * (l.per || p.per || 1) + (l.free || 0)); const total = (l.line != null ? l.line : l.cases * l.caseCost) / 100;
         return { pid: l.pid, name: l.name, kid: p.kid || '', upc: l.upc || p.upc || '', code: p.supNo || '', units: got, price: got > 0 ? Math.round(total / got * 10000) / 10000 : 0, total }; });
+      { const tot = inv.lines.reduce((t, l) => t + (l.line != null ? l.line : l.cases * l.caseCost), 0) + (Number(inv.ext) || 0), want = Number(inv.invTotal) || 0; if (want > 0 && Math.abs(tot - want) > Math.max(50, want * 0.01)) issues.push('STOP: The lines plus delivery add up to $' + (tot / 100).toFixed(2) + ' but the invoice total is $' + (want / 100).toFixed(2) + '. Compare with the paper.'); }
+      if (inv.review && inv.review.length) issues.push('STOP: This invoice still needs review: ' + inv.review[0] + (inv.review.length > 1 ? ' (and ' + (inv.review.length - 1) + ' more)' : '') + ' Check it, then tap I Checked It.');
       const dupe = (s.invoices || []).find((v) => v.id !== inv.id && v.status !== 'voided' && v.korSent && String(v.no).trim() === String(inv.no).trim() && String(v.dist) === String(inv.dist)); if (dupe) issues.push('STOP: Invoice ' + inv.no + ' was already sent to KORONA' + (dupe.korSent.number ? ' (receipt ' + dupe.korSent.number + ')' : '') + '. Sending again would make a duplicate receipt.');
       lines.filter((x) => x.units > 0 && !(x.price > 0)).forEach((x) => issues.push('STOP: ' + x.name + ' has a $0 cost on this receipt. Fix the line first.'));
       lines.forEach((x) => { const p = s.products[x.pid]; if (p && p.cost > 0 && x.price > 0) { const r = x.price * 100 / p.cost; if (r >= 1.25 || r <= 0.75) issues.push('CHECK: ' + x.name + ' unit cost is ' + (r >= 1 ? '+' : '') + Math.round((r - 1) * 100) + '% compared with the last cost ($' + (p.cost / 100).toFixed(2) + ' to $' + x.price.toFixed(2) + '). Make sure it was read right.'); } });
@@ -895,7 +899,7 @@ class Component extends DCLogic {
         setTimeout(() => {
           const st = this.state;
           if (!(st.saved && st.saved.title)) { this.setState({ phBusy: false, phWarn: true, phMsg: 'Invoice ' + oldNo + ' could not be saved by itself' + (st.addMsg ? ' (' + st.addMsg + ')' : '') + ', so the rest of the photos were not read. Fix it and Save, then add the next photos.', phLines: [] }); res(false); return; }
-          this.setState({ lines: [], txt: {}, addMsg: '', saved: null, draftId: null, phPics: pid ? [pid] : [], phSeen: [], products: this._clean ? this._clean(st.products, [], st.invoices) : st.products });
+          this.setState({ lines: [], txt: {}, addMsg: '', saved: null, draftId: null, phPics: pid ? [pid] : [], phSeen: [], phWant: 0, phReview: [], products: this._clean ? this._clean(st.products, [], st.invoices) : st.products });
           this._bs = (this._bs || []).concat(oldNo); res('Saved invoice' + (this._bs.length > 1 ? 's ' : ' ') + this._bs.join(', ') + ' (not booked).');
         }, 150);
       }, 60);
@@ -979,7 +983,7 @@ class Component extends DCLogic {
     if (d.notes) warn.push('Note from the reader: ' + d.notes);
     const dt = d.invoiceDate ? new Date(d.invoiceDate + 'T12:00:00') : null;
     this.setState({ products: P, lines, inv: d.invoiceNumber ? String(d.invoiceNumber) : s.inv, dist, ext: fee ? fee.toFixed(2) : (more ? s.ext : ''), comment: [more ? s.comment : '', retNote].filter(Boolean).join(' | '), dt: !more && dt && !isNaN(dt) ? dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : s.dt, view: 'receive',
-      phSeen: newSeen, phBusy: false, phMsg: (dupes ? dupes + ' lines were already on this receipt from an earlier read and were skipped. ' : '') + lines.length + '/' + Math.max(lines.length, (d.lines || []).length) + ' items added \u00B7 ' + lines.reduce((t, l) => t + Math.max(0, l.cases), 0) + ' cases. ' + msg, phWarn: !!(warn.length || (want && Math.abs(shown - want) > Math.max(50, want * 0.01))), phLines: out.concat(warn).map((t) => ({ text: t })) });
+      phSeen: newSeen, phWant: want || (more ? s.phWant : 0) || 0, phReview: (more ? (s.phReview || []) : []).concat(warn.map((t) => String(t).slice(0, 200)), want && Math.abs(shown - want) > Math.max(50, want * 0.01) ? [msg] : []).slice(0, 12), phBusy: false, phMsg: (dupes ? dupes + ' lines were already on this receipt from an earlier read and were skipped. ' : '') + lines.length + '/' + Math.max(lines.length, (d.lines || []).length) + ' items added \u00B7 ' + lines.reduce((t, l) => t + Math.max(0, l.cases), 0) + ' cases. ' + msg, phWarn: !!(warn.length || (want && Math.abs(shown - want) > Math.max(50, want * 0.01))), phLines: out.concat(warn).map((t) => ({ text: t })) });
   }
   renderVals() {
     const s = this.state;
@@ -1622,7 +1626,7 @@ class Component extends DCLogic {
       const tagItems = tagItemsFor(s.lines, s.products, s.retailOrig);
       const total = itemsTotal + ext;
       const id = s.draftId || ('i' + (s.invoices.length + 1) + '-' + s.inv.trim() + '-' + Date.now());
-      const rec = { id, no: s.inv.trim(), dist: s.dist, date: s.dt, ext, comment: s.comment, status: book ? 'booked' : 'saved', lines: lineRecs, tagItems: book ? tagItems : [], pics: (s.phPics || []).slice(), seen: (s.phSeen || []).slice() };
+      const rec = { id, no: s.inv.trim(), dist: s.dist, date: s.dt, ext, comment: s.comment, status: book ? 'booked' : 'saved', lines: lineRecs, tagItems: book ? tagItems : [], pics: (s.phPics || []).slice(), invTotal: s.phWant || 0, review: (s.phReview || []).slice(0, 12), seen: (s.phSeen || []).slice() };
       if (book && typeof window !== 'undefined' && window.BD && window.BD.pushOutbox) window.BD.pushOutbox('stockReceipt', rec);
       if (book && typeof window !== 'undefined' && window.BD && window.BD.noteDelivery) window.BD.noteDelivery(s.dist.trim(), s.dt);
       const invoices = s.invoices.some((v) => v.id === id) ? s.invoices.map((v) => (v.id === id ? rec : v)) : [rec].concat(s.invoices);
@@ -1635,7 +1639,7 @@ class Component extends DCLogic {
         created ? [created + ' new ' + (created === 1 ? 'product was' : 'products were') + ' created and can be sold right away.'] : []
       ).map((x) => ({ text: x }));
       const ro2 = Object.assign({}, s.retailOrig); s.lines.forEach((l) => { delete ro2[l.pid]; });
-      this.setState({ products, invoices, retailOrig: ro2, invSel: id, draftId: null, phPics: [], lines: [], txt: {}, inv: '', saved: { tagItems, title: 'Booked ' + rec.no + ' from ' + s.dist + ': ' + units + ' units added, ' + $(total) + '. Ready for the next invoice.', lines: texts }, addMsg: '', bulk: '' });
+      this.setState({ products, invoices, retailOrig: ro2, invSel: id, draftId: null, phPics: [], phWant: 0, phReview: [], lines: [], txt: {}, inv: '', saved: { tagItems, title: 'Booked ' + rec.no + ' from ' + s.dist + ': ' + units + ' units added, ' + $(total) + '. Ready for the next invoice.', lines: texts }, addMsg: '', bulk: '' });
       focusAdd();
     };
     const aqList = String(s.aq || '').trim().length >= 2 && !/^[0-9]{6,}$/.test(String(s.aq).trim()) ? matchList(s.aq) : [];
@@ -1709,9 +1713,11 @@ class Component extends DCLogic {
         this.setState({ products: prodsB, lines, bulk: '', txt: {}, saved: null, addMsg: added + ' lines added or updated.' + (made ? ' ' + made + ' NEW PRODUCT' + (made === 1 ? '' : 'S') + ' (red box), created when you Book.' : '') + (miss.length ? ' Not found: ' + miss.join(', ') + '.' : ''), addOk: miss.length === 0 });
       },
       groupOptList, itemsTotal: $(itemsTotal), extTotal: $(ext), grand: $(itemsTotal + ext),
-      discard: () => this.setState({ phPics: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
+      discard: () => this.setState({ phPics: [], phWant: 0, phReview: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
       save: () => run(false),
       todoItems: todo, todoShow: todo.length > 0, todoInv: unsentN > 0, todoOpenInv: () => this.setState({ view: 'invoices' }),
+      reviewShow: (s.phReview || []).length > 0, reviewText: 'Needs review: ' + (s.phReview || []).length + ' thing' + ((s.phReview || []).length === 1 ? '' : 's') + ' to check before this invoice can be sent (see the red notes under the photo picker).', reviewDone: () => this.setState({ phReview: [] }),
+      selReviewShow: !!(selInv && selInv.review && selInv.review.length), selReviewText: selInv && selInv.review ? 'Needs review: ' + selInv.review.join(' / ') : '', selReviewDone: () => { if (selInv) this.setState({ invoices: this.state.invoices.map((v) => (v.id === selInv.id ? Object.assign({}, v, { review: [] }) : v)) }); },
       sendTopLabel: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? 'Sent to KORONA \u2713' + (v.korSent.number ? ' (' + v.korSent.number + ')' : '') : 'Send to KORONA'; })(),
       sendTopBg: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? '#DCEBFA' : '#FFFFFF'; })(),
       sendAllShow: !!(typeof window !== 'undefined' && window.BDKorona && window.BDKorona.editReq) && (s.invoices || []).some((v) => v.status === 'saved' && !v.korSent) || !!s.sendAllMsg,
@@ -1748,7 +1754,7 @@ class Component extends DCLogic {
         const invs = s.invoices.map((v) => (v.id === selInv.id ? Object.assign({}, v, { status: 'voided', voidedAt: new Date().toISOString(), tagItems: [] }) : v));
         this.setState({ products: P2, invoices: invs, voidAsk: null, saved: { title: 'Voided ' + selInv.no + '. ' + selInv.lines.reduce((t, l) => t + (l.units || 0), 0) + ' units were taken back out of stock.', lines: [{ text: 'Costs went back to what they were before when nothing changed them since. Products this invoice created stay in Products with stock taken back out.' }] } });
       },
-      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, phPics: (selInv.pics || []).slice(), phSeen: (selInv.seen || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
+      openDraft: () => { if (!selInv || selInv.status !== 'saved') return; this.setState({ view: 'receive', lines: selInv.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: selInv.no, dist: selInv.dist, dt: selInv.date, comment: selInv.comment, ext: d2(selInv.ext), draftId: selInv.id, phPics: (selInv.pics || []).slice(), phSeen: (selInv.seen || []).slice(), phWant: selInv.invTotal || 0, phReview: (selInv.review || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + selInv.no + '. Stock has not changed yet.', addOk: true }); },
       deleteDraft: () => { if (!selInv || (selInv.status !== 'saved' && selInv.status !== 'voided')) return; const invs = s.invoices.filter((v) => v.id !== selInv.id); this.setState({ invoices: invs, products: cleanOrphans(s.products, s.lines, invs), invSel: null, draftId: s.draftId === selInv.id ? null : s.draftId }); },
       hasSaved: !!s.saved && !/^Saved /.test(s.saved.title), savedTitle: s.saved ? s.saved.title : '', savedLines: s.saved ? s.saved.lines : [],
       // invoices
