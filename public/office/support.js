@@ -480,7 +480,7 @@
 
   // Keys of state that are saved per board. Anything not listed starts fresh each time the board opens.
   var KEEP = {
-    Receive: ['promotions', 'invoices', 'counts', 'adjLog', 'lists', 'lines', 'inv', 'dist', 'dt', 'comment', 'ext', 'draftId', 'retailOrig', 'tQueue', 'minMargin', 'tSize', 'tSmW', 'tSmH'],
+    Receive: ['promotions', 'invoices', 'counts', 'adjLog', 'lists', 'lines', 'inv', 'dist', 'dt', 'comment', 'ext', 'draftId', 'retailOrig', 'tQueue', 'savedTags', 'tSaveGroup', 'tStyle', 'tCredit', 'tDist', 'minMargin', 'tSize', 'tSmW', 'tSmH'],
     Main: ['archive', 'sale', 'parked', 'parkNo', 'shelf', 'shelfNo'],
     Customers: ['list', 'arch'], GiftCards: [], Managers: [], CashDrawer: [], Receipts: ['receipts'], Settings: ['vals'], Buttons: ['tiles', 'pages'], CardMachine: [], Order: ['edits', 'act', 'over', 'overDay', 'vg', 'vq']
   };
