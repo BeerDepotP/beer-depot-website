@@ -8,4 +8,8 @@ if errorlevel 1 (
   pause
   exit /b 1
 )
-powershell -NoProfile -ExecutionPolicy Bypass -File "%D%\StorePrinter.ps1" -Setup
+if exist "%D%\config.json" (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%D%\StorePrinter.ps1" -Update
+) else (
+  powershell -NoProfile -ExecutionPolicy Bypass -File "%D%\StorePrinter.ps1" -Setup
+)

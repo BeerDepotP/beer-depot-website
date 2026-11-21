@@ -2,9 +2,10 @@
 # It checks the website every few seconds for price tags sent with "Print at Store" and prints them on ONE printer
 # that you choose by name (never the computer's default printer).
 #   StorePrinter.ps1 -Setup   choose the label printer, sign in, print a test tag, start with Windows
+#   StorePrinter.ps1 -Update  keep the saved printer and PIN, get the newest logo, restart hidden
 #   StorePrinter.ps1 -Test    print one test tag
 #   StorePrinter.ps1          run (this is what starts with Windows)
-param([switch]$Setup, [switch]$Test)
+param([switch]$Setup, [switch]$Test, [switch]$Update)
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $dir = Join-Path $env:APPDATA 'BeerDepotStorePrinter'
@@ -60,6 +61,38 @@ function Bar-Bits($code) {
   return ''
 }
 
+# ---------- logo (black, so a black and white label printer can print it) ----------
+$logoFile = Join-Path $dir 'logo.png'
+function Fetch-Logo {
+  try { Invoke-WebRequest -UseBasicParsing -Uri 'https://beerdepotpewaukee.com/img/logo-black.png' -OutFile $logoFile } catch { Log ('Logo download failed: ' + $_.Exception.Message) }
+}
+$script:logoImg = $null
+function Get-Logo {
+  if ($script:logoImg) { return $script:logoImg }
+  if (Test-Path $logoFile) { try { $bytes = [IO.File]::ReadAllBytes($logoFile); $ms = New-Object IO.MemoryStream(, $bytes); $script:logoImg = New-Object System.Drawing.Bitmap($ms) } catch { } }
+  return $script:logoImg
+}
+
+# ---------- run completely hidden (no window, no taskbar button) ----------
+function Start-Hidden {
+  $vbs = Join-Path $dir 'start-hidden.vbs'
+  $cmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""' + $PSCommandPath + '""'
+  Set-Content -Path $vbs -Encoding ASCII -Value ('CreateObject("WScript.Shell").Run "' + $cmd + '", 0, False')
+  try {
+    $startup = [Environment]::GetFolderPath('Startup'); $lnk = Join-Path $startup 'Beer Depot Store Printer.lnk'
+    $ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut($lnk)
+    $sc.TargetPath = 'wscript.exe'; $sc.Arguments = '//B //Nologo "' + $vbs + '"'
+    $sc.WorkingDirectory = $dir; $sc.WindowStyle = 7; $sc.Save()
+    Write-Host 'It will start by itself, hidden, when Windows starts.' -ForegroundColor Green
+  } catch { Write-Host ('Could not set it to start with Windows: ' + $_.Exception.Message) -ForegroundColor Red }
+  # stop an older copy that is already running, then start the hidden one
+  try {
+    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object { $_.CommandLine -like '*StorePrinter.ps1*' -and $_.CommandLine -notlike '*-Setup*' -and $_.CommandLine -notlike '*-Update*' -and $_.ProcessId -ne $PID } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+  } catch { }
+  Start-Sleep -Seconds 1
+  Start-Process wscript.exe -ArgumentList ('//B //Nologo "' + $vbs + '"') -WindowStyle Hidden
+}
+
 # ---------- one tag ----------
 function Draw-Scan($g, $t, $w, $h) {
   $K = [Math]::Min($w / 2.25, $h / 1.25)
@@ -109,6 +142,8 @@ function Draw-Tag($g, $t, $w, $h) {
   $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt)
   while ($size -gt 4 -and $g.MeasureString($name, $fn, [int]$nameW, $sf).Height -gt $nameH) { $fn.Dispose(); $size = $size - 0.25; $fn = New-Object System.Drawing.Font('Arial', $size, $bold, $pt) }
   $g.DrawString($name, $fn, $black, (New-Object System.Drawing.RectangleF($x, (4 * $K), $nameW, $nameH)), $sf)
+  $lg = Get-Logo
+  if ($lg) { $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic; $g.DrawImage($lg, [single]($W - $x - 46 * $K), [single](4 * $K), [single](46 * $K), [single](46 * $K * $lg.Height / $lg.Width)) }
   $fc = New-Object System.Drawing.Font('Arial', (30 * $K), $bold, $pt)
   $g.DrawString([string]$t.cash, $fc, $black, $x, (32 * $K))
   $fr = New-Object System.Drawing.Font('Arial', (9 * $K), $bold, $pt)
@@ -169,16 +204,9 @@ if ($Setup) {
   ([pscustomobject]@{ pin = $enc; printer = $printer } | ConvertTo-Json) | Set-Content -Path $cfgFile -Encoding UTF8
   Write-Host ''; Write-Host ('Chosen: ' + $printer) -ForegroundColor Green
   Write-Host 'Printing one test tag...'
-  try { Print-Tags @($testTag) 2.25 1.25 $printer; Write-Host 'Sent. Check that it came out of the label printer.' -ForegroundColor Green } catch { Write-Host ('The test tag did not print: ' + $_.Exception.Message) -ForegroundColor Red }
-  # start with Windows (Startup folder, no admin needed)
-  try {
-    $startup = [Environment]::GetFolderPath('Startup'); $lnk = Join-Path $startup 'Beer Depot Store Printer.lnk'
-    $ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut($lnk)
-    $sc.TargetPath = 'powershell.exe'; $sc.Arguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"'
-    $sc.WorkingDirectory = $dir; $sc.WindowStyle = 7; $sc.Save()
-    Write-Host 'It will now start by itself when Windows starts.' -ForegroundColor Green
-  } catch { Write-Host ('Could not set it to start with Windows: ' + $_.Exception.Message) -ForegroundColor Red }
-  Start-Process powershell.exe -ArgumentList ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"')
+  try { Fetch-Logo; Print-Tags @($testTag) 2.25 1.25 $printer; Write-Host 'Sent. Check that it came out of the label printer.' -ForegroundColor Green } catch { Write-Host ('The test tag did not print: ' + $_.Exception.Message) -ForegroundColor Red }
+  Fetch-Logo
+  Start-Hidden
   Write-Host ''; Write-Host 'Done. It is running in the background now. You can close this window.' -ForegroundColor Yellow
   Read-Host 'Press Enter to close'
   exit 0
@@ -186,7 +214,15 @@ if ($Setup) {
 
 $cfg = Load-Cfg
 if (-not $cfg -or -not $cfg.printer) { Write-Host 'Not set up yet. Run Install-Store-Printer.bat first.'; exit 1 }
-if ($Test) { try { Print-Tags @($testTag) 2.25 1.25 $cfg.printer; Write-Host 'Test tag sent.' } catch { Write-Host $_.Exception.Message -ForegroundColor Red }; exit 0 }
+if ($Update) {
+  Write-Host 'Updating the Beer Depot store tag printer (your printer and PIN stay saved)...'
+  Fetch-Logo
+  Start-Hidden
+  Write-Host 'Done. It is running hidden in the background. You can close this window.' -ForegroundColor Yellow
+  Start-Sleep -Seconds 4
+  exit 0
+}
+if ($Test) { Fetch-Logo; try { Print-Tags @($testTag) 2.25 1.25 $cfg.printer; Write-Host 'Test tag sent.' } catch { Write-Host $_.Exception.Message -ForegroundColor Red }; exit 0 }
 
 # ---------- run ----------
 $created = $false
