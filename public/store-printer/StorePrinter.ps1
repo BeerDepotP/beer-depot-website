@@ -78,6 +78,7 @@ function Draw-Tag($g, $t, $w, $h) {
   $g.DrawString([string]$t.cash, $fc, $black, $x, (32 * $K))
   $fr = New-Object System.Drawing.Font('Arial', (9 * $K), $bold, $pt)
   if ($t.credit) { $g.DrawString(('Credit ' + [string]$t.credit), $fr, $black, $x, (78 * $K)) }
+  if ($t.dist) { $fd = New-Object System.Drawing.Font('Arial', (7 * $K), $bold, $pt); $g.DrawString([string]$t.dist, $fd, $black, ($W - 8 * $K - $g.MeasureString([string]$t.dist, $fd).Width), (82 * $K)); $fd.Dispose() }
   $bits = ''; if ($t.bar -and $t.code) { $bits = Bar-Bits ([string]$t.code) }
   $fs = New-Object System.Drawing.Font('Arial', (6.5 * $K), [System.Drawing.FontStyle]::Regular, $pt)
   if ($bits) {
@@ -111,7 +112,7 @@ function Print-Tags($tags, $w, $h, $printer) {
   $pd.Dispose()
 }
 
-$testTag = [pscustomobject]@{ name = 'TEST TAG - BEER DEPOT'; cash = '$9.99'; credit = '$10.29'; code = '012345678905'; label = ''; bar = $true }
+$testTag = [pscustomobject]@{ name = 'TEST TAG - BEER DEPOT'; cash = '$9.99'; credit = ''; dist = 'Test Distributor'; code = '012345678905'; label = ''; bar = $true }
 
 # ---------- setup ----------
 if ($Setup) {

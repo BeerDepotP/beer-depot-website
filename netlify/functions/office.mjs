@@ -29,7 +29,7 @@ export default async (req) => {
       const view = () => ({ ok: true, agent: q.agent ? { at: q.agent.at, printer: q.agent.printer || "", found: q.agent.found !== false, name: q.agent.name || "" } : null, jobs: q.jobs.map((j) => ({ id: j.id, at: j.at, n: j.tags.length, status: j.status, error: j.error || "" })).reverse().slice(0, 10) });
       if (a === "print-add") {
         const tags = Array.isArray(b.tags) ? b.tags.slice(0, 400) : []; if (!tags.length) return json({ error: "No tags to print." }, 400);
-        const clean = tags.map((t) => ({ name: String(t.name || "").slice(0, 120), cash: String(t.cash || "").slice(0, 16), credit: String(t.credit || "").slice(0, 16), code: String(t.code || "").replace(/[^0-9A-Za-z \-\.]/g, "").slice(0, 40), label: String(t.label || "").slice(0, 40), bar: !!t.bar }));
+        const clean = tags.map((t) => ({ name: String(t.name || "").slice(0, 120), cash: String(t.cash || "").slice(0, 16), credit: String(t.credit || "").slice(0, 16), dist: String(t.dist || "").slice(0, 40), code: String(t.code || "").replace(/[^0-9A-Za-z \-\.]/g, "").slice(0, 40), label: String(t.label || "").slice(0, 40), bar: !!t.bar }));
         q.jobs.push({ id: "j" + now.toString(36) + Math.random().toString(36).slice(2, 6), at: now, status: "waiting", tags: clean, w: Number(b.w) > 0.3 && Number(b.w) < 12 ? Number(b.w) : 2.25, h: Number(b.h) > 0.3 && Number(b.h) < 12 ? Number(b.h) : 1.25 });
         await save(); return json(view());
       }
