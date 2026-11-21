@@ -61,6 +61,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ showReceive }}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-direction: column; gap: 14px">
 
+<sc-if value="{{ todoShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 2px solid #8A5A14; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 16px; font-weight: 800; color: #1D1B16">To do</div><sc-for list="{{ todoItems }}" as="t" hint-placeholder-count="2"><div style="{{ t.style }}">&bull; {{ t.text }}</div></sc-for><sc-if value="{{ todoInv }}" hint-placeholder-val="{{ false }}"><div><button onClick="{{ todoOpenInv }}" style="min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 700; border: 1px solid #8A5A14; border-radius: 10px; background: #FFF4DE; color: #6B4208">Open Invoices</button></div></sc-if></div></sc-if>
 <div style="background: #FFFFFF; border: 2px solid #F26B1D; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
 <div style="font-size: 16px; font-weight: 800">Read an invoice photo</div>
 <div style="font-size: 13px; color: #4A453A">Take a flat, well lit photo of the whole page (one page per photo). The POS fills in the invoice number, distributor, lines, costs, case sizes, item codes and the delivery fee. Check it against the paper, then book as usual.</div>
@@ -729,6 +730,7 @@ class Component extends DCLogic {
     try { const hv = String((typeof location !== 'undefined' && location.hash) || '').replace('#', ''); if (['receive', 'invoices', 'products', 'warehouse', 'adjust', 'tags', 'lists'].indexOf(hv) >= 0 && this.state.view !== hv) this.setState({ view: hv, txt: {}, prodSel: null }); } catch (e) { /* ignore */ }
     if (!this._tick) this._tick = setInterval(() => { if (!document.hidden) this.setState({ tick: Date.now() }); }, 30000);
     this.pinHead();
+    if (!this._hp && typeof window !== 'undefined') { const poll = () => { try { if (window.BDBackup && window.BDBackup.info) window.BDBackup.info().then((i) => this.setState({ hBk: i && i.last ? i.last : null })).catch(() => {}); if (window.BDOffice && window.BDOffice.info) window.BDOffice.info().then((i) => this.setState({ hOff: i })).catch(() => {}); } catch (e) { /* ignore */ } }; poll(); this._hp = setInterval(poll, 300000); }
     if (typeof window === 'undefined' || !window.BD) return;
     const BDx = window.BD; const today = new Date().toISOString().slice(0, 10);
     const cutD = new Date(); cutD.setDate(cutD.getDate() - 61); const cut = cutD.toISOString().slice(0, 10);
@@ -765,11 +767,15 @@ class Component extends DCLogic {
       if (!unit) issues.push('Could not find your store in KORONA.');
       const lines = inv.lines.map((l) => { const p = s.products[l.pid] || {}; const got = (l.units != null ? l.units : l.cases * (l.per || p.per || 1) + (l.free || 0)); const total = (l.line != null ? l.line : l.cases * l.caseCost) / 100;
         return { pid: l.pid, name: l.name, kid: p.kid || '', upc: l.upc || p.upc || '', code: p.supNo || '', units: got, price: got > 0 ? Math.round(total / got * 10000) / 10000 : 0, total }; });
+      const dupe = (s.invoices || []).find((v) => v.id !== inv.id && v.status !== 'voided' && v.korSent && String(v.no).trim() === String(inv.no).trim() && String(v.dist) === String(inv.dist)); if (dupe) issues.push('STOP: Invoice ' + inv.no + ' was already sent to KORONA' + (dupe.korSent.number ? ' (receipt ' + dupe.korSent.number + ')' : '') + '. Sending again would make a duplicate receipt.');
+      lines.filter((x) => x.units > 0 && !(x.price > 0)).forEach((x) => issues.push('STOP: ' + x.name + ' has a $0 cost on this receipt. Fix the line first.'));
+      lines.forEach((x) => { const p = s.products[x.pid]; if (p && p.cost > 0 && x.price > 0) { const r = x.price * 100 / p.cost; if (r >= 1.25 || r <= 0.75) issues.push('CHECK: ' + x.name + ' unit cost is ' + (r >= 1 ? '+' : '') + Math.round((r - 1) * 100) + '% compared with the last cost ($' + (p.cost / 100).toFixed(2) + ' to $' + x.price.toFixed(2) + '). Make sure it was read right.'); } });
+      { const wd = {}; let n = 0, mis = 0; lines.forEach((x) => { const p = s.products[x.pid]; if (p && p.dist) { n++; if (p.dist !== inv.dist) { mis++; wd[p.dist] = (wd[p.dist] || 0) + 1; } } }); if (n >= 3 && mis / n >= 0.6) { const top = Object.keys(wd).sort((a, b) => wd[b] - wd[a])[0]; issues.push('CHECK: Most of these products usually come from ' + top + ', but the receipt says ' + inv.dist + '. Make sure the distributor is right.'); } }
       lines.filter((x) => !x.kid).forEach((x) => issues.push(x.name + ' is not in KORONA yet, so it is left out. Create it in KORONA first, then send again.'));
       const sendable = lines.filter((x) => x.kid);
       if (!sendable.length) issues.push('None of the lines match a KORONA product.');
       const fee = Number(inv.ext) || 0; const notes = fee > 0 ? ['Delivery fee $' + (fee / 100).toFixed(2) + ' goes in the receipt Comment box. Type it into External Costs in KORONA when you check the receipt.'] : fee < 0 ? ['Returns credit -$' + (-fee / 100).toFixed(2) + ' goes in the receipt Comment box. Type -' + (-fee / 100).toFixed(2) + ' into External Costs/Discounts in KORONA, and take the returned units out of stock there.'] : [];
-      this.setState({ korPrev: { invId: inv.id, st: issues.some((t) => /no supplier|find your store|None of the lines/.test(t)) ? 'blocked' : 'ready', msg: '', issues: issues.concat(notes), lines, supId: sup && sup.id, supName: sup && sup.name, orgId: unit && unit.id, already: inv.korSent || null, edits: [], edMsg: '' } }); if (sup && sendable.length) this.korEdPrep(inv, sendable, sup);
+      this.setState({ korPrev: { invId: inv.id, st: issues.some((t) => /no supplier|find your store|None of the lines|^STOP:/.test(t)) ? 'blocked' : 'ready', msg: '', issues: issues.concat(notes), lines, supId: sup && sup.id, supName: sup && sup.name, orgId: unit && unit.id, already: inv.korSent || null, edits: [], edMsg: '' } }); if (sup && sendable.length) this.korEdPrep(inv, sendable, sup);
     }).catch((e) => this.setState({ korPrev: { invId: inv.id, st: 'error', msg: String(e.message || e), issues: [], lines: [] } }));
   }
   // ---- product edits: names, extra UPCs, one distributor row. Preview first, nothing changes until Apply. ----
@@ -812,7 +818,7 @@ class Component extends DCLogic {
     const s = this.state, t = String(text || ''), jump = (id) => () => { const el = typeof document !== 'undefined' && document.getElementById(id); if (el) { el.scrollIntoView({ block: 'center' }); try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } } };
     let m = /^Line (\d+)/.exec(t); if (m && s.lines[Number(m[1]) - 1]) return jump('name' + (Number(m[1]) - 1));
     if (/CHECK THE DISTRIBUTOR|distributor/i.test(t) && /^(The invoice says|distributor)/i.test(t)) return jump('dist');
-    const head = t.replace(/^(PRICE CHANGE|New product to finish:|Group changed:|RETURNED[^:]*:)\s*/, '').split(':')[0].trim().toLowerCase();
+    const head = t.replace(/^(PRICE CHANGE|BIG PRICE JUMP \\([^)]*\\)|New product to finish:|Group changed:|RETURNED[^:]*:)\s*/, '').split(':')[0].trim().toLowerCase();
     if (head) { const i = s.lines.findIndex((l) => { const p = s.products[l.pid]; return p && String(p.name || '').toLowerCase() === head || (p && head.indexOf(String(p.name || '').toLowerCase()) === 0); }); if (i >= 0) return jump('name' + i); }
     return null;
   }
@@ -825,7 +831,7 @@ class Component extends DCLogic {
       const inv = this.state.invoices.find((v) => v.id === todo[i]); if (!inv) continue;
       this.setState({ invSel: inv.id, sendAllMsg: 'Invoice ' + inv.no + ' (' + (i + 1) + ' of ' + todo.length + '): checking KORONA...' });
       this.korPrep(inv); let k = await this.korWait(inv.id);
-      const leftOut = (k.issues || []).some((t) => /not in KORONA yet|no supplier/.test(t));
+      const leftOut = (k.issues || []).some((t) => /not in KORONA yet|no supplier|^CHECK:|^STOP:/.test(t));
       if (k.st !== 'ready' || leftOut) { this.setState({ sendAllBusy: false, sendAllMsg: 'Stopped at invoice ' + inv.no + ' because it needs a look (details below). ' + sent + ' sent so far. Fix it, then tap Send All again.' }); return; }
       this.setState({ sendAllMsg: 'Invoice ' + inv.no + ' (' + (i + 1) + ' of ' + todo.length + '): sending...' });
       this.korSend(inv); k = await this.korWait(inv.id);
@@ -963,7 +969,7 @@ class Component extends DCLogic {
     const lines = order.filter((pid) => acc[pid].units !== 0 || acc[pid].total !== 0 || acc[pid].free).map((pid) => { const a = acc[pid], per = P[pid].per || a.per || 1, cases = a.units / per, whole = Math.abs(cases - Math.round(cases)) < 1e-9;
       if (!whole) warn.push(P[pid].name + ': ' + a.units + ' units does not divide into cases of ' + per + '. Check the quantity.');
       const cs = whole ? Math.round(cases) : (cases < 0 ? Math.min(-1, Math.round(cases)) : Math.max(1, Math.round(cases))); return { pid, cases: cs, caseCost: cs !== 0 ? Math.round(a.total * 100 / cs) : 0, free: a.free }; });
-    lines.forEach((l) => { const pr = P[l.pid], old = s.products[l.pid] || pr, was = Math.round((old.cost || 0) * (old.per || 1)); if (l.cases > 0 && !pr.pending && was > 0 && Math.abs(was - l.caseCost) >= 1) out.push('PRICE CHANGE ' + pr.name + ': case $' + (was / 100).toFixed(2) + ' -> $' + (l.caseCost / 100).toFixed(2)); });
+    lines.forEach((l) => { const pr = P[l.pid], old = s.products[l.pid] || pr, was = Math.round((old.cost || 0) * (old.per || 1)); if (l.cases > 0 && !pr.pending && was > 0 && Math.abs(was - l.caseCost) >= 1) { const pct = Math.round((l.caseCost - was) * 100 / was), txt = pr.name + ': case $' + (was / 100).toFixed(2) + ' -> $' + (l.caseCost / 100).toFixed(2); if (Math.abs(pct) >= 15) warn.push('BIG PRICE JUMP (' + (pct > 0 ? '+' : '') + pct + '%) ' + txt + '. Check it was read right.'); else out.push('PRICE CHANGE ' + txt); } });
     const rets = retLeft, retTot = rets.reduce((t, x) => t + Number(x.amount), 0), retNote = rets.length ? 'RETURNS: ' + rets.map((x) => (x.units ? x.units + ' ' : '') + String(x.description || x.itemCode || 'item').trim() + ' -$' + Number(x.amount).toFixed(2)).join('; ') : '';
     if (retDone.length) out.push('RETURNED, taken out of stock as negative lines: ' + retDone.join('; '));
     if (retNote) warn.push(retNote + '. These could not be matched to a product, so the credit is shown as a negative External cost. Take the returned units out of stock yourself.');
@@ -1014,6 +1020,16 @@ class Component extends DCLogic {
     // ---------- Receive rows
     let itemsTotal = 0;
     const base = 'display: inline-block; padding: 2px 8px; margin-top: 4px; border-radius: 99px; font-size: 12px; font-weight: 600; ';
+    const todo = [], red = 'font-size: 14px; font-weight: 700; color: #8C1D14', ok = 'font-size: 14px; color: #4A453A'; let unsentN = 0;
+    try {
+      const unsent = (s.invoices || []).filter((v) => v.status === 'saved' && !v.korSent); unsentN = unsent.length;
+      if (unsentN) { const old = unsent.filter((v) => { const t = Date.parse(v.date); return !isNaN(t) && Date.now() - t > 86400000 * 1.5; }).length; todo.push({ text: unsentN + ' saved invoice' + (unsentN === 1 ? '' : 's') + ' not sent to KORONA yet' + (old ? ' (' + old + ' from more than a day ago)' : ''), style: old ? red : ok }); }
+      const kp = s.korPrev; if (kp && kp.st === 'error') todo.push({ text: 'The last send to KORONA failed: ' + String(kp.msg || '').slice(0, 160), style: red });
+      const np = Object.keys(s.products).filter((k) => s.products[k] && s.products[k].pending).length; if (np) todo.push({ text: np + ' new product' + (np === 1 ? '' : 's') + ' from invoices still need a retail price', style: ok });
+      const ks = (window.BD && window.BD.get('korSync', null)) || {}, kl = ks.last; if (kl) { const age = kl.at ? (Date.now() - Date.parse(kl.at)) / 60000 : 1e9; if (!kl.ok) todo.push({ text: 'The last KORONA sync failed. Stock and costs may be out of date.', style: red }); else if (age > 120) todo.push({ text: 'KORONA was last synced ' + (age < 1440 ? Math.round(age / 60) + ' hours' : Math.round(age / 1440) + ' days') + ' ago. Tap Sync now.', style: red }); }
+      const bk = s.hBk; if (bk) { const age = bk.at ? (Date.now() - Date.parse(bk.at)) / 3600000 : 1e9; if (bk.ok === false) todo.push({ text: 'The last backup failed: ' + String(bk.error || '').slice(0, 100), style: red }); else if (age > 30) todo.push({ text: 'No backup in the last day. Open Settings and tap Back up now.', style: red }); }
+      const of = s.hOff; if (of && of.linked && of.lastError) todo.push({ text: 'The Mac and the website are not syncing: ' + String(of.lastError).slice(0, 120), style: red });
+    } catch (e) { /* ignore */ }
     const rows = [];
     s.lines.forEach((ln, i) => {
       const pr = s.products[ln.pid];
@@ -1695,6 +1711,7 @@ class Component extends DCLogic {
       groupOptList, itemsTotal: $(itemsTotal), extTotal: $(ext), grand: $(itemsTotal + ext),
       discard: () => this.setState({ phPics: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
       save: () => run(false),
+      todoItems: todo, todoShow: todo.length > 0, todoInv: unsentN > 0, todoOpenInv: () => this.setState({ view: 'invoices' }),
       sendTopLabel: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? 'Sent to KORONA \u2713' + (v.korSent.number ? ' (' + v.korSent.number + ')' : '') : 'Send to KORONA'; })(),
       sendTopBg: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? '#DCEBFA' : '#FFFFFF'; })(),
       sendAllShow: !!(typeof window !== 'undefined' && window.BDKorona && window.BDKorona.editReq) && (s.invoices || []).some((v) => v.status === 'saved' && !v.korSent) || !!s.sendAllMsg,
