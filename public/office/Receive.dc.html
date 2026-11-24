@@ -119,6 +119,20 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </div>
 </div>
 
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-direction: column; gap: 4px"><label for="ext" style="font-size: 13px; color: #6B6558">External costs / discounts (delivery fee, deposit; use a minus for a discount)</label>
+<input id="ext" type="text" inputmode="decimal" value="{{ ext }}" onInput="{{ onExt }}" style="border: 1px solid #DED8C8; border-radius: 8px; box-sizing: border-box; font: inherit; padding: 10px 12px; min-height: 44px; width: 100%"></div>
+<div style="display: flex; flex-direction: column; gap: 4px"><label for="com" style="font-size: 13px; color: #6B6558">Comment (items with tracking off are listed automatically)</label>
+<textarea id="com" rows="2" style="font: inherit; padding: 10px 12px; border: 1px solid #DED8C8; border-radius: 8px; box-sizing: border-box; width: 100%">{{ comment }}</textarea></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; justify-content: flex-end">
+<div style="display: flex; justify-content: space-between"><span>Items</span><span>{{ itemsTotal }}</span></div>
+<div style="display: flex; justify-content: space-between"><span>External costs</span><span>{{ extTotal }}</span></div>
+<div style="display: flex; justify-content: space-between; font-size: 28px; font-weight: 700; border-top: 2px solid #1D1B16; padding-top: 8px"><span>Invoice total</span><span>{{ grand }}</span></div>
+</div>
+</div>
+
 <div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 6px 16px 16px; overflow-x: auto">
 <div style="min-width: 0">
 <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0 6px">
@@ -163,19 +177,6 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 </div>
 </div>
 
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
-<div style="display: flex; flex-direction: column; gap: 10px">
-<div style="display: flex; flex-direction: column; gap: 4px"><label for="ext" style="font-size: 13px; color: #6B6558">External costs / discounts (delivery fee, deposit; use a minus for a discount)</label>
-<input id="ext" type="text" inputmode="decimal" value="{{ ext }}" onInput="{{ onExt }}" style="border: 1px solid #DED8C8; border-radius: 8px; box-sizing: border-box; font: inherit; padding: 10px 12px; min-height: 44px; width: 100%"></div>
-<div style="display: flex; flex-direction: column; gap: 4px"><label for="com" style="font-size: 13px; color: #6B6558">Comment (items with tracking off are listed automatically)</label>
-<textarea id="com" rows="2" style="font: inherit; padding: 10px 12px; border: 1px solid #DED8C8; border-radius: 8px; box-sizing: border-box; width: 100%">{{ comment }}</textarea></div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 6px; justify-content: flex-end">
-<div style="display: flex; justify-content: space-between"><span>Items</span><span>{{ itemsTotal }}</span></div>
-<div style="display: flex; justify-content: space-between"><span>External costs</span><span>{{ extTotal }}</span></div>
-<div style="display: flex; justify-content: space-between; font-size: 28px; font-weight: 700; border-top: 2px solid #1D1B16; padding-top: 8px"><span>Invoice total</span><span>{{ grand }}</span></div>
-</div>
-</div>
 <sc-if value="{{ hasSaved }}" hint-placeholder-val="{{ false }}">
 <div role="status" style="background: #FFFFFF; border: 2px solid #1F7A3F; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px">
 <sc-if value="{{ savedText }}" hint-placeholder-val="{{ true }}"><div style="font-size: 17px; font-weight: 800; color: #0F4524">{{ savedTitle }}</div>
