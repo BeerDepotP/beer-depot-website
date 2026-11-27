@@ -289,11 +289,6 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <button onClick="{{ adjustThis }}" style="min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #8A5A14; color: #FFFFFF">Adjust stock</button>
 <button onClick="{{ printTag }}" style="min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #2A2118; color: #FFFFFF">Print price tag</button>
 </div>
-<div style="display: flex; gap: 8px; flex-wrap: wrap">
-<button onClick="{{ tabDetails }}" style="{{ tabDetailsStyle }}">Details</button>
-<button onClick="{{ tabUpcs }}" style="{{ tabUpcsStyle }}">UPCs and prices ({{ upcCount }})</button>
-<button onClick="{{ tabPromos }}" style="{{ tabPromosStyle }}">Promotions ({{ promoCount }})</button>
-</div>
 <sc-if value="{{ inDetails }}" hint-placeholder-val="{{ true }}">
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; align-items: start">
 
@@ -1832,7 +1827,7 @@ class Component extends DCLogic {
       backToList: () => this.setState({ prodSel: null, txt: {} }),
       tabDetails: () => this.setState({ dTab: 'details', txt: {} }), tabUpcs: () => this.setState({ dTab: 'upcs', txt: {} }), tabPromos: () => this.setState({ dTab: 'promos', txt: {} }),
       tabDetailsStyle: dTabStyle(tab === 'details'), tabUpcsStyle: dTabStyle(tab === 'upcs'), tabPromosStyle: dTabStyle(tab === 'promos'),
-      inDetails: tab === 'details', inUpcs: tab === 'upcs', inPromos: tab === 'promos',
+      inDetails: true, inUpcs: true, inPromos: true, /* one page: Details, UPCs and Promotions are all shown together */
       upcCount: dp ? dp.upcs.length : 0, promoCount: dp ? dp.promos.length : 0, upcRows, promoRows,
       upcCountText: (dp ? dp.upcs.length : 0) + ' of ' + MAXU + ' UPCs used.',
       addUpcStyle: 'min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; color: #FFFFFF; background: ' + (dp && dp.upcs.length >= MAXU ? '#9A958A' : '#1F7A3F'),
