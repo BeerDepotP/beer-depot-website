@@ -18,6 +18,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 .tbl2 > div:not(:first-child){text-align:right}
 .tbl3 > div{padding:0 5px;min-width:0}
 @media print{.noprint{display:none !important} body{background:#fff} main{padding:0 !important}}
+.pgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,.6fr);gap:14px;align-items:start}.pg-mid{display:flex;flex-direction:column;gap:14px}@media (max-width:1100px){.pgrid{grid-template-columns:minmax(0,1fr)}}
 </style>
 </helmet>
 <div style="min-height: 900px; display: flex; flex-wrap: wrap; background: #F5F3EE; font-family: Inter, system-ui, sans-serif; color: #1D1B16">
@@ -290,9 +291,9 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <button onClick="{{ printTag }}" style="min-height: 44px; padding: 0 16px; font-size: 15px; font-weight: 700; border: 0; border-radius: 10px; background: #2A2118; color: #FFFFFF">Print price tag</button>
 </div>
 <sc-if value="{{ inDetails }}" hint-placeholder-val="{{ true }}">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; align-items: start">
+<div class="pgrid">
 
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div class="pg-prod" style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
 <div style="font-size: 16px; font-weight: 800">Product</div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Name</label><input id="dName" type="text" autocomplete="off" value="{{ dName }}" onInput="{{ onDName }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF"></div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">UPC</label><input id="dUpc" type="text" inputmode="numeric" autocomplete="off" value="{{ dUpc }}" onInput="{{ onDUpc }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF"><div style="font-size: 12px; font-weight: 600; color: #B3261E">{{ dUpcWarn }}</div></div>
@@ -305,22 +306,27 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <div style="display: flex; flex-direction: column; gap: 4px"><label for="dInfo" style="font-size: 13px; font-weight: 600; color: #4A453A">Info text (prints at the very bottom of the receipt when this product is on it)</label><textarea id="dInfo" rows="3" value="{{ dInfo }}" onInput="{{ onDInfo }}" placeholder="For example: Reheat in foil at 300F for 20 min." style="font: inherit; font-size: 15px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; box-sizing: border-box; width: 100%"></textarea></div>
 </div>
 
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div class="pg-mid">
+<div class="pg-sup" style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
 <div style="font-size: 16px; font-weight: 800">Supplier</div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Supplier</label><select id="dSupplier" value="{{ dSupplier }}" onChange="{{ onDSupplier }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF"><option value="Badger">Badger</option><option value="Beechwood">Beechwood</option><option value="Beer Capitol">Beer Capitol</option><option value="Bill&#39;s">Bill&#39;s</option><option value="Breakthru">Breakthru</option><option value="Brewfinity">Brewfinity</option><option value="Capitol-Husting">Capitol-Husting</option><option value="Frito Lay">Frito Lay</option><option value="General Beverage Beer">General Beverage Beer</option><option value="General Beverage Liquor">General Beverage Liquor</option><option value="Grebe">Grebe</option><option value="Holiday Wholesale">Holiday Wholesale</option><option value="Home City Ice">Home City Ice</option><option value="Johnson Brothers">Johnson Brothers</option><option value="Kreamer">Kreamer</option><option value="Left Bank">Left Bank</option><option value="Made in-house">Made in-house</option><option value="MI Pod">MI Pod</option><option value="Mikes Country Meat">Mikes Country Meat</option><option value="MIS">MIS</option><option value="Pepsi">Pepsi</option><option value="Red Bull">Red Bull</option><option value="Restaurant Depot">Restaurant Depot</option><option value="Sam&#39;s Club">Sam&#39;s Club</option><option value="Seven Up">Seven Up</option><option value="Walmart">Walmart</option><option value="Winebow">Winebow</option><option value="Wisconsin Distributors">Wisconsin Distributors</option><option value="Wisconsin Lottery">Wisconsin Lottery</option></select></div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Supplier number (their item number)</label><input id="dSupNo" type="text" autocomplete="off" value="{{ dSupNo }}" onInput="{{ onDSupNo }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF"></div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Per case</label><input id="dPer" type="text" inputmode="numeric" autocomplete="off" value="{{ dPer }}" onInput="{{ onDPer }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF; text-align: right; max-width: 160px"></div>
 </div>
 
-<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; grid-column: 1 / -1">
-<div style="font-size: 16px; font-weight: 800">Price and stock</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; align-items: end">
+<div style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; " class="pg-price">
+<div style="font-size: 16px; font-weight: 800">Price</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; align-items: end">
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Cost (each)</label><input id="dCost" type="text" inputmode="decimal" autocomplete="off" value="{{ dCost }}" onInput="{{ onDCost }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF; text-align: right; font-weight: 700"></div>
 <div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Retail (cash price)</label><input id="dRetail" type="text" inputmode="decimal" autocomplete="off" value="{{ dRetail }}" onInput="{{ onDRetail }}" style="{{ dRetailStyle }}"></div>
 <div style="display: flex; flex-direction: column; gap: 2px; padding: 4px 12px; border-radius: 10px; background: {{ dMarginBg }}"><div style="font-size: 12px; font-weight: 600; color: #4A453A">Margin</div><div style="font-size: 28px; font-weight: 800; color: {{ dMarginColor }}">{{ dMargin }}</div><div style="font-size: 13px; font-weight: 600; color: {{ dMarginColor }}">{{ dProfit }} each</div></div>
-<div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Stock on hand</label><input id="dStock" type="text" inputmode="numeric" autocomplete="off" value="{{ dStock }}" onInput="{{ onDStock }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF; text-align: right; font-weight: 700"></div>
 </div>
 <div style="font-size: 13px; color: #4A453A">Credit price {{ dCredit }} (3% added). Margin turns red below {{ minMargin }}%. {{ dLast }}</div>
+</div>
+</div>
+<div class="pg-stock" style="background: #FFFFFF; border: 1px solid #DED8C8; border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 16px; font-weight: 800">Stock</div>
+<div style="display: flex; flex-direction: column; gap: 4px"><label style="font-size: 13px; font-weight: 600; color: #4A453A">Stock on hand</label><input id="dStock" type="text" inputmode="numeric" autocomplete="off" value="{{ dStock }}" onInput="{{ onDStock }}" style="font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid #DED8C8; border-radius: 8px; min-height: 44px; box-sizing: border-box; width: 100%; background: #FFFFFF; text-align: right; font-weight: 700"></div>
 </div>
 </div>
 </sc-if>
