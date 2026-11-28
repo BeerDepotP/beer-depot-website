@@ -62,7 +62,7 @@ button{font-family:Inter,system-ui,sans-serif;cursor:pointer}
 <sc-if value="{{ showReceive }}" hint-placeholder-val="{{ true }}">
 <div style="display: flex; flex-direction: column; gap: 14px">
 
-<sc-if value="{{ todoShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 2px solid #8A5A14; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 16px; font-weight: 800; color: #1D1B16">To do</div><sc-for list="{{ todoItems }}" as="t" hint-placeholder-count="2"><div style="{{ t.style }}">&bull; {{ t.text }}</div></sc-for><sc-if value="{{ todoInv }}" hint-placeholder-val="{{ false }}"><div><button onClick="{{ todoOpenInv }}" style="min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 700; border: 1px solid #8A5A14; border-radius: 10px; background: #FFF4DE; color: #6B4208">Open Invoices</button></div></sc-if></div></sc-if>
+<sc-if value="{{ todoShow }}" hint-placeholder-val="{{ false }}"><div style="background: #FFFFFF; border: 2px solid #8A5A14; border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 16px; font-weight: 800; color: #1D1B16">To do</div><sc-for list="{{ todoItems }}" as="t" hint-placeholder-count="2"><div style="{{ t.style }}">&bull; {{ t.text }}</div></sc-for><sc-if value="{{ todoInv }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px"><div style="font-size: 12px; color: #6B6558">Tap an invoice to open it here.</div><sc-for list="{{ todoInvRows }}" as="r" hint-placeholder-count="3"><button onClick="{{ r.go }}" style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, .8fr) minmax(0, .9fr); gap: 10px; align-items: center; text-align: left; font: inherit; font-size: 14px; min-height: 44px; padding: 6px 12px; border: 1px solid #8A5A14; border-radius: 10px; background: #FFF4DE; color: #1D1B16; cursor: pointer"><b style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ r.dist }}</b><span>Invoice {{ r.no }}</span><span>{{ r.cases }}</span><b style="text-align: right">{{ r.total }}</b></button></sc-for></div></sc-if></div></sc-if>
 <div style="background: #FFFFFF; border: 2px solid #F26B1D; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px">
 <div style="font-size: 16px; font-weight: 800">Read an invoice photo</div>
 <div style="font-size: 13px; color: #4A453A">Take a flat, well lit photo of the whole page (one page per photo). The POS fills in the invoice number, distributor, lines, costs, case sizes, item codes and the delivery fee. Check it against the paper, then book as usual.</div>
@@ -844,7 +844,7 @@ class Component extends DCLogic {
     const s = this.state, t = String(text || ''), jump = (id) => () => { const el = typeof document !== 'undefined' && document.getElementById(id); if (el) { el.scrollIntoView({ block: 'center' }); try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } } };
     let m = /^Line (\d+)/.exec(t); if (m && s.lines[Number(m[1]) - 1]) return jump('name' + (Number(m[1]) - 1));
     if (/CHECK THE DISTRIBUTOR|distributor/i.test(t) && /^(The invoice says|distributor)/i.test(t)) return jump('dist');
-    const head = t.replace(/^(PRICE CHANGE|BIG PRICE JUMP \\([^)]*\\)|New product to finish:|Group changed:|RETURNED[^:]*:)\s*/, '').split(':')[0].trim().toLowerCase();
+    const head = t.replace(/^(PRICE CHANGE|BIG PRICE JUMP \([^)]*\)|LOW MARGIN \([^)]*\)|New product to finish:|Group changed:|RETURNED[^:]*:)\s*/, '').split(':')[0].trim().toLowerCase();
     if (head) { const i = s.lines.findIndex((l) => { const p = s.products[l.pid]; return p && String(p.name || '').toLowerCase() === head || (p && head.indexOf(String(p.name || '').toLowerCase()) === 0); }); if (i >= 0) return jump('name' + i); }
     return null;
   }
@@ -927,6 +927,21 @@ class Component extends DCLogic {
       }, 60);
     });
   }
+  // Open one saved invoice from the To do list. A receipt that is open right now is saved first (Save only, never Book).
+  jumpInv(id) {
+    const open = () => { const v = (this.state.invoices || []).find((x) => x.id === id); if (!v || v.status !== 'saved') { this.setState({ view: 'invoices', invSel: id }); return; }
+      this.setState({ view: 'receive', lines: v.lines.map((l) => ({ pid: l.pid, cases: l.cases, loose: l.loose || 0, caseCost: l.caseCost, free: l.free })), inv: v.no, dist: v.dist, dt: v.date, comment: v.comment, ext: ((v.ext || 0) / 100).toFixed(2), draftId: v.id, invSel: v.id, phPics: (v.pics || []).slice(), phSeen: (v.seen || []).slice(), phWant: v.invTotal || 0, phReview: (v.review || []).slice(), saved: null, txt: {}, addMsg: 'Opened the saved receipt ' + v.no + '. Stock has not changed yet.', addOk: true, phLines: [], phMsg: '' });
+      setTimeout(() => { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* ignore */ } }, 50); };
+    const st = this.state;
+    if (id === st.draftId) { open(); return; }
+    if (st.lines && st.lines.length && String(st.inv || '').trim()) {
+      this.setState({ saved: null, addMsg: '' });
+      setTimeout(() => { if (this._save) this._save(); setTimeout(() => { const t = this.state; if (!(t.saved && t.saved.title)) { this.setState({ addMsg: 'The receipt that is open could not be saved by itself' + (t.addMsg ? ' (' + t.addMsg + ')' : '') + '. Fix it and Save first.', addOk: false }); return; } open(); }, 150); }, 60);
+      return;
+    }
+    if (st.lines && st.lines.length) { this.setState({ addMsg: 'Type an invoice number on the open receipt and Save it first.', addOk: false }); return; }
+    open();
+  }
   openPic(id, n, total) {
     if (!window.BDPhoto) { this.setState({ picOpen: true, picSrc: '', picMsg: 'Photos need the newest Mac app.' }); return; }
     this.setState({ picOpen: true, picSrc: '', picMsg: 'Opening photo...' });
@@ -987,7 +1002,7 @@ class Component extends DCLogic {
         if (l.itemCode && norm(l.itemCode) !== norm(p.supNo)) { chg.push('item code ' + (p.supNo || 'none') + ' -> ' + l.itemCode); p.pend = Object.assign({}, p.pend, { supNo: String(l.itemCode) }); p.supNo = String(l.itemCode); }
         if (dist && p.dist !== dist) { chg.push('distributor ' + (p.dist || 'none') + ' -> ' + dist); p.pend = Object.assign({}, p.pend, { dist }); p.dist = dist; }
         P[pid] = p; const au = this.addUpc(P, pid, l.upc); if (au) chg.push('added UPC ' + au);
-        const showChg = chg.filter((c) => !/^(item code|added UPC)/.test(c)); if (showChg.length) { out.push(p.name + ': ' + showChg.join('; ')); } /* item code and UPC updates are routine: not shown */
+        const showChg = chg.filter((c) => /^case size/.test(c) && !/-> 1$/.test(c)); if (showChg.length) { out.push(p.name + ': ' + showChg.join('; ')); } /* only a case size change to something other than 1 is shown; name, item code, UPC and distributor changes are routine and not shown */
       }
       const a = acc[pid] || (acc[pid] = { units: 0, total: 0, free: 0, per: P[pid].per || perInv || 1 }); if (!acc[pid].seen) { order.push(pid); acc[pid].seen = 1; }
       a.units += cases * (perInv || P[pid].per || 1); a.total += total; a.free += Math.round(Number(l.freeUnits) || 0);
@@ -996,7 +1011,7 @@ class Component extends DCLogic {
     const lines = order.filter((pid) => acc[pid].units !== 0 || acc[pid].total !== 0 || acc[pid].free).map((pid) => { const a = acc[pid], per = P[pid].per || a.per || 1, cases = a.units / per, whole = Math.abs(cases - Math.round(cases)) < 1e-9;
       if (!whole) warn.push(P[pid].name + ': ' + a.units + ' units does not divide into cases of ' + per + '. Check the quantity.');
       const cs = whole ? Math.round(cases) : (cases < 0 ? Math.min(-1, Math.round(cases)) : Math.max(1, Math.round(cases))); return { pid, cases: cs, caseCost: cs !== 0 ? Math.round(a.total * 100 / cs) : 0, free: a.free }; });
-    lines.forEach((l) => { const pr = P[l.pid], old = s.products[l.pid] || pr, was = Math.round((old.cost || 0) * (old.per || 1)); if (l.cases > 0 && !pr.pending && was > 0 && Math.abs(was - l.caseCost) >= 1) { const pct = Math.round((l.caseCost - was) * 100 / was), txt = pr.name + ': case $' + (was / 100).toFixed(2) + ' -> $' + (l.caseCost / 100).toFixed(2); if (Math.abs(pct) >= 15) warn.push('BIG PRICE JUMP (' + (pct > 0 ? '+' : '') + pct + '%) ' + txt + '. Check it was read right.'); else out.push('PRICE CHANGE ' + txt); } });
+    lines.forEach((l) => { const pr = P[l.pid], old = s.products[l.pid] || pr, was = Math.round((old.cost || 0) * (old.per || 1)); if (l.cases > 0 && !pr.pending && was > 0 && Math.abs(was - l.caseCost) >= 1) { const pct = Math.round((l.caseCost - was) * 100 / was), txt = pr.name + ': case $' + (was / 100).toFixed(2) + ' -> $' + (l.caseCost / 100).toFixed(2); if (Math.abs(pct) >= 15) warn.push('BIG PRICE JUMP (' + (pct > 0 ? '+' : '') + pct + '%) ' + txt + '. Check it was read right.'); else out.push('PRICE CHANGE ' + txt); } if (!frito && l.cases > 0 && !pr.pending && (pr.retail || 0) > 0) { const unitC = l.caseCost / (pr.per || 1), mg = (pr.retail - unitC) / pr.retail; if (mg < 0.2) warn.push('LOW MARGIN (' + Math.round(mg * 100) + '%) ' + pr.name + ': cost $' + (unitC / 100).toFixed(2) + ' each, retail $' + (pr.retail / 100).toFixed(2) + '. Under 20%.'); } });
     const rets = retLeft, retTot = rets.reduce((t, x) => t + Number(x.amount), 0), retNote = rets.length ? 'RETURNS: ' + rets.map((x) => (x.units ? x.units + ' ' : '') + String(x.description || x.itemCode || 'item').trim() + ' -$' + Number(x.amount).toFixed(2)).join('; ') : '';
     if (retDone.length) out.push('RETURNED, taken out of stock as negative lines: ' + retDone.join('; '));
     if (retNote) warn.push(retNote + '. These could not be matched to a product, so the credit is shown as a negative External cost. Take the returned units out of stock yourself.');
@@ -1771,6 +1786,7 @@ class Component extends DCLogic {
       discard: () => this.setState({ phPics: [], phWant: 0, phReview: [], lines: [], products: cleanOrphans(s.products, [], s.invoices), txt: {}, addMsg: '', saved: null, draftId: null }),
       save: () => run(false),
       todoItems: todo, todoShow: todo.length > 0, todoInv: unsentN > 0, todoOpenInv: () => this.setState({ view: 'invoices' }),
+      todoInvRows: (s.invoices || []).filter((v) => v.status === 'saved' && !v.korSent).slice(0, 25).map((v) => { const cs = v.lines.reduce((t, l) => t + (Number(l.cases) || 0), 0); return { dist: v.dist || '(no distributor)', no: v.no, cases: cs + (cs === 1 ? ' case' : ' cases'), total: $(v.lines.reduce((t, l) => t + l.line, 0) + v.ext), go: () => this.jumpInv(v.id) }; }),
       reviewShow: (s.phReview || []).length > 0, reviewText: 'Needs review: ' + (s.phReview || []).length + ' thing' + ((s.phReview || []).length === 1 ? '' : 's') + ' to check before this invoice can be sent (see the red notes under the photo picker).', reviewDone: () => this.setState({ phReview: [] }),
       selReviewShow: !!(selInv && selInv.review && selInv.review.length), selReviewText: selInv && selInv.review ? 'Needs review: ' + selInv.review.join(' / ') : '', selReviewDone: () => { if (selInv) this.setState({ invoices: this.state.invoices.map((v) => (v.id === selInv.id ? Object.assign({}, v, { review: [] }) : v)) }); },
       sendTopLabel: (() => { const v = (s.invoices || []).find((x) => x.id === s.draftId); return v && v.korSent && v.no === String(s.inv || '').trim() ? 'Sent to KORONA \u2713' + (v.korSent.number ? ' (' + v.korSent.number + ')' : '') : 'Send to KORONA'; })(),
